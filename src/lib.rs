@@ -34,11 +34,14 @@ mod tests {
         let c = [4.0, 5.0];
         assert_eq!(pred.orient2d(a, b, c), 0.0);
     }
+
+    #[test]
     fn orient3d_test() {
         let pred = GeometryPredicates::exactinit();
         let a = [0.0, 1.0, 6.0];
         let b = [2.0, 3.0, 4.0];
         let c = [4.0, 5.0, 1.0];
-        assert_eq!(pred.orient2d(a, b, c), 0.0);
+        let d = [6.0, 2.0, 5.3];
+        assert_eq!(pred.orient3d(a, b, c, d), 10.0);
     }
 }
