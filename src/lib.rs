@@ -124,7 +124,7 @@ pub fn orient3d_fast(pa: [f64; 3], pb: [f64; 3], pc: [f64; 3], pd: [f64; 3]) -> 
 
 /// Approximate 2D incircle test. Nonrobust version of `incircle`
 #[inline(always)]
-pub fn incircle_fast(&self, pa: [f64; 2], pb: [f64; 2], pc: [f64; 2], pd: [f64; 2]) -> f64 {
+pub fn incircle_fast(pa: [f64; 2], pb: [f64; 2], pc: [f64; 2], pd: [f64; 2]) -> f64 {
     unsafe {
         predicates::incirclefast(pa.as_ptr(), pb.as_ptr(), pc.as_ptr(), pd.as_ptr())
     }
@@ -132,9 +132,9 @@ pub fn incircle_fast(&self, pa: [f64; 2], pb: [f64; 2], pc: [f64; 2], pd: [f64; 
 
 /// Approximate 3D insphere test. Nonrobust version of `insphere`
 #[inline(always)]
-pub fn insphere_fast(&self, pa: [f64; 3], pb: [f64; 3], pc: [f64; 3], pd: [f64; 3], pe: [f64; 3]) -> f64 {
+pub fn insphere_fast(pa: [f64; 3], pb: [f64; 3], pc: [f64; 3], pd: [f64; 3], pe: [f64; 3]) -> f64 {
     unsafe {
-        predicates::inspherefast(pa.as_ptr(), pb.as_ptr(), pc.as_ptr(), pd.as_ptr())
+        predicates::inspherefast(pa.as_ptr(), pb.as_ptr(), pc.as_ptr(), pd.as_ptr(), pe.as_ptr())
     }
 }
 
