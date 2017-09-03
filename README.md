@@ -14,7 +14,7 @@ used widely for computational geometry.
 
 In addition, the building blocks of these predicates, namely the adaptive precision
 floating-point arithmetic primitives are also exposed to allow for extensions to
-other predicates or exact geometric constructions.o
+other predicates or exact geometric constructions.
 
 So far, the following predicates are supported:
  - orient2d
