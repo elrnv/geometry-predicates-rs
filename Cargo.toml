@@ -3,5 +3,5 @@ name = "geometry-predicates"
 version = "0.1.0"
 authors = ["Egor Larionov <egor.larionov@gmail.com>"]
 
-[build-dependencies]
-bindgen = "0.30"
+[dev-dependencies]
+rand = "0.3"
