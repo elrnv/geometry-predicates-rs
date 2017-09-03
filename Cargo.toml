@@ -2,6 +2,19 @@
 name = "geometry-predicates"
 version = "0.1.0"
 authors = ["Egor Larionov <egor.larionov@gmail.com>"]
+license = "MIT"
+description = "..."
+
+homepage = "https://github.com/elrnv/geometry-predicates-rs"
+repository = "https://github.com/elrnv/geometry-predicates-rs"
+readme = "README.md"
+
+keywords = ["geometry", "predicate", "robust", "exact", "adaptive", "arithmetic", "determinant"]
+
+categories = ["algorithms"]
+
+[badges]
+travis-ci = { repository = "https://travis-ci.org/elrnv/geometry-predicates-rs", branch = "master" }
 
 [dev-dependencies]
 rand = "0.3"
