@@ -9,7 +9,7 @@ homepage = "https://github.com/elrnv/geometry-predicates-rs"
 repository = "https://github.com/elrnv/geometry-predicates-rs"
 readme = "README.md"
 
-keywords = ["geometry", "predicate", "robust", "exact", "adaptive", "arithmetic", "determinant"]
+keywords = ["geometry", "predicate", "robust", "exact", "arithmetic"]
 
 categories = ["algorithms"]
 
