@@ -44,7 +44,10 @@ computing the determinant of small matrices with the correct sign, regardless of
 close the matrix is to being singular.
 
 For instance to compute the determinant of a matrix `[a b; c d]` with the
-correct sign, we can invoke `orient2d([a,b], [c,d], [0,0])`.
+correct sign, we can invoke
+```
+orient2d([a,b], [c,d], [0,0])
+```
 
 For more details please refer to the [original
 webpage](https://www.cs.cmu.edu/~quake/robust.html) for these predicates.
