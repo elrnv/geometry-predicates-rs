@@ -8,7 +8,7 @@ Predicates for Computational Geometry"](https://www.cs.cmu.edu/~quake/robust.htm
 This library provides a Rust solution to efficient exact geometry predicates
 used widely for computational geometry.
 
-In addition, the building blocks of these predicats, namely the adaptive precision
+In addition, the building blocks of these predicates, namely the adaptive precision
 floating-point arithmetic primitives are also exposed to allow for extensions to
 other predicates or exact geometric constructions.o
 
@@ -44,7 +44,7 @@ computing the determinant of small matrices with the correct sign, regardless of
 close the matrix is to being singular.
 
 For instance to compute the determinant of a matrix `[a b; c d]` with the
-correct sign, we can envoke `orient2d([a,b], [c,d], [0,0])`.
+correct sign, we can invoke `orient2d([a,b], [c,d], [0,0])`.
 
 For more details please refer to the [original
 webpage](https://www.cs.cmu.edu/~quake/robust.html) for these predicates.
