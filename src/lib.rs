@@ -9,6 +9,22 @@ impl GeometryPredicates {
         GeometryPredicates(predicates::RawGeometryPredicates::exactinit())
     }
 
+    /**
+     * Adaptive exact 2D orientation test.  Robust.
+     *
+     * Return a positive value if the points `pa`, `pb`, and `pc` occur
+     * in counterclockwise order; a negative value if they occur
+     * in clockwise order; and zero if they are collinear.  The
+     * result is also a rough approximation of twice the signed
+     * area of the triangle defined by the three points.
+     *
+     * The result returned is the determinant of a matrix.
+     * This determinant is computed adaptively, in the sense that exact
+     * arithmetic is used only to the degree it is needed to ensure that the
+     * returned value has the correct sign.  Hence, `orient2d()` is usually quite
+     * fast, but will run more slowly when the input points are collinear or
+     * nearly so.
+     */
     #[inline(always)]
     pub fn orient2d(&self, pa: [f64; 2], pb: [f64; 2], pc: [f64; 2]) -> f64 {
         unsafe {
@@ -16,16 +32,81 @@ impl GeometryPredicates {
         }
     }
 
+    /**
+     * Adaptive exact 3D orientation test. Robust.
+     *
+     * Return a positive value if the point `pd` lies below the
+     * plane passing through `pa`, `pb`, and `pc`; "below" is defined so
+     * that `pa`, `pb`, and `pc` appear in counterclockwise order when
+     * viewed from above the plane.  Returns a negative value if
+     * pd lies above the plane.  Returns zero if the points are
+     * coplanar.  The result is also a rough approximation of six
+     * times the signed volume of the tetrahedron defined by the
+     * four points.
+     *
+     * The result returned is the determinant of a matrix.
+     * This determinant is computed adaptively, in the sense that exact
+     * arithmetic is used only to the degree it is needed to ensure that the
+     * returned value has the correct sign.  Hence, orient3d() is usually quite
+     * fast, but will run more slowly when the input points are coplanar or
+     * nearly so.
+     */
     #[inline(always)]
     pub fn orient3d(&self, pa: [f64; 3], pb: [f64; 3], pc: [f64; 3], pd: [f64; 3]) -> f64 {
         unsafe {
             self.0.orient3d(pa.as_ptr(), pb.as_ptr(), pc.as_ptr(), pd.as_ptr())
         }
     }
+
+    /**
+     * Adaptive exaact 2D incircle test. Robust.
+     *
+     * Return a positive value if the point `pd` lies inside the
+     * circle passing through `pa`, `pb`, and `pc`; a negative value if
+     * it lies outside; and zero if the four points are cocircular.
+     * The points `pa`, `pb`, and `pc` must be in counterclockwise
+     * order, or the sign of the result will be reversed.
+     *
+     * The result returned is the determinant of a matrix.
+     * This determinant is computed adaptively, in the sense that exact
+     * arithmetic is used only to the degree it is needed to ensure that the
+     * returned value has the correct sign.  Hence, `incircle()` is usually quite
+     * fast, but will run more slowly when the input points are cocircular or
+     * nearly so.
+     */
+    #[inline(always)]
+    pub fn incircle(&self, pa: [f64; 2], pb: [f64; 2], pc: [f64; 2], pd: [f64; 2]) -> f64 {
+        unsafe {
+            self.0.incircle(pa.as_ptr(), pb.as_ptr(), pc.as_ptr(), pd.as_ptr())
+        }
+    }
     
+    /**
+     * Adaptive exact 3D insphere test. Robust.
+     *
+     * Return a positive value if the point `pe` lies inside the
+     * sphere passing through `pa`, `pb`, `pc`, and `pd`; a negative value
+     * if it lies outside; and zero if the five points are
+     * cospherical.  The points `pa`, `pb`, `pc`, and `pd` must be ordered
+     * so that they have a positive orientation (as defined by
+     * `orient3d()`), or the sign of the result will be reversed.
+     *
+     * The result returned is the determinant of a matrix.
+     * this determinant is computed adaptively, in the sense that exact
+     * arithmetic is used only to the degree it is needed to ensure that the
+     * returned value has the correct sign.  Hence, `insphere()` is usually quite
+     * fast, but will run more slowly when the input points are cospherical or
+     * nearly so.
+     */
+    #[inline(always)]
+    pub fn insphere(&self, pa: [f64; 3], pb: [f64; 3], pc: [f64; 3], pd: [f64; 3], pe: [f64; 3]) -> f64 {
+        unsafe {
+            self.0.insphere(pa.as_ptr(), pb.as_ptr(), pc.as_ptr(), pd.as_ptr(), pe.as_ptr())
+        }
+    }
 }
 
-/// Inexact but fast oreint2d predicate. Equivalent to a floating point determinant computation.
+/// Approximate 2D orientation test. Nonrobust version of `orient2d`.
 #[inline(always)]
 pub fn orient2d_fast(pa: [f64; 2], pb: [f64; 2], pc: [f64; 2]) -> f64 {
     unsafe {
@@ -33,11 +114,27 @@ pub fn orient2d_fast(pa: [f64; 2], pb: [f64; 2], pc: [f64; 2]) -> f64 {
     }
 }
 
-/// Inexact but fast orient3d predicate. Equivalent to a floating point determinant computation.
+/// Approximate 3D orientation test. Nonrobust version of `orient3d`.
 #[inline(always)]
 pub fn orient3d_fast(pa: [f64; 3], pb: [f64; 3], pc: [f64; 3], pd: [f64; 3]) -> f64 {
     unsafe {
         predicates::orient3dfast(pa.as_ptr(), pb.as_ptr(), pc.as_ptr(), pd.as_ptr())
+    }
+}
+
+/// Approximate 2D incircle test. Nonrobust version of `incircle`
+#[inline(always)]
+pub fn incircle_fast(&self, pa: [f64; 2], pb: [f64; 2], pc: [f64; 2], pd: [f64; 2]) -> f64 {
+    unsafe {
+        predicates::incirclefast(pa.as_ptr(), pb.as_ptr(), pc.as_ptr(), pd.as_ptr())
+    }
+}
+
+/// Approximate 3D insphere test. Nonrobust version of `insphere`
+#[inline(always)]
+pub fn insphere_fast(&self, pa: [f64; 3], pb: [f64; 3], pc: [f64; 3], pd: [f64; 3], pe: [f64; 3]) -> f64 {
+    unsafe {
+        predicates::inspherefast(pa.as_ptr(), pb.as_ptr(), pc.as_ptr(), pd.as_ptr())
     }
 }
 

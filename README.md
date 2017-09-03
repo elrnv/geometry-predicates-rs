@@ -1,6 +1,10 @@
 # geometry-predicates
 
 [![Build Status](https://travis-ci.org/elrnv/geometry-predicates-rs.svg?branch=master)](https://travis-ci.org/elrnv/geometry-predicates-rs)
+[![Documentation](https://docs.rs/geometry-predicates/badge.svg)](https://docs.rs/geometry-predicates)
+[![Version](https://img.shields.io/crates/v/geometry-predicates.svg)](https://crates.io/crates/geometry-predicates)
+[![License](https://img.shields.io/crates/l/geometry-predicates.svg)](https://github.com/elrnv/geometry-predicates-rs/blob/master/LICENSE)
+[![Downloads](https://img.shields.io/crates/d/geometry-predicates.svg)](https://crates.io/crates/geometry-predicates)
 
 A Rust port of ["Adaptive Precision Floating-Point Arithmetic and Fast Robust
 Predicates for Computational Geometry"](https://www.cs.cmu.edu/~quake/robust.html) 
@@ -14,7 +18,15 @@ other predicates or exact geometric constructions.o
 
 So far, the following predicates are supported:
  - orient2d
+ - incircle
  - orient3d
+ - insphere
+
+Along with their approximate (inexact) counter parts:
+ - orient2d_fast 
+ - incircle_fast
+ - orient3d_fast
+ - insphere_fast
 
 ## Background
 
