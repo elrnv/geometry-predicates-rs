@@ -48,7 +48,7 @@ sgn(orient2d(a,c,b)) == sgn(orient2d(c,b,a))
 Mathematically (using MATLAB-style notation), predicates like `orient2d` are
 defined as
 ```
-orient2d([ax,ay],[bx by],[cx cy]) := det([ax ay 1; bx by 1; cx cy 1])
+orient2d([ax,ay], [bx,by], [cx,cy]) := det([ax ay 1; bx by 1; cx cy 1])
 ```
 
 It's easy to see that these predicates solve the problem of
