@@ -16,5 +16,8 @@ categories = ["algorithms"]
 [badges]
 travis-ci = { repository = "https://travis-ci.org/elrnv/geometry-predicates-rs", branch = "master" }
 
+[features]
+unstable = []
+
 [dev-dependencies]
 rand = "0.3"
