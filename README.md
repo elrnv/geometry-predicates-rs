@@ -66,7 +66,9 @@ webpage](https://www.cs.cmu.edu/~quake/robust.html) for these predicates.
 
 ## Acknowledgements
 
-This port was created by a C to Rust translator called
+This port was originally created by a C to Rust translator called
 [Corrode](https://github.com/jameysharp/corrode). Without it, a full Rust port
 of this library would have been a daunting task. With that I would specifically like to thank the
 authors of Corrode for providing such a useful tool.
+Version 0.2 of this crate used the [c2rust](https://c2rust.com/) crate. The same gratitude goes towards
+the developers of C2Rust.
