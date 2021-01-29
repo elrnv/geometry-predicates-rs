@@ -3,7 +3,7 @@
 A safe Rust port of ["Adaptive Precision Floating-Point Arithmetic and Fast Robust
 Predicates for Computational Geometry"](https://www.cs.cmu.edu/~quake/robust.html) 
 
-[![Build Status](https://github.com/elrnv/geometry-predicates-rs/workflows/tests/badge.svg)](https://github.com/elrnv/geometry-predicates-rs/actions)
+[![Build Status](https://github.com/elrnv/geometry-predicates-rs/workflows/Test/badge.svg)](https://github.com/elrnv/geometry-predicates-rs/actions)
 [![Documentation](https://docs.rs/geometry-predicates/badge.svg)](https://docs.rs/geometry-predicates)
 [![Version](https://img.shields.io/crates/v/geometry-predicates.svg)](https://crates.io/crates/geometry-predicates)
 [![License](https://img.shields.io/crates/l/geometry-predicates.svg)](https://github.com/elrnv/geometry-predicates-rs/blob/master/LICENSE)
