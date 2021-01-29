@@ -409,7 +409,7 @@ pub fn Two_Square(a1: f64, a0: f64) -> [f64; 6] {
 /*  will h.)                                                                 */
 /*                                                                           */
 /* ****************************************************************************/
-
+#[inline]
 pub fn grow_expansion(e: &[f64], b: f64, h: &mut [f64]) -> usize {
     let mut Q = b;
     let mut eindex = 0;
@@ -422,6 +422,7 @@ pub fn grow_expansion(e: &[f64], b: f64, h: &mut [f64]) -> usize {
     h[eindex] = Q;
     eindex + 1
 }
+
 /* ****************************************************************************/
 /*                                                                           */
 /*  grow_expansion_zeroelim()   Add a scalar to an expansion, eliminating    */
@@ -435,7 +436,7 @@ pub fn grow_expansion(e: &[f64], b: f64, h: &mut [f64]) -> usize {
 /*  will h.)                                                                 */
 /*                                                                           */
 /* ****************************************************************************/
-
+#[inline]
 pub fn grow_expansion_zeroelim(e: &[f64], b: f64, h: &mut [f64]) -> usize {
     let mut hindex = 0;
     let mut Q = b;

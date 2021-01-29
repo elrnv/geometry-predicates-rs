@@ -1,6 +1,6 @@
 # geometry-predicates
 
-A Rust port of ["Adaptive Precision Floating-Point Arithmetic and Fast Robust
+A safe Rust port of ["Adaptive Precision Floating-Point Arithmetic and Fast Robust
 Predicates for Computational Geometry"](https://www.cs.cmu.edu/~quake/robust.html) 
 
 [![Build Status](https://travis-ci.org/elrnv/geometry-predicates-rs.svg?branch=master)](https://travis-ci.org/elrnv/geometry-predicates-rs)
@@ -16,13 +16,13 @@ In addition, the building blocks of these predicates, namely the adaptive precis
 floating-point arithmetic primitives are also exposed to allow for extensions to
 other predicates or exact geometric constructions.
 
-So far, the following predicates are supported:
+The following predicates are exposed at the root level:
  - orient2d
  - incircle
  - orient3d
  - insphere
 
-Along with their approximate (inexact) counter parts:
+Along with their approximate (inexact) counterparts:
  - orient2d_fast 
  - incircle_fast
  - orient3d_fast
