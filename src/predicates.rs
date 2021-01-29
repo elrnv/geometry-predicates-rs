@@ -107,10 +107,14 @@ fn exactinit() -> PredicateParams {
         /*   rounding.  Not that this library will work on such machines anyway. */
         lastcheck = check;
         epsilon *= half;
-        if every_other != 0 { splitter *= 2.0f64 }
+        if every_other != 0 {
+            splitter *= 2.0f64
+        }
         every_other = (every_other == 0) as i32;
         check = 1.0f64 + epsilon;
-        if !(check != 1.0f64 && check != lastcheck) { break ; }
+        if !(check != 1.0f64 && check != lastcheck) {
+            break;
+        }
     }
     splitter += 1.0f64;
     PredicateParams {
@@ -298,30 +302,75 @@ pub fn Four_Two_Sum(a3: f64, a2: f64, a1: f64, a0: f64, b1: f64, b0: f64) -> [f6
 }
 
 #[inline]
-pub fn Four_Four_Sum(a3: f64, a2: f64, a1: f64, a0: f64, b4: f64, b3: f64, b1: f64, b0: f64) -> [f64; 8] {
+pub fn Four_Four_Sum(
+    a3: f64,
+    a2: f64,
+    a1: f64,
+    a0: f64,
+    b4: f64,
+    b3: f64,
+    b1: f64,
+    b0: f64,
+) -> [f64; 8] {
     let [x0, x1, _0, _1, _2, _l] = Four_Two_Sum(a3, a2, a1, a0, b1, b0);
     let [x2, x3, x4, x5, x6, x7] = Four_Two_Sum(_l, _2, _1, _0, b4, b3);
     [x7, x6, x5, x4, x3, x2, x1, x0]
 }
 
 #[inline]
-pub fn Eight_One_Sum(a7: f64, a6: f64, a5: f64, a4: f64, a3: f64, a2: f64, a1: f64, a0: f64, b: f64) -> [f64; 9] {
+pub fn Eight_One_Sum(
+    a7: f64,
+    a6: f64,
+    a5: f64,
+    a4: f64,
+    a3: f64,
+    a2: f64,
+    a1: f64,
+    a0: f64,
+    b: f64,
+) -> [f64; 9] {
     let [x0, x1, x2, x3, _j] = Four_One_Sum(a3, a2, a1, a0, b);
     let [x4, x5, x6, x7, x8] = Four_One_Sum(a7, a6, a5, a4, _j);
     [x0, x1, x2, x3, x4, x5, x6, x7, x8]
 }
 
 #[inline]
-pub fn Eight_Two_Sum(a7: f64, a6: f64, a5: f64, a4: f64, a3: f64, a2: f64, a1: f64, a0: f64, b1: f64, b0: f64) -> [f64; 10] {
+pub fn Eight_Two_Sum(
+    a7: f64,
+    a6: f64,
+    a5: f64,
+    a4: f64,
+    a3: f64,
+    a2: f64,
+    a1: f64,
+    a0: f64,
+    b1: f64,
+    b0: f64,
+) -> [f64; 10] {
     let [x0, _0, _1, _2, _3, _4, _5, _6, _k] = Eight_One_Sum(a7, a6, a5, a4, a3, a2, a1, a0, b0);
     let [x1, x2, x3, x4, x5, x6, x7, x8, x9] = Eight_One_Sum(_k, _6, _5, _4, _3, _2, _1, _0, b1);
     [x0, x1, x2, x3, x4, x5, x6, x7, x8, x9]
 }
 
 #[inline]
-pub fn Eight_Four_Sum(a7: f64, a6: f64, a5: f64, a4: f64, a3: f64, a2: f64, a1: f64, a0: f64, b4: f64, b3: f64, b1: f64, b0: f64) -> [f64; 12] {
-    let [x0, x1, _0, _1, _2, _3, _4, _5, _6, _l] = Eight_Two_Sum(a7, a6, a5, a4, a3, a2, a1, a0, b1, b0);
-    let [x2, x3, x4, x5, x6, x7, x8, x9, x10, x11] = Eight_Two_Sum(_l, _6, _5, _4, _3, _2, _1, _0, b4, b3);
+pub fn Eight_Four_Sum(
+    a7: f64,
+    a6: f64,
+    a5: f64,
+    a4: f64,
+    a3: f64,
+    a2: f64,
+    a1: f64,
+    a0: f64,
+    b4: f64,
+    b3: f64,
+    b1: f64,
+    b0: f64,
+) -> [f64; 12] {
+    let [x0, x1, _0, _1, _2, _3, _4, _5, _6, _l] =
+        Eight_Two_Sum(a7, a6, a5, a4, a3, a2, a1, a0, b1, b0);
+    let [x2, x3, x4, x5, x6, x7, x8, x9, x10, x11] =
+        Eight_Two_Sum(_l, _6, _5, _4, _3, _2, _1, _0, b4, b3);
     [x0, x1, x2, x3, x4, x5, x6, x7, x8, x9, x10, x11]
 }
 
@@ -1272,7 +1321,9 @@ pub fn orient2dadapt(pa: [f64; 2], pb: [f64; 2], pc: [f64; 2], detsum: f64) -> f
     let B = Two_Two_Diff(detleft, detlefttail, detright, detrighttail);
     let mut det = estimate(&B);
     let errbound = PARAMS.ccwerrboundB * detsum;
-    if det >= errbound || -det >= errbound { return det }
+    if det >= errbound || -det >= errbound {
+        return det;
+    }
     let acxtail = Two_Diff_Tail(pa[0], pc[0], acx);
     let bcxtail = Two_Diff_Tail(pb[0], pc[0], bcx);
     let acytail = Two_Diff_Tail(pa[1], pc[1], acy);
@@ -1282,7 +1333,9 @@ pub fn orient2dadapt(pa: [f64; 2], pb: [f64; 2], pc: [f64; 2], detsum: f64) -> f
     }
     let errbound = PARAMS.ccwerrboundC * detsum + PARAMS.resulterrbound * Absolute(det);
     det += acx * bcytail + bcy * acxtail - (acy * bcxtail + bcx * acytail);
-    if det >= errbound || -det >= errbound { return det }
+    if det >= errbound || -det >= errbound {
+        return det;
+    }
     let [s0, s1] = Two_Product(acxtail, bcy);
     let [t0, t1] = Two_Product(acytail, bcx);
     let u = Two_Two_Diff(s1, s0, t1, t0);
@@ -1491,7 +1544,13 @@ pub fn orient3d_slow(pa: [f64; 3], pb: [f64; 3], pc: [f64; 3], pd: [f64; 3]) -> 
 }
 
 #[inline]
-pub fn orient3dadapt(pa: [f64; 3], pb: [f64; 3], pc: [f64; 3], pd: [f64; 3], permanent: f64) -> f64 {
+pub fn orient3dadapt(
+    pa: [f64; 3],
+    pb: [f64; 3],
+    pc: [f64; 3],
+    pd: [f64; 3],
+    permanent: f64,
+) -> f64 {
     let adx = pa[0] - pd[0];
     let bdx = pb[0] - pd[0];
     let cdx = pc[0] - pd[0];
@@ -1540,24 +1599,25 @@ pub fn orient3dadapt(pa: [f64; 3], pb: [f64; 3], pc: [f64; 3], pd: [f64; 3], per
     let adztail = Two_Diff_Tail(pa[2], pd[2], adz);
     let bdztail = Two_Diff_Tail(pb[2], pd[2], bdz);
     let cdztail = Two_Diff_Tail(pc[2], pd[2], cdz);
-    if adxtail == 0.0 && bdxtail == 0.0 && cdxtail == 0.0 &&
-       adytail == 0.0 && bdytail == 0.0 && cdytail == 0.0 &&
-       adztail == 0.0 && bdztail == 0.0 && cdztail == 0.0 {
+    if adxtail == 0.0
+        && bdxtail == 0.0
+        && cdxtail == 0.0
+        && adytail == 0.0
+        && bdytail == 0.0
+        && cdytail == 0.0
+        && adztail == 0.0
+        && bdztail == 0.0
+        && cdztail == 0.0
+    {
         return det;
     }
     let errbound = PARAMS.o3derrboundC * permanent + PARAMS.resulterrbound * Absolute(det);
-    det +=
-        adz *
-            (bdx * cdytail + cdy * bdxtail - (bdy * cdxtail + cdx * bdytail))
-            + adztail * (bdx * cdy - bdy * cdx) +
-            (bdz *
-                 (cdx * adytail + ady * cdxtail -
-                      (cdy * adxtail + adx * cdytail)) +
-                 bdztail * (cdx * ady - cdy * adx)) +
-            (cdz *
-                 (adx * bdytail + bdy * adxtail -
-                      (ady * bdxtail + bdx * adytail)) +
-                 cdztail * (adx * bdy - ady * bdx));
+    det += adz * (bdx * cdytail + cdy * bdxtail - (bdy * cdxtail + cdx * bdytail))
+        + adztail * (bdx * cdy - bdy * cdx)
+        + (bdz * (cdx * adytail + ady * cdxtail - (cdy * adxtail + adx * cdytail))
+            + bdztail * (cdx * ady - cdy * adx))
+        + (cdz * (adx * bdytail + bdy * adxtail - (ady * bdxtail + bdx * adytail))
+            + cdztail * (adx * bdy - ady * bdx));
 
     if det >= errbound || -det >= errbound {
         return det;
@@ -1743,8 +1803,7 @@ pub fn orient3dadapt(pa: [f64; 3], pb: [f64; 3], pc: [f64; 3], pd: [f64; 3], per
             let (mut fin1, fin2) = (fin2, fin1);
             if bdztail != 0.0 {
                 let u = Two_One_Product(adxt_cdyt1, adxt_cdyt0, bdztail);
-                finlength =
-                    fast_expansion_sum_zeroelim(&fin2[..finlength], &u, &mut fin1);
+                finlength = fast_expansion_sum_zeroelim(&fin2[..finlength], &u, &mut fin1);
                 (fin2, fin1)
             } else {
                 (fin1, fin2)
@@ -1885,15 +1944,14 @@ pub fn orient3d(pa: [f64; 3], pb: [f64; 3], pc: [f64; 3], pd: [f64; 3]) -> f64 {
     let adxcdy = adx * cdy;
     let adxbdy = adx * bdy;
     let bdxady = bdx * ady;
-    let det =
-        adz * (bdxcdy - cdxbdy) + bdz * (cdxady - adxcdy) +
-            cdz * (adxbdy - bdxady);
-    let permanent =
-        (Absolute(bdxcdy) + Absolute(cdxbdy)) * Absolute(adz) +
-            (Absolute(cdxady) + Absolute(adxcdy)) * Absolute(bdz) +
-            (Absolute(adxbdy) + Absolute(bdxady)) * Absolute(cdz);
+    let det = adz * (bdxcdy - cdxbdy) + bdz * (cdxady - adxcdy) + cdz * (adxbdy - bdxady);
+    let permanent = (Absolute(bdxcdy) + Absolute(cdxbdy)) * Absolute(adz)
+        + (Absolute(cdxady) + Absolute(adxcdy)) * Absolute(bdz)
+        + (Absolute(adxbdy) + Absolute(bdxady)) * Absolute(cdz);
     let errbound = PARAMS.o3derrboundA * permanent;
-    if det > errbound || -det > errbound { return det }
+    if det > errbound || -det > errbound {
+        return det;
+    }
     orient3dadapt(pa, pb, pc, pd, permanent)
 }
 
@@ -2113,7 +2171,13 @@ pub fn incircle_slow(pa: [f64; 2], pb: [f64; 2], pc: [f64; 2], pd: [f64; 2]) -> 
 }
 
 #[inline]
-pub fn incircleadapt(pa: [f64; 2], pb: [f64; 2], pc: [f64; 2], pd: [f64; 2], permanent: f64) -> f64 {
+pub fn incircleadapt(
+    pa: [f64; 2],
+    pb: [f64; 2],
+    pc: [f64; 2],
+    pd: [f64; 2],
+    permanent: f64,
+) -> f64 {
     let mut axbc = [0.; 8];
     let mut axxbc = [0.; 16];
     let mut aybc = [0.; 8];
@@ -2201,35 +2265,37 @@ pub fn incircleadapt(pa: [f64; 2], pb: [f64; 2], pc: [f64; 2], pd: [f64; 2], per
     let mut finlength = fast_expansion_sum_zeroelim(&abdet[..ablen], &cdet[..clen], &mut fin1);
     let mut det = estimate(&fin1[..finlength]);
     let errbound = PARAMS.iccerrboundB * permanent;
-    if det >= errbound || -det >= errbound { return det }
+    if det >= errbound || -det >= errbound {
+        return det;
+    }
     let adxtail = Two_Diff_Tail(pa[0], pd[0], adx);
     let adytail = Two_Diff_Tail(pa[1], pd[1], ady);
     let bdxtail = Two_Diff_Tail(pb[0], pd[0], bdx);
     let bdytail = Two_Diff_Tail(pb[1], pd[1], bdy);
     let cdxtail = Two_Diff_Tail(pc[0], pd[0], cdx);
     let cdytail = Two_Diff_Tail(pc[1], pd[1], cdy);
-    if adxtail == 0.0 && bdxtail == 0.0 && cdxtail == 0.0 &&
-           adytail == 0.0 && bdytail == 0.0 && cdytail == 0.0 {
+    if adxtail == 0.0
+        && bdxtail == 0.0
+        && cdxtail == 0.0
+        && adytail == 0.0
+        && bdytail == 0.0
+        && cdytail == 0.0
+    {
         return det;
     }
     let errbound = PARAMS.iccerrboundC * permanent + PARAMS.resulterrbound * Absolute(det);
-    det +=
-        (adx * adx + ady * ady) *
-            (bdx * cdytail + cdy * bdxtail - (bdy * cdxtail + cdx * bdytail))
-            +
-            2.0 * (adx * adxtail + ady * adytail) * (bdx * cdy - bdy * cdx)
-            +
-            ((bdx * bdx + bdy * bdy) *
-                 (cdx * adytail + ady * cdxtail -
-                      (cdy * adxtail + adx * cdytail)) +
-                 2.0 * (bdx * bdxtail + bdy * bdytail) *
-                     (cdx * ady - cdy * adx)) +
-            ((cdx * cdx + cdy * cdy) *
-                 (adx * bdytail + bdy * adxtail -
-                      (ady * bdxtail + bdx * adytail)) +
-                 2.0 * (cdx * cdxtail + cdy * cdytail) *
-                     (adx * bdy - ady * bdx));
-    if det >= errbound || -det >= errbound { return det }
+    det += (adx * adx + ady * ady)
+        * (bdx * cdytail + cdy * bdxtail - (bdy * cdxtail + cdx * bdytail))
+        + 2.0 * (adx * adxtail + ady * adytail) * (bdx * cdy - bdy * cdx)
+        + ((bdx * bdx + bdy * bdy)
+            * (cdx * adytail + ady * cdxtail - (cdy * adxtail + adx * cdytail))
+            + 2.0 * (bdx * bdxtail + bdy * bdytail) * (cdx * ady - cdy * adx))
+        + ((cdx * cdx + cdy * cdy)
+            * (adx * bdytail + bdy * adxtail - (ady * bdxtail + bdx * adytail))
+            + 2.0 * (cdx * cdxtail + cdy * cdytail) * (adx * bdy - ady * bdx));
+    if det >= errbound || -det >= errbound {
+        return det;
+    }
     finnow = &mut fin1;
     finother = &mut fin2;
     let aa = if bdxtail != 0.0 || bdytail != 0.0 || cdxtail != 0.0 || cdytail != 0.0 {
@@ -2262,9 +2328,18 @@ pub fn incircleadapt(pa: [f64; 2], pb: [f64; 2], pc: [f64; 2], pd: [f64; 2], per
         let temp16blen = scale_expansion_zeroelim(&axtcc[..axtcclen], bdy, &mut temp16b);
         let axtbblen = scale_expansion_zeroelim(&bb, adxtail, &mut axtbb);
         let temp16clen = scale_expansion_zeroelim(&axtbb[..axtbblen], -cdy, &mut temp16c);
-        let temp32alen = fast_expansion_sum_zeroelim(&temp16a[..temp16alen], &temp16b[..temp16blen], &mut temp32a);
-        let temp48len = fast_expansion_sum_zeroelim(&temp16c[..temp16clen], &temp32a[..temp32alen], &mut temp48);
-        finlength = fast_expansion_sum_zeroelim(&finnow[..finlength], &temp48[..temp48len], finother);
+        let temp32alen = fast_expansion_sum_zeroelim(
+            &temp16a[..temp16alen],
+            &temp16b[..temp16blen],
+            &mut temp32a,
+        );
+        let temp48len = fast_expansion_sum_zeroelim(
+            &temp16c[..temp16clen],
+            &temp32a[..temp32alen],
+            &mut temp48,
+        );
+        finlength =
+            fast_expansion_sum_zeroelim(&finnow[..finlength], &temp48[..temp48len], finother);
         core::mem::swap(&mut finnow, &mut finother);
     }
     let mut aytbclen = 8;
@@ -2276,9 +2351,18 @@ pub fn incircleadapt(pa: [f64; 2], pb: [f64; 2], pc: [f64; 2], pd: [f64; 2], per
         let temp16blen = scale_expansion_zeroelim(&aytbb[..aytbblen], cdx, &mut temp16b);
         let aytcclen = scale_expansion_zeroelim(&cc, adytail, &mut aytcc);
         let temp16clen = scale_expansion_zeroelim(&aytcc[..aytcclen], -bdx, &mut temp16c);
-        let temp32alen = fast_expansion_sum_zeroelim(&temp16a[..temp16alen], &temp16b[..temp16blen], &mut temp32a);
-        let temp48len = fast_expansion_sum_zeroelim(&temp16c[..temp16clen], &temp32a[..temp32alen], &mut temp48);
-        finlength = fast_expansion_sum_zeroelim(&finnow[..finlength], &temp48[..temp48len], finother);
+        let temp32alen = fast_expansion_sum_zeroelim(
+            &temp16a[..temp16alen],
+            &temp16b[..temp16blen],
+            &mut temp32a,
+        );
+        let temp48len = fast_expansion_sum_zeroelim(
+            &temp16c[..temp16clen],
+            &temp32a[..temp32alen],
+            &mut temp48,
+        );
+        finlength =
+            fast_expansion_sum_zeroelim(&finnow[..finlength], &temp48[..temp48len], finother);
         core::mem::swap(&mut finnow, &mut finother);
     }
     let mut bxtcalen = 8;
@@ -2290,9 +2374,18 @@ pub fn incircleadapt(pa: [f64; 2], pb: [f64; 2], pc: [f64; 2], pd: [f64; 2], per
         let temp16blen = scale_expansion_zeroelim(&bxtaa[..bxtaalen], cdy, &mut temp16b);
         let bxtcclen = scale_expansion_zeroelim(&cc, bdxtail, &mut bxtcc);
         let temp16clen = scale_expansion_zeroelim(&bxtcc[..bxtcclen], -ady, &mut temp16c);
-        let temp32alen = fast_expansion_sum_zeroelim(&temp16a[..temp16alen], &temp16b[..temp16blen], &mut temp32a);
-        let temp48len = fast_expansion_sum_zeroelim(&temp16c[..temp16clen], &temp32a[..temp32alen], &mut temp48);
-        finlength = fast_expansion_sum_zeroelim(&finnow[..finlength], &temp48[..temp48len], finother);
+        let temp32alen = fast_expansion_sum_zeroelim(
+            &temp16a[..temp16alen],
+            &temp16b[..temp16blen],
+            &mut temp32a,
+        );
+        let temp48len = fast_expansion_sum_zeroelim(
+            &temp16c[..temp16clen],
+            &temp32a[..temp32alen],
+            &mut temp48,
+        );
+        finlength =
+            fast_expansion_sum_zeroelim(&finnow[..finlength], &temp48[..temp48len], finother);
         core::mem::swap(&mut finnow, &mut finother);
     }
     let mut bytcalen = 8;
@@ -2304,9 +2397,18 @@ pub fn incircleadapt(pa: [f64; 2], pb: [f64; 2], pc: [f64; 2], pd: [f64; 2], per
         let temp16blen = scale_expansion_zeroelim(&bytcc[..bytcclen], adx, &mut temp16b);
         let bytaalen = scale_expansion_zeroelim(&aa, bdytail, &mut bytaa);
         let temp16clen = scale_expansion_zeroelim(&bytaa[..bytaalen], -cdx, &mut temp16c);
-        let temp32alen = fast_expansion_sum_zeroelim(&temp16a[..temp16alen], &temp16b[..temp16blen], &mut temp32a);
-        let temp48len = fast_expansion_sum_zeroelim(&temp16c[..temp16clen], &temp32a[..temp32alen], &mut temp48);
-        finlength = fast_expansion_sum_zeroelim(&finnow[..finlength], &temp48[..temp48len], finother);
+        let temp32alen = fast_expansion_sum_zeroelim(
+            &temp16a[..temp16alen],
+            &temp16b[..temp16blen],
+            &mut temp32a,
+        );
+        let temp48len = fast_expansion_sum_zeroelim(
+            &temp16c[..temp16clen],
+            &temp32a[..temp32alen],
+            &mut temp48,
+        );
+        finlength =
+            fast_expansion_sum_zeroelim(&finnow[..finlength], &temp48[..temp48len], finother);
         core::mem::swap(&mut finnow, &mut finother);
     }
     let mut cxtablen = 8;
@@ -2318,9 +2420,18 @@ pub fn incircleadapt(pa: [f64; 2], pb: [f64; 2], pc: [f64; 2], pd: [f64; 2], per
         let temp16blen = scale_expansion_zeroelim(&cxtbb[..cxtbblen], ady, &mut temp16b);
         let cxtaalen = scale_expansion_zeroelim(&aa, cdxtail, &mut cxtaa);
         let temp16clen = scale_expansion_zeroelim(&cxtaa[..cxtaalen], -bdy, &mut temp16c);
-        let temp32alen = fast_expansion_sum_zeroelim(&temp16a[..temp16alen], &temp16b[..temp16blen], &mut temp32a);
-        let temp48len = fast_expansion_sum_zeroelim(&temp16c[..temp16clen], &temp32a[..temp32alen], &mut temp48);
-        finlength = fast_expansion_sum_zeroelim(&finnow[..finlength], &temp48[..temp48len], finother);
+        let temp32alen = fast_expansion_sum_zeroelim(
+            &temp16a[..temp16alen],
+            &temp16b[..temp16blen],
+            &mut temp32a,
+        );
+        let temp48len = fast_expansion_sum_zeroelim(
+            &temp16c[..temp16clen],
+            &temp32a[..temp32alen],
+            &mut temp48,
+        );
+        finlength =
+            fast_expansion_sum_zeroelim(&finnow[..finlength], &temp48[..temp48len], finother);
         core::mem::swap(&mut finnow, &mut finother);
     }
     let mut cytablen = 8;
@@ -2332,9 +2443,18 @@ pub fn incircleadapt(pa: [f64; 2], pb: [f64; 2], pc: [f64; 2], pd: [f64; 2], per
         let temp16blen = scale_expansion_zeroelim(&cytaa[..cytaalen], bdx, &mut temp16b);
         let cytbblen = scale_expansion_zeroelim(&bb, cdytail, &mut cytbb);
         let temp16clen = scale_expansion_zeroelim(&cytbb[..cytbblen], -adx, &mut temp16c);
-        let temp32alen = fast_expansion_sum_zeroelim(&temp16a[..temp16alen], &temp16b[..temp16blen], &mut temp32a);
-        let temp48len = fast_expansion_sum_zeroelim(&temp16c[..temp16clen], &temp32a[..temp32alen], &mut temp48);
-        finlength = fast_expansion_sum_zeroelim(&finnow[..finlength], &temp48[..temp48len], finother);
+        let temp32alen = fast_expansion_sum_zeroelim(
+            &temp16a[..temp16alen],
+            &temp16b[..temp16blen],
+            &mut temp32a,
+        );
+        let temp48len = fast_expansion_sum_zeroelim(
+            &temp16c[..temp16clen],
+            &temp32a[..temp32alen],
+            &mut temp48,
+        );
+        finlength =
+            fast_expansion_sum_zeroelim(&finnow[..finlength], &temp48[..temp48len], finother);
         core::mem::swap(&mut finnow, &mut finother);
     }
     if adxtail != 0.0 || adytail != 0.0 {
@@ -2360,45 +2480,89 @@ pub fn incircleadapt(pa: [f64; 2], pb: [f64; 2], pc: [f64; 2], pd: [f64; 2], per
         if adxtail != 0.0 {
             let temp16alen = scale_expansion_zeroelim(&axtbc[..axtbclen], adxtail, &mut temp16a);
             let axtbctlen = scale_expansion_zeroelim(&bct[..bctlen], adxtail, &mut axtbct);
-            let temp32alen = scale_expansion_zeroelim(&axtbct[..axtbctlen], 2.0 * adx, &mut temp32a);
-            let temp48len = fast_expansion_sum_zeroelim(&temp16a[..temp16alen], &temp32a[..temp32alen], &mut temp48);
-            finlength = fast_expansion_sum_zeroelim(&finnow[..finlength], &temp48[..temp48len], finother);
+            let temp32alen =
+                scale_expansion_zeroelim(&axtbct[..axtbctlen], 2.0 * adx, &mut temp32a);
+            let temp48len = fast_expansion_sum_zeroelim(
+                &temp16a[..temp16alen],
+                &temp32a[..temp32alen],
+                &mut temp48,
+            );
+            finlength =
+                fast_expansion_sum_zeroelim(&finnow[..finlength], &temp48[..temp48len], finother);
             core::mem::swap(&mut finnow, &mut finother);
             if bdytail != 0.0 {
                 let temp8len = scale_expansion_zeroelim(&cc, adxtail, &mut temp8);
-                let temp16alen = scale_expansion_zeroelim(&temp8[..temp8len], bdytail, &mut temp16a);
-                finlength = fast_expansion_sum_zeroelim(&finnow[..finlength], &temp16a[..temp16alen], finother);
+                let temp16alen =
+                    scale_expansion_zeroelim(&temp8[..temp8len], bdytail, &mut temp16a);
+                finlength = fast_expansion_sum_zeroelim(
+                    &finnow[..finlength],
+                    &temp16a[..temp16alen],
+                    finother,
+                );
                 core::mem::swap(&mut finnow, &mut finother);
             }
             if cdytail != 0.0 {
                 let temp8len = scale_expansion_zeroelim(&bb, -adxtail, &mut temp8);
-                let temp16alen = scale_expansion_zeroelim(&temp8[..temp8len], cdytail, &mut temp16a);
-                finlength = fast_expansion_sum_zeroelim(&finnow[..finlength], &temp16a[..temp16alen], finother);
+                let temp16alen =
+                    scale_expansion_zeroelim(&temp8[..temp8len], cdytail, &mut temp16a);
+                finlength = fast_expansion_sum_zeroelim(
+                    &finnow[..finlength],
+                    &temp16a[..temp16alen],
+                    finother,
+                );
                 core::mem::swap(&mut finnow, &mut finother);
             }
             let temp32alen = scale_expansion_zeroelim(&axtbct[..axtbctlen], adxtail, &mut temp32a);
             let axtbcttlen = scale_expansion_zeroelim(&bctt[..bcttlen], adxtail, &mut axtbctt);
-            let temp16alen = scale_expansion_zeroelim(&axtbctt[..axtbcttlen], 2.0 * adx, &mut temp16a);
-            let temp16blen = scale_expansion_zeroelim(&axtbctt[..axtbcttlen], adxtail, &mut temp16b);
-            let temp32blen = fast_expansion_sum_zeroelim(&temp16a[..temp16alen], &temp16b[..temp16blen], &mut temp32b);
-            let temp64len = fast_expansion_sum_zeroelim(&temp32a[..temp32alen], &temp32b[..temp32blen], &mut temp64);
-            finlength = fast_expansion_sum_zeroelim(&finnow[..finlength], &temp64[..temp64len], finother);
+            let temp16alen =
+                scale_expansion_zeroelim(&axtbctt[..axtbcttlen], 2.0 * adx, &mut temp16a);
+            let temp16blen =
+                scale_expansion_zeroelim(&axtbctt[..axtbcttlen], adxtail, &mut temp16b);
+            let temp32blen = fast_expansion_sum_zeroelim(
+                &temp16a[..temp16alen],
+                &temp16b[..temp16blen],
+                &mut temp32b,
+            );
+            let temp64len = fast_expansion_sum_zeroelim(
+                &temp32a[..temp32alen],
+                &temp32b[..temp32blen],
+                &mut temp64,
+            );
+            finlength =
+                fast_expansion_sum_zeroelim(&finnow[..finlength], &temp64[..temp64len], finother);
             core::mem::swap(&mut finnow, &mut finother);
         }
         if adytail != 0.0 {
             let temp16alen = scale_expansion_zeroelim(&aytbc[..aytbclen], adytail, &mut temp16a);
             let aytbctlen = scale_expansion_zeroelim(&bct[..bctlen], adytail, &mut aytbct);
-            let temp32alen = scale_expansion_zeroelim(&aytbct[..aytbctlen], 2.0 * ady, &mut temp32a);
-            let temp48len = fast_expansion_sum_zeroelim(&temp16a[..temp16alen], &temp32a[..temp32alen], &mut temp48);
-            finlength = fast_expansion_sum_zeroelim(&finnow[..finlength], &temp48[..temp48len], finother);
+            let temp32alen =
+                scale_expansion_zeroelim(&aytbct[..aytbctlen], 2.0 * ady, &mut temp32a);
+            let temp48len = fast_expansion_sum_zeroelim(
+                &temp16a[..temp16alen],
+                &temp32a[..temp32alen],
+                &mut temp48,
+            );
+            finlength =
+                fast_expansion_sum_zeroelim(&finnow[..finlength], &temp48[..temp48len], finother);
             core::mem::swap(&mut finnow, &mut finother);
             let temp32alen = scale_expansion_zeroelim(&aytbct[..aytbctlen], adytail, &mut temp32a);
             let aytbcttlen = scale_expansion_zeroelim(&bctt[..bcttlen], adytail, &mut aytbctt);
-            let temp16alen = scale_expansion_zeroelim(&aytbctt[..aytbcttlen], 2.0 * ady, &mut temp16a);
-            let temp16blen = scale_expansion_zeroelim(&aytbctt[..aytbcttlen], adytail, &mut temp16b);
-            let temp32blen = fast_expansion_sum_zeroelim(&temp16a[..temp16alen], &temp16b[..temp16blen], &mut temp32b);
-            let temp64len = fast_expansion_sum_zeroelim(&temp32a[..temp32alen], &temp32b[..temp32blen], &mut temp64);
-            finlength = fast_expansion_sum_zeroelim(&finnow[..finlength], &temp64[..temp64len], finother);
+            let temp16alen =
+                scale_expansion_zeroelim(&aytbctt[..aytbcttlen], 2.0 * ady, &mut temp16a);
+            let temp16blen =
+                scale_expansion_zeroelim(&aytbctt[..aytbcttlen], adytail, &mut temp16b);
+            let temp32blen = fast_expansion_sum_zeroelim(
+                &temp16a[..temp16alen],
+                &temp16b[..temp16blen],
+                &mut temp32b,
+            );
+            let temp64len = fast_expansion_sum_zeroelim(
+                &temp32a[..temp32alen],
+                &temp32b[..temp32blen],
+                &mut temp64,
+            );
+            finlength =
+                fast_expansion_sum_zeroelim(&finnow[..finlength], &temp64[..temp64len], finother);
             core::mem::swap(&mut finnow, &mut finother);
         }
     }
@@ -2425,45 +2589,89 @@ pub fn incircleadapt(pa: [f64; 2], pb: [f64; 2], pc: [f64; 2], pd: [f64; 2], per
         if bdxtail != 0.0 {
             let temp16alen = scale_expansion_zeroelim(&bxtca[..bxtcalen], bdxtail, &mut temp16a);
             let bxtcatlen = scale_expansion_zeroelim(&cat[..catlen], bdxtail, &mut bxtcat);
-            let temp32alen = scale_expansion_zeroelim(&bxtcat[..bxtcatlen], 2.0 * bdx, &mut temp32a);
-            let temp48len = fast_expansion_sum_zeroelim(&temp16a[..temp16alen], &temp32a[..temp32alen], &mut temp48);
-            finlength = fast_expansion_sum_zeroelim(&finnow[..finlength], &temp48[..temp48len], finother);
+            let temp32alen =
+                scale_expansion_zeroelim(&bxtcat[..bxtcatlen], 2.0 * bdx, &mut temp32a);
+            let temp48len = fast_expansion_sum_zeroelim(
+                &temp16a[..temp16alen],
+                &temp32a[..temp32alen],
+                &mut temp48,
+            );
+            finlength =
+                fast_expansion_sum_zeroelim(&finnow[..finlength], &temp48[..temp48len], finother);
             core::mem::swap(&mut finnow, &mut finother);
             if cdytail != 0.0 {
                 let temp8len = scale_expansion_zeroelim(&aa, bdxtail, &mut temp8);
-                let temp16alen = scale_expansion_zeroelim(&temp8[..temp8len], cdytail, &mut temp16a);
-                finlength = fast_expansion_sum_zeroelim(&finnow[..finlength], &temp16a[..temp16alen], finother);
+                let temp16alen =
+                    scale_expansion_zeroelim(&temp8[..temp8len], cdytail, &mut temp16a);
+                finlength = fast_expansion_sum_zeroelim(
+                    &finnow[..finlength],
+                    &temp16a[..temp16alen],
+                    finother,
+                );
                 core::mem::swap(&mut finnow, &mut finother);
             }
             if adytail != 0.0 {
                 let temp8len = scale_expansion_zeroelim(&cc, -bdxtail, &mut temp8);
-                let temp16alen = scale_expansion_zeroelim(&temp8[..temp8len], adytail, &mut temp16a);
-                finlength = fast_expansion_sum_zeroelim(&finnow[..finlength], &temp16a[..temp16alen], finother);
+                let temp16alen =
+                    scale_expansion_zeroelim(&temp8[..temp8len], adytail, &mut temp16a);
+                finlength = fast_expansion_sum_zeroelim(
+                    &finnow[..finlength],
+                    &temp16a[..temp16alen],
+                    finother,
+                );
                 core::mem::swap(&mut finnow, &mut finother);
             }
             let temp32alen = scale_expansion_zeroelim(&bxtcat[..bxtcatlen], bdxtail, &mut temp32a);
             let bxtcattlen = scale_expansion_zeroelim(&catt[..cattlen], bdxtail, &mut bxtcatt);
-            let temp16alen = scale_expansion_zeroelim(&bxtcatt[..bxtcattlen], 2.0 * bdx, &mut temp16a);
-            let temp16blen = scale_expansion_zeroelim(&bxtcatt[..bxtcattlen], bdxtail, &mut temp16b);
-            let temp32blen = fast_expansion_sum_zeroelim(&temp16a[..temp16alen], &temp16b[..temp16blen], &mut temp32b);
-            let temp64len = fast_expansion_sum_zeroelim(&temp32a[..temp32alen], &temp32b[..temp32blen], &mut temp64);
-            finlength = fast_expansion_sum_zeroelim(&finnow[..finlength], &temp64[..temp64len], finother);
+            let temp16alen =
+                scale_expansion_zeroelim(&bxtcatt[..bxtcattlen], 2.0 * bdx, &mut temp16a);
+            let temp16blen =
+                scale_expansion_zeroelim(&bxtcatt[..bxtcattlen], bdxtail, &mut temp16b);
+            let temp32blen = fast_expansion_sum_zeroelim(
+                &temp16a[..temp16alen],
+                &temp16b[..temp16blen],
+                &mut temp32b,
+            );
+            let temp64len = fast_expansion_sum_zeroelim(
+                &temp32a[..temp32alen],
+                &temp32b[..temp32blen],
+                &mut temp64,
+            );
+            finlength =
+                fast_expansion_sum_zeroelim(&finnow[..finlength], &temp64[..temp64len], finother);
             core::mem::swap(&mut finnow, &mut finother);
         }
         if bdytail != 0.0 {
             let temp16alen = scale_expansion_zeroelim(&bytca[..bytcalen], bdytail, &mut temp16a);
             let bytcatlen = scale_expansion_zeroelim(&cat[..catlen], bdytail, &mut bytcat);
-            let temp32alen = scale_expansion_zeroelim(&bytcat[..bytcatlen], 2.0 * bdy, &mut temp32a);
-            let temp48len = fast_expansion_sum_zeroelim(&temp16a[..temp16alen], &temp32a[..temp32alen], &mut temp48);
-            finlength = fast_expansion_sum_zeroelim(&finnow[..finlength], &temp48[..temp48len], finother);
+            let temp32alen =
+                scale_expansion_zeroelim(&bytcat[..bytcatlen], 2.0 * bdy, &mut temp32a);
+            let temp48len = fast_expansion_sum_zeroelim(
+                &temp16a[..temp16alen],
+                &temp32a[..temp32alen],
+                &mut temp48,
+            );
+            finlength =
+                fast_expansion_sum_zeroelim(&finnow[..finlength], &temp48[..temp48len], finother);
             core::mem::swap(&mut finnow, &mut finother);
             let temp32alen = scale_expansion_zeroelim(&bytcat[..bytcatlen], bdytail, &mut temp32a);
             let bytcattlen = scale_expansion_zeroelim(&catt[..cattlen], bdytail, &mut bytcatt);
-            let temp16alen = scale_expansion_zeroelim(&bytcatt[..bytcattlen], 2.0 * bdy, &mut temp16a);
-            let temp16blen = scale_expansion_zeroelim(&bytcatt[..bytcattlen], bdytail, &mut temp16b);
-            let temp32blen = fast_expansion_sum_zeroelim(&temp16a[..temp16alen], &temp16b[..temp16blen], &mut temp32b);
-            let temp64len = fast_expansion_sum_zeroelim(&temp32a[..temp32alen], &temp32b[..temp32blen], &mut temp64);
-            finlength = fast_expansion_sum_zeroelim(&finnow[..finlength], &temp64[..temp64len], finother);
+            let temp16alen =
+                scale_expansion_zeroelim(&bytcatt[..bytcattlen], 2.0 * bdy, &mut temp16a);
+            let temp16blen =
+                scale_expansion_zeroelim(&bytcatt[..bytcattlen], bdytail, &mut temp16b);
+            let temp32blen = fast_expansion_sum_zeroelim(
+                &temp16a[..temp16alen],
+                &temp16b[..temp16blen],
+                &mut temp32b,
+            );
+            let temp64len = fast_expansion_sum_zeroelim(
+                &temp32a[..temp32alen],
+                &temp32b[..temp32blen],
+                &mut temp64,
+            );
+            finlength =
+                fast_expansion_sum_zeroelim(&finnow[..finlength], &temp64[..temp64len], finother);
             core::mem::swap(&mut finnow, &mut finother);
         }
     }
@@ -2490,45 +2698,89 @@ pub fn incircleadapt(pa: [f64; 2], pb: [f64; 2], pc: [f64; 2], pd: [f64; 2], per
         if cdxtail != 0.0 {
             let temp16alen = scale_expansion_zeroelim(&cxtab[..cxtablen], cdxtail, &mut temp16a);
             let cxtabtlen = scale_expansion_zeroelim(&abt[..abtlen], cdxtail, &mut cxtabt);
-            let temp32alen = scale_expansion_zeroelim(&cxtabt[..cxtabtlen], 2.0 * cdx, &mut temp32a);
-            let temp48len = fast_expansion_sum_zeroelim(&temp16a[..temp16alen], &temp32a[..temp32alen], &mut temp48);
-            finlength = fast_expansion_sum_zeroelim(&finnow[..finlength], &temp48[..temp48len], finother);
+            let temp32alen =
+                scale_expansion_zeroelim(&cxtabt[..cxtabtlen], 2.0 * cdx, &mut temp32a);
+            let temp48len = fast_expansion_sum_zeroelim(
+                &temp16a[..temp16alen],
+                &temp32a[..temp32alen],
+                &mut temp48,
+            );
+            finlength =
+                fast_expansion_sum_zeroelim(&finnow[..finlength], &temp48[..temp48len], finother);
             core::mem::swap(&mut finnow, &mut finother);
             if adytail != 0.0 {
                 let temp8len = scale_expansion_zeroelim(&bb, cdxtail, &mut temp8);
-                let temp16alen = scale_expansion_zeroelim(&temp8[..temp8len], adytail, &mut temp16a);
-                finlength = fast_expansion_sum_zeroelim(&finnow[..finlength], &temp16a[..temp16alen], finother);
+                let temp16alen =
+                    scale_expansion_zeroelim(&temp8[..temp8len], adytail, &mut temp16a);
+                finlength = fast_expansion_sum_zeroelim(
+                    &finnow[..finlength],
+                    &temp16a[..temp16alen],
+                    finother,
+                );
                 core::mem::swap(&mut finnow, &mut finother);
             }
             if bdytail != 0.0 {
                 let temp8len = scale_expansion_zeroelim(&aa, -cdxtail, &mut temp8);
-                let temp16alen = scale_expansion_zeroelim(&temp8[..temp8len], bdytail, &mut temp16a);
-                finlength = fast_expansion_sum_zeroelim(&finnow[..finlength], &temp16a[..temp16alen], finother);
+                let temp16alen =
+                    scale_expansion_zeroelim(&temp8[..temp8len], bdytail, &mut temp16a);
+                finlength = fast_expansion_sum_zeroelim(
+                    &finnow[..finlength],
+                    &temp16a[..temp16alen],
+                    finother,
+                );
                 core::mem::swap(&mut finnow, &mut finother);
             }
             let temp32alen = scale_expansion_zeroelim(&cxtabt[..cxtabtlen], cdxtail, &mut temp32a);
             let cxtabttlen = scale_expansion_zeroelim(&abtt[..abttlen], cdxtail, &mut cxtabtt);
-            let temp16alen = scale_expansion_zeroelim(&cxtabtt[..cxtabttlen], 2.0 * cdx, &mut temp16a);
-            let temp16blen = scale_expansion_zeroelim(&cxtabtt[..cxtabttlen], cdxtail, &mut temp16b);
-            let temp32blen = fast_expansion_sum_zeroelim(&temp16a[..temp16alen], &temp16b[..temp16blen], &mut temp32b);
-            let temp64len = fast_expansion_sum_zeroelim(&temp32a[..temp32alen], &temp32b[..temp32blen], &mut temp64);
-            finlength = fast_expansion_sum_zeroelim(&finnow[..finlength], &temp64[..temp64len], finother);
+            let temp16alen =
+                scale_expansion_zeroelim(&cxtabtt[..cxtabttlen], 2.0 * cdx, &mut temp16a);
+            let temp16blen =
+                scale_expansion_zeroelim(&cxtabtt[..cxtabttlen], cdxtail, &mut temp16b);
+            let temp32blen = fast_expansion_sum_zeroelim(
+                &temp16a[..temp16alen],
+                &temp16b[..temp16blen],
+                &mut temp32b,
+            );
+            let temp64len = fast_expansion_sum_zeroelim(
+                &temp32a[..temp32alen],
+                &temp32b[..temp32blen],
+                &mut temp64,
+            );
+            finlength =
+                fast_expansion_sum_zeroelim(&finnow[..finlength], &temp64[..temp64len], finother);
             core::mem::swap(&mut finnow, &mut finother);
         }
         if cdytail != 0.0 {
             let temp16alen = scale_expansion_zeroelim(&cytab[..cytablen], cdytail, &mut temp16a);
             let cytabtlen = scale_expansion_zeroelim(&abt[..abtlen], cdytail, &mut cytabt);
-            let temp32alen = scale_expansion_zeroelim(&cytabt[..cytabtlen], 2.0 * cdy, &mut temp32a);
-            let temp48len = fast_expansion_sum_zeroelim(&temp16a[..temp16alen], &temp32a[..temp32alen], &mut temp48);
-            finlength = fast_expansion_sum_zeroelim(&finnow[..finlength], &temp48[..temp48len], finother);
+            let temp32alen =
+                scale_expansion_zeroelim(&cytabt[..cytabtlen], 2.0 * cdy, &mut temp32a);
+            let temp48len = fast_expansion_sum_zeroelim(
+                &temp16a[..temp16alen],
+                &temp32a[..temp32alen],
+                &mut temp48,
+            );
+            finlength =
+                fast_expansion_sum_zeroelim(&finnow[..finlength], &temp48[..temp48len], finother);
             core::mem::swap(&mut finnow, &mut finother);
             let temp32alen = scale_expansion_zeroelim(&cytabt[..cytabtlen], cdytail, &mut temp32a);
             let cytabttlen = scale_expansion_zeroelim(&abtt[..abttlen], cdytail, &mut cytabtt);
-            let temp16alen = scale_expansion_zeroelim(&cytabtt[..cytabttlen], 2.0 * cdy, &mut temp16a);
-            let temp16blen = scale_expansion_zeroelim(&cytabtt[..cytabttlen], cdytail, &mut temp16b);
-            let temp32blen = fast_expansion_sum_zeroelim(&temp16a[..temp16alen], &temp16b[..temp16blen], &mut temp32b);
-            let temp64len = fast_expansion_sum_zeroelim(&temp32a[..temp32alen], &temp32b[..temp32blen], &mut temp64);
-            finlength = fast_expansion_sum_zeroelim(&finnow[..finlength], &temp64[..temp64len], finother);
+            let temp16alen =
+                scale_expansion_zeroelim(&cytabtt[..cytabttlen], 2.0 * cdy, &mut temp16a);
+            let temp16blen =
+                scale_expansion_zeroelim(&cytabtt[..cytabttlen], cdytail, &mut temp16b);
+            let temp32blen = fast_expansion_sum_zeroelim(
+                &temp16a[..temp16alen],
+                &temp16b[..temp16blen],
+                &mut temp32b,
+            );
+            let temp64len = fast_expansion_sum_zeroelim(
+                &temp32a[..temp32alen],
+                &temp32b[..temp32blen],
+                &mut temp64,
+            );
+            finlength =
+                fast_expansion_sum_zeroelim(&finnow[..finlength], &temp64[..temp64len], finother);
             core::mem::swap(&mut finnow, &mut finother);
         }
     }
@@ -2568,15 +2820,14 @@ pub fn incircle(pa: [f64; 2], pb: [f64; 2], pc: [f64; 2], pd: [f64; 2]) -> f64 {
     let adxbdy = adx * bdy;
     let bdxady = bdx * ady;
     let clift = cdx * cdx + cdy * cdy;
-    let det =
-        alift * (bdxcdy - cdxbdy) + blift * (cdxady - adxcdy) +
-            clift * (adxbdy - bdxady);
-    let permanent =
-        (Absolute(bdxcdy) + Absolute(cdxbdy)) * alift +
-            (Absolute(cdxady) + Absolute(adxcdy)) * blift +
-            (Absolute(adxbdy) + Absolute(bdxady)) * clift;
+    let det = alift * (bdxcdy - cdxbdy) + blift * (cdxady - adxcdy) + clift * (adxbdy - bdxady);
+    let permanent = (Absolute(bdxcdy) + Absolute(cdxbdy)) * alift
+        + (Absolute(cdxady) + Absolute(adxcdy)) * blift
+        + (Absolute(adxbdy) + Absolute(bdxady)) * clift;
     let errbound = PARAMS.iccerrboundA * permanent;
-    if det > errbound || -det > errbound { return det }
+    if det > errbound || -det > errbound {
+        return det;
+    }
     incircleadapt(pa, pb, pc, pd, permanent)
 }
 
@@ -2706,58 +2957,69 @@ pub fn insphere_exact(pa: [f64; 3], pb: [f64; 3], pc: [f64; 3], pd: [f64; 3], pe
     let eb = Two_Two_Diff(exby1, exby0, bxey1, bxey0);
     let temp8alen = scale_expansion_zeroelim(&bc, pa[2], &mut temp8a);
     let temp8blen = scale_expansion_zeroelim(&ac, -pb[2], &mut temp8b);
-    let temp16len = fast_expansion_sum_zeroelim(&temp8a[..temp8alen], &temp8b[..temp8blen], &mut temp16);
+    let temp16len =
+        fast_expansion_sum_zeroelim(&temp8a[..temp8alen], &temp8b[..temp8blen], &mut temp16);
     let temp8alen = scale_expansion_zeroelim(&ab, pc[2], &mut temp8a);
     let abclen = fast_expansion_sum_zeroelim(&temp8a[..temp8alen], &temp16[..temp16len], &mut abc);
     let temp8alen = scale_expansion_zeroelim(&cd, pb[2], &mut temp8a);
     let temp8blen = scale_expansion_zeroelim(&bd, -pc[2], &mut temp8b);
-    let temp16len = fast_expansion_sum_zeroelim(&temp8a[..temp8alen], &temp8b[..temp8blen], &mut temp16);
+    let temp16len =
+        fast_expansion_sum_zeroelim(&temp8a[..temp8alen], &temp8b[..temp8blen], &mut temp16);
     let temp8alen = scale_expansion_zeroelim(&bc, pd[2], &mut temp8a);
     let bcdlen = fast_expansion_sum_zeroelim(&temp8a[..temp8alen], &temp16[..temp16len], &mut bcd);
     let temp8alen = scale_expansion_zeroelim(&de, pc[2], &mut temp8a);
     let temp8blen = scale_expansion_zeroelim(&ce, -pd[2], &mut temp8b);
-    let temp16len = fast_expansion_sum_zeroelim(&temp8a[..temp8alen], &temp8b[..temp8blen], &mut temp16);
+    let temp16len =
+        fast_expansion_sum_zeroelim(&temp8a[..temp8alen], &temp8b[..temp8blen], &mut temp16);
     let temp8alen = scale_expansion_zeroelim(&cd, pe[2], &mut temp8a);
     let cdelen = fast_expansion_sum_zeroelim(&temp8a[..temp8alen], &temp16[..temp16len], &mut cde);
     let temp8alen = scale_expansion_zeroelim(&ea, pd[2], &mut temp8a);
     let temp8blen = scale_expansion_zeroelim(&da, -pe[2], &mut temp8b);
-    let temp16len = fast_expansion_sum_zeroelim(&temp8a[..temp8alen], &temp8b[..temp8blen], &mut temp16);
+    let temp16len =
+        fast_expansion_sum_zeroelim(&temp8a[..temp8alen], &temp8b[..temp8blen], &mut temp16);
     let temp8alen = scale_expansion_zeroelim(&de, pa[2], &mut temp8a);
     let dealen = fast_expansion_sum_zeroelim(&temp8a[..temp8alen], &temp16[..temp16len], &mut dea);
     let temp8alen = scale_expansion_zeroelim(&ab, pe[2], &mut temp8a);
     let temp8blen = scale_expansion_zeroelim(&eb, -pa[2], &mut temp8b);
-    let temp16len = fast_expansion_sum_zeroelim(&temp8a[..temp8alen], &temp8b[..temp8blen], &mut temp16);
+    let temp16len =
+        fast_expansion_sum_zeroelim(&temp8a[..temp8alen], &temp8b[..temp8blen], &mut temp16);
     let temp8alen = scale_expansion_zeroelim(&ea, pb[2], &mut temp8a);
     let eablen = fast_expansion_sum_zeroelim(&temp8a[..temp8alen], &temp16[..temp16len], &mut eab);
     let temp8alen = scale_expansion_zeroelim(&bd, pa[2], &mut temp8a);
     let temp8blen = scale_expansion_zeroelim(&da, pb[2], &mut temp8b);
-    let temp16len = fast_expansion_sum_zeroelim(&temp8a[..temp8alen], &temp8b[..temp8blen], &mut temp16);
+    let temp16len =
+        fast_expansion_sum_zeroelim(&temp8a[..temp8alen], &temp8b[..temp8blen], &mut temp16);
     let temp8alen = scale_expansion_zeroelim(&ab, pd[2], &mut temp8a);
     let abdlen = fast_expansion_sum_zeroelim(&temp8a[..temp8alen], &temp16[..temp16len], &mut abd);
     let temp8alen = scale_expansion_zeroelim(&ce, pb[2], &mut temp8a);
     let temp8blen = scale_expansion_zeroelim(&eb, pc[2], &mut temp8b);
-    let temp16len = fast_expansion_sum_zeroelim(&temp8a[..temp8alen], &temp8b[..temp8blen], &mut temp16);
+    let temp16len =
+        fast_expansion_sum_zeroelim(&temp8a[..temp8alen], &temp8b[..temp8blen], &mut temp16);
     let temp8alen = scale_expansion_zeroelim(&bc, pe[2], &mut temp8a);
     let bcelen = fast_expansion_sum_zeroelim(&temp8a[..temp8alen], &temp16[..temp16len], &mut bce);
     let temp8alen = scale_expansion_zeroelim(&da, pc[2], &mut temp8a);
     let temp8blen = scale_expansion_zeroelim(&ac, pd[2], &mut temp8b);
-    let temp16len = fast_expansion_sum_zeroelim(&temp8a[..temp8alen], &temp8b[..temp8blen], &mut temp16);
+    let temp16len =
+        fast_expansion_sum_zeroelim(&temp8a[..temp8alen], &temp8b[..temp8blen], &mut temp16);
     let temp8alen = scale_expansion_zeroelim(&cd, pa[2], &mut temp8a);
     let cdalen = fast_expansion_sum_zeroelim(&temp8a[..temp8alen], &temp16[..temp16len], &mut cda);
     let temp8alen = scale_expansion_zeroelim(&eb, pd[2], &mut temp8a);
     let temp8blen = scale_expansion_zeroelim(&bd, pe[2], &mut temp8b);
-    let temp16len = fast_expansion_sum_zeroelim(&temp8a[..temp8alen], &temp8b[..temp8blen], &mut temp16);
+    let temp16len =
+        fast_expansion_sum_zeroelim(&temp8a[..temp8alen], &temp8b[..temp8blen], &mut temp16);
     let temp8alen = scale_expansion_zeroelim(&de, pb[2], &mut temp8a);
     let deblen = fast_expansion_sum_zeroelim(&temp8a[..temp8alen], &temp16[..temp16len], &mut deb);
     let temp8alen = scale_expansion_zeroelim(&ac, pe[2], &mut temp8a);
     let temp8blen = scale_expansion_zeroelim(&ce, pa[2], &mut temp8b);
-    let temp16len = fast_expansion_sum_zeroelim(&temp8a[..temp8alen], &temp8b[..temp8blen], &mut temp16);
+    let temp16len =
+        fast_expansion_sum_zeroelim(&temp8a[..temp8alen], &temp8b[..temp8blen], &mut temp16);
     let temp8alen = scale_expansion_zeroelim(&ea, pc[2], &mut temp8a);
     let eaclen = fast_expansion_sum_zeroelim(&temp8a[..temp8alen], &temp16[..temp16len], &mut eac);
     let temp48alen = fast_expansion_sum_zeroelim(&cde[..cdelen], &bce[..bcelen], &mut temp48a);
     let temp48blen = fast_expansion_sum_zeroelim(&deb[..deblen], &bcd[..bcdlen], &mut temp48b);
     temp48b[..temp48blen].iter_mut().for_each(|x| *x = -*x);
-    let bcdelen = fast_expansion_sum_zeroelim(&temp48a[..temp48alen], &temp48b[..temp48blen], &mut bcde);
+    let bcdelen =
+        fast_expansion_sum_zeroelim(&temp48a[..temp48alen], &temp48b[..temp48blen], &mut bcde);
     let xlen = scale_expansion_zeroelim(&bcde[..bcdelen], pa[0], &mut temp192);
     let xlen = scale_expansion_zeroelim(&temp192[..xlen], pa[0], &mut det384x);
     let ylen = scale_expansion_zeroelim(&bcde[..bcdelen], pa[1], &mut temp192);
@@ -2769,7 +3031,8 @@ pub fn insphere_exact(pa: [f64; 3], pb: [f64; 3], pc: [f64; 3], pd: [f64; 3], pe
     let temp48alen = fast_expansion_sum_zeroelim(&dea[..dealen], &cda[..cdalen], &mut temp48a);
     let temp48blen = fast_expansion_sum_zeroelim(&eac[..eaclen], &cde[..cdelen], &mut temp48b);
     temp48b[..temp48blen].iter_mut().for_each(|x| *x = -*x);
-    let cdealen = fast_expansion_sum_zeroelim(&temp48a[..temp48alen], &temp48b[..temp48blen], &mut cdea);
+    let cdealen =
+        fast_expansion_sum_zeroelim(&temp48a[..temp48alen], &temp48b[..temp48blen], &mut cdea);
     let xlen = scale_expansion_zeroelim(&cdea[..cdealen], pb[0], &mut temp192);
     let xlen = scale_expansion_zeroelim(&temp192[..xlen], pb[0], &mut det384x);
     let ylen = scale_expansion_zeroelim(&cdea[..cdealen], pb[1], &mut temp192);
@@ -2781,7 +3044,8 @@ pub fn insphere_exact(pa: [f64; 3], pb: [f64; 3], pc: [f64; 3], pd: [f64; 3], pe
     let temp48alen = fast_expansion_sum_zeroelim(&eab[..eablen], &deb[..deblen], &mut temp48a);
     let temp48blen = fast_expansion_sum_zeroelim(&abd[..abdlen], &dea[..dealen], &mut temp48b);
     temp48b[..temp48blen].iter_mut().for_each(|x| *x = -*x);
-    let deablen = fast_expansion_sum_zeroelim(&temp48a[..temp48alen], &temp48b[..temp48blen], &mut deab);
+    let deablen =
+        fast_expansion_sum_zeroelim(&temp48a[..temp48alen], &temp48b[..temp48blen], &mut deab);
     let xlen = scale_expansion_zeroelim(&deab[..deablen], pc[0], &mut temp192);
     let xlen = scale_expansion_zeroelim(&temp192[..xlen], pc[0], &mut det384x);
     let ylen = scale_expansion_zeroelim(&deab[..deablen], pc[1], &mut temp192);
@@ -2793,7 +3057,8 @@ pub fn insphere_exact(pa: [f64; 3], pb: [f64; 3], pc: [f64; 3], pd: [f64; 3], pe
     let temp48alen = fast_expansion_sum_zeroelim(&abc[..abclen], &eac[..eaclen], &mut temp48a);
     let temp48blen = fast_expansion_sum_zeroelim(&bce[..bcelen], &eab[..eablen], &mut temp48b);
     temp48b[..temp48blen].iter_mut().for_each(|x| *x = -*x);
-    let eabclen = fast_expansion_sum_zeroelim(&temp48a[..temp48alen], &temp48b[..temp48blen], &mut eabc);
+    let eabclen =
+        fast_expansion_sum_zeroelim(&temp48a[..temp48alen], &temp48b[..temp48blen], &mut eabc);
     let xlen = scale_expansion_zeroelim(&eabc[..eabclen], pd[0], &mut temp192);
     let xlen = scale_expansion_zeroelim(&temp192[..xlen], pd[0], &mut det384x);
     let ylen = scale_expansion_zeroelim(&eabc[..eabclen], pd[1], &mut temp192);
@@ -2805,7 +3070,8 @@ pub fn insphere_exact(pa: [f64; 3], pb: [f64; 3], pc: [f64; 3], pd: [f64; 3], pe
     let temp48alen = fast_expansion_sum_zeroelim(&bcd[..bcdlen], &abd[..abdlen], &mut temp48a);
     let temp48blen = fast_expansion_sum_zeroelim(&cda[..cdalen], &abc[..abclen], &mut temp48b);
     temp48b[..temp48blen].iter_mut().for_each(|x| *x = -*x);
-    let abcdlen = fast_expansion_sum_zeroelim(&temp48a[..temp48alen], &temp48b[..temp48blen], &mut abcd);
+    let abcdlen =
+        fast_expansion_sum_zeroelim(&temp48a[..temp48alen], &temp48b[..temp48blen], &mut abcd);
     let xlen = scale_expansion_zeroelim(&abcd[..abcdlen], pe[0], &mut temp192);
     let xlen = scale_expansion_zeroelim(&temp192[..xlen], pe[0], &mut det384x);
     let ylen = scale_expansion_zeroelim(&abcd[..abcdlen], pe[1], &mut temp192);
@@ -2910,15 +3176,20 @@ pub fn insphere_slow(pa: [f64; 3], pb: [f64; 3], pc: [f64; 3], pd: [f64; 3], pe:
     let bdlen = fast_expansion_sum_zeroelim(&bxdy, &dxby, &mut bd);
     let temp32alen = scale_expansion_zeroelim(&cd[..cdlen], -bez, &mut temp32a);
     let temp32blen = scale_expansion_zeroelim(&cd[..cdlen], -beztail, &mut temp32b);
-    let temp64alen = fast_expansion_sum_zeroelim(&temp32a[..temp32alen], &temp32b[..temp32blen], &mut temp64a);
+    let temp64alen =
+        fast_expansion_sum_zeroelim(&temp32a[..temp32alen], &temp32b[..temp32blen], &mut temp64a);
     let temp32alen = scale_expansion_zeroelim(&bd[..bdlen], cez, &mut temp32a);
     let temp32blen = scale_expansion_zeroelim(&bd[..bdlen], ceztail, &mut temp32b);
-    let temp64blen = fast_expansion_sum_zeroelim(&temp32a[..temp32alen], &temp32b[..temp32blen], &mut temp64b);
+    let temp64blen =
+        fast_expansion_sum_zeroelim(&temp32a[..temp32alen], &temp32b[..temp32blen], &mut temp64b);
     let temp32alen = scale_expansion_zeroelim(&bc[..bclen], -dez, &mut temp32a);
     let temp32blen = scale_expansion_zeroelim(&bc[..bclen], -deztail, &mut temp32b);
-    let temp64clen = fast_expansion_sum_zeroelim(&temp32a[..temp32alen], &temp32b[..temp32blen], &mut temp64c);
-    let temp128len = fast_expansion_sum_zeroelim(&temp64a[..temp64alen], &temp64b[..temp64blen], &mut temp128);
-    let temp192len = fast_expansion_sum_zeroelim(&temp64c[..temp64clen], &temp128[..temp128len], &mut temp192);
+    let temp64clen =
+        fast_expansion_sum_zeroelim(&temp32a[..temp32alen], &temp32b[..temp32blen], &mut temp64c);
+    let temp128len =
+        fast_expansion_sum_zeroelim(&temp64a[..temp64alen], &temp64b[..temp64blen], &mut temp128);
+    let temp192len =
+        fast_expansion_sum_zeroelim(&temp64c[..temp64clen], &temp128[..temp128len], &mut temp192);
     let xlen = scale_expansion_zeroelim(&temp192[..temp192len], aex, &mut detx);
     let xxlen = scale_expansion_zeroelim(&detx[..xlen], aex, &mut detxx);
     let xtlen = scale_expansion_zeroelim(&temp192[..temp192len], aextail, &mut detxt);
@@ -2947,15 +3218,20 @@ pub fn insphere_slow(pa: [f64; 3], pb: [f64; 3], pc: [f64; 3], pd: [f64; 3], pe:
     let alen = fast_expansion_sum_zeroelim(&z2[..z2len], &detxy[..xylen], &mut adet);
     let temp32alen = scale_expansion_zeroelim(&da[..dalen], cez, &mut temp32a);
     let temp32blen = scale_expansion_zeroelim(&da[..dalen], ceztail, &mut temp32b);
-    let temp64alen = fast_expansion_sum_zeroelim(&temp32a[..temp32alen], &temp32b[..temp32blen], &mut temp64a);
+    let temp64alen =
+        fast_expansion_sum_zeroelim(&temp32a[..temp32alen], &temp32b[..temp32blen], &mut temp64a);
     let temp32alen = scale_expansion_zeroelim(&ac[..aclen], dez, &mut temp32a);
     let temp32blen = scale_expansion_zeroelim(&ac[..aclen], deztail, &mut temp32b);
-    let temp64blen = fast_expansion_sum_zeroelim(&temp32a[..temp32alen], &temp32b[..temp32blen], &mut temp64b);
+    let temp64blen =
+        fast_expansion_sum_zeroelim(&temp32a[..temp32alen], &temp32b[..temp32blen], &mut temp64b);
     let temp32alen = scale_expansion_zeroelim(&cd[..cdlen], aez, &mut temp32a);
     let temp32blen = scale_expansion_zeroelim(&cd[..cdlen], aeztail, &mut temp32b);
-    let temp64clen = fast_expansion_sum_zeroelim(&temp32a[..temp32alen], &temp32b[..temp32blen], &mut temp64c);
-    let temp128len = fast_expansion_sum_zeroelim(&temp64a[..temp64alen], &temp64b[..temp64blen], &mut temp128);
-    let temp192len = fast_expansion_sum_zeroelim(&temp64c[..temp64clen], &temp128[..temp128len], &mut temp192);
+    let temp64clen =
+        fast_expansion_sum_zeroelim(&temp32a[..temp32alen], &temp32b[..temp32blen], &mut temp64c);
+    let temp128len =
+        fast_expansion_sum_zeroelim(&temp64a[..temp64alen], &temp64b[..temp64blen], &mut temp128);
+    let temp192len =
+        fast_expansion_sum_zeroelim(&temp64c[..temp64clen], &temp128[..temp128len], &mut temp192);
     let xlen = scale_expansion_zeroelim(&temp192[..temp192len], bex, &mut detx);
     let xxlen = scale_expansion_zeroelim(&detx[..xlen], bex, &mut detxx);
     let xtlen = scale_expansion_zeroelim(&temp192[..temp192len], bextail, &mut detxt);
@@ -2984,15 +3260,20 @@ pub fn insphere_slow(pa: [f64; 3], pb: [f64; 3], pc: [f64; 3], pd: [f64; 3], pe:
     let blen = fast_expansion_sum_zeroelim(&z2[..z2len], &detxy[..xylen], &mut bdet);
     let temp32alen = scale_expansion_zeroelim(&ab[..ablen], -dez, &mut temp32a);
     let temp32blen = scale_expansion_zeroelim(&ab[..ablen], -deztail, &mut temp32b);
-    let temp64alen = fast_expansion_sum_zeroelim(&temp32a[..temp32alen], &temp32b[..temp32blen], &mut temp64a);
+    let temp64alen =
+        fast_expansion_sum_zeroelim(&temp32a[..temp32alen], &temp32b[..temp32blen], &mut temp64a);
     let temp32alen = scale_expansion_zeroelim(&bd[..bdlen], -aez, &mut temp32a);
     let temp32blen = scale_expansion_zeroelim(&bd[..bdlen], -aeztail, &mut temp32b);
-    let temp64blen = fast_expansion_sum_zeroelim(&temp32a[..temp32alen], &temp32b[..temp32blen], &mut temp64b);
+    let temp64blen =
+        fast_expansion_sum_zeroelim(&temp32a[..temp32alen], &temp32b[..temp32blen], &mut temp64b);
     let temp32alen = scale_expansion_zeroelim(&da[..dalen], -bez, &mut temp32a);
     let temp32blen = scale_expansion_zeroelim(&da[..dalen], -beztail, &mut temp32b);
-    let temp64clen = fast_expansion_sum_zeroelim(&temp32a[..temp32alen], &temp32b[..temp32blen], &mut temp64c);
-    let temp128len = fast_expansion_sum_zeroelim(&temp64a[..temp64alen], &temp64b[..temp64blen], &mut temp128);
-    let temp192len = fast_expansion_sum_zeroelim(&temp64c[..temp64clen], &temp128[..temp128len], &mut temp192);
+    let temp64clen =
+        fast_expansion_sum_zeroelim(&temp32a[..temp32alen], &temp32b[..temp32blen], &mut temp64c);
+    let temp128len =
+        fast_expansion_sum_zeroelim(&temp64a[..temp64alen], &temp64b[..temp64blen], &mut temp128);
+    let temp192len =
+        fast_expansion_sum_zeroelim(&temp64c[..temp64clen], &temp128[..temp128len], &mut temp192);
     let xlen = scale_expansion_zeroelim(&temp192[..temp192len], cex, &mut detx);
     let xxlen = scale_expansion_zeroelim(&detx[..xlen], cex, &mut detxx);
     let xtlen = scale_expansion_zeroelim(&temp192[..temp192len], cextail, &mut detxt);
@@ -3021,15 +3302,20 @@ pub fn insphere_slow(pa: [f64; 3], pb: [f64; 3], pc: [f64; 3], pd: [f64; 3], pe:
     let clen = fast_expansion_sum_zeroelim(&z2[..z2len], &detxy[..xylen], &mut cdet);
     let temp32alen = scale_expansion_zeroelim(&bc[..bclen], aez, &mut temp32a);
     let temp32blen = scale_expansion_zeroelim(&bc[..bclen], aeztail, &mut temp32b);
-    let temp64alen = fast_expansion_sum_zeroelim(&temp32a[..temp32alen], &temp32b[..temp32blen], &mut temp64a);
+    let temp64alen =
+        fast_expansion_sum_zeroelim(&temp32a[..temp32alen], &temp32b[..temp32blen], &mut temp64a);
     let temp32alen = scale_expansion_zeroelim(&ac[..aclen], -bez, &mut temp32a);
     let temp32blen = scale_expansion_zeroelim(&ac[..aclen], -beztail, &mut temp32b);
-    let temp64blen = fast_expansion_sum_zeroelim(&temp32a[..temp32alen], &temp32b[..temp32blen], &mut temp64b);
+    let temp64blen =
+        fast_expansion_sum_zeroelim(&temp32a[..temp32alen], &temp32b[..temp32blen], &mut temp64b);
     let temp32alen = scale_expansion_zeroelim(&ab[..ablen], cez, &mut temp32a);
     let temp32blen = scale_expansion_zeroelim(&ab[..ablen], ceztail, &mut temp32b);
-    let temp64clen = fast_expansion_sum_zeroelim(&temp32a[..temp32alen], &temp32b[..temp32blen], &mut temp64c);
-    let temp128len = fast_expansion_sum_zeroelim(&temp64a[..temp64alen], &temp64b[..temp64blen], &mut temp128);
-    let temp192len = fast_expansion_sum_zeroelim(&temp64c[..temp64clen], &temp128[..temp128len], &mut temp192);
+    let temp64clen =
+        fast_expansion_sum_zeroelim(&temp32a[..temp32alen], &temp32b[..temp32blen], &mut temp64c);
+    let temp128len =
+        fast_expansion_sum_zeroelim(&temp64a[..temp64alen], &temp64b[..temp64blen], &mut temp128);
+    let temp192len =
+        fast_expansion_sum_zeroelim(&temp64c[..temp64clen], &temp128[..temp128len], &mut temp192);
     let xlen = scale_expansion_zeroelim(&temp192[..temp192len], dex, &mut detx);
     let xxlen = scale_expansion_zeroelim(&detx[..xlen], dex, &mut detxx);
     let xtlen = scale_expansion_zeroelim(&temp192[..temp192len], dextail, &mut detxt);
@@ -3063,7 +3349,14 @@ pub fn insphere_slow(pa: [f64; 3], pb: [f64; 3], pc: [f64; 3], pd: [f64; 3], pe:
 }
 
 #[inline]
-pub fn insphereadapt(pa: [f64; 3], pb: [f64; 3], pc: [f64; 3], pd: [f64; 3], pe: [f64; 3], permanent: f64) -> f64 {
+pub fn insphereadapt(
+    pa: [f64; 3],
+    pb: [f64; 3],
+    pc: [f64; 3],
+    pd: [f64; 3],
+    pe: [f64; 3],
+    permanent: f64,
+) -> f64 {
     let mut temp8a: [f64; 8] = [0.; 8];
     let mut temp8b: [f64; 8] = [0.; 8];
     let mut temp8c: [f64; 8] = [0.; 8];
@@ -3114,8 +3407,10 @@ pub fn insphereadapt(pa: [f64; 3], pb: [f64; 3], pc: [f64; 3], pd: [f64; 3], pe:
     let temp8alen = scale_expansion_zeroelim(&cd, bez, &mut temp8a);
     let temp8blen = scale_expansion_zeroelim(&bd, -cez, &mut temp8b);
     let temp8clen = scale_expansion_zeroelim(&bc, dez, &mut temp8c);
-    let temp16len = fast_expansion_sum_zeroelim(&temp8a[..temp8alen], &temp8b[..temp8blen], &mut temp16);
-    let temp24len = fast_expansion_sum_zeroelim(&temp8c[..temp8clen], &temp16[..temp16len], &mut temp24);
+    let temp16len =
+        fast_expansion_sum_zeroelim(&temp8a[..temp8alen], &temp8b[..temp8blen], &mut temp16);
+    let temp24len =
+        fast_expansion_sum_zeroelim(&temp8c[..temp8clen], &temp16[..temp16len], &mut temp24);
     let temp48len = scale_expansion_zeroelim(&temp24[..temp24len], aex, &mut temp48);
     let xlen = scale_expansion_zeroelim(&temp48[..temp48len], -aex, &mut xdet);
     let temp48len = scale_expansion_zeroelim(&temp24[..temp24len], aey, &mut temp48);
@@ -3127,8 +3422,10 @@ pub fn insphereadapt(pa: [f64; 3], pb: [f64; 3], pc: [f64; 3], pd: [f64; 3], pe:
     let temp8alen = scale_expansion_zeroelim(&da, cez, &mut temp8a);
     let temp8blen = scale_expansion_zeroelim(&ac, dez, &mut temp8b);
     let temp8clen = scale_expansion_zeroelim(&cd, aez, &mut temp8c);
-    let temp16len = fast_expansion_sum_zeroelim(&temp8a[..temp8alen], &temp8b[..temp8blen], &mut temp16);
-    let temp24len = fast_expansion_sum_zeroelim(&temp8c[..temp8clen], &temp16[..temp16len], &mut temp24);
+    let temp16len =
+        fast_expansion_sum_zeroelim(&temp8a[..temp8alen], &temp8b[..temp8blen], &mut temp16);
+    let temp24len =
+        fast_expansion_sum_zeroelim(&temp8c[..temp8clen], &temp16[..temp16len], &mut temp24);
     let temp48len = scale_expansion_zeroelim(&temp24[..temp24len], bex, &mut temp48);
     let xlen = scale_expansion_zeroelim(&temp48[..temp48len], bex, &mut xdet);
     let temp48len = scale_expansion_zeroelim(&temp24[..temp24len], bey, &mut temp48);
@@ -3140,8 +3437,10 @@ pub fn insphereadapt(pa: [f64; 3], pb: [f64; 3], pc: [f64; 3], pd: [f64; 3], pe:
     let temp8alen = scale_expansion_zeroelim(&ab, dez, &mut temp8a);
     let temp8blen = scale_expansion_zeroelim(&bd, aez, &mut temp8b);
     let temp8clen = scale_expansion_zeroelim(&da, bez, &mut temp8c);
-    let temp16len = fast_expansion_sum_zeroelim(&temp8a[..temp8alen], &temp8b[..temp8blen], &mut temp16);
-    let temp24len = fast_expansion_sum_zeroelim(&temp8c[..temp8clen], &temp16[..temp16len], &mut temp24);
+    let temp16len =
+        fast_expansion_sum_zeroelim(&temp8a[..temp8alen], &temp8b[..temp8blen], &mut temp16);
+    let temp24len =
+        fast_expansion_sum_zeroelim(&temp8c[..temp8clen], &temp16[..temp16len], &mut temp24);
     let temp48len = scale_expansion_zeroelim(&temp24[..temp24len], cex, &mut temp48);
     let xlen = scale_expansion_zeroelim(&temp48[..temp48len], -cex, &mut xdet);
     let temp48len = scale_expansion_zeroelim(&temp24[..temp24len], cey, &mut temp48);
@@ -3153,8 +3452,10 @@ pub fn insphereadapt(pa: [f64; 3], pb: [f64; 3], pc: [f64; 3], pd: [f64; 3], pe:
     let temp8alen = scale_expansion_zeroelim(&bc, aez, &mut temp8a);
     let temp8blen = scale_expansion_zeroelim(&ac, -bez, &mut temp8b);
     let temp8clen = scale_expansion_zeroelim(&ab, cez, &mut temp8c);
-    let temp16len = fast_expansion_sum_zeroelim(&temp8a[..temp8alen], &temp8b[..temp8blen], &mut temp16);
-    let temp24len = fast_expansion_sum_zeroelim(&temp8c[..temp8clen], &temp16[..temp16len], &mut temp24);
+    let temp16len =
+        fast_expansion_sum_zeroelim(&temp8a[..temp8alen], &temp8b[..temp8blen], &mut temp16);
+    let temp24len =
+        fast_expansion_sum_zeroelim(&temp8c[..temp8clen], &temp16[..temp16len], &mut temp24);
     let temp48len = scale_expansion_zeroelim(&temp24[..temp24len], dex, &mut temp48);
     let xlen = scale_expansion_zeroelim(&temp48[..temp48len], dex, &mut xdet);
     let temp48len = scale_expansion_zeroelim(&temp24[..temp24len], dey, &mut temp48);
@@ -3168,7 +3469,9 @@ pub fn insphereadapt(pa: [f64; 3], pb: [f64; 3], pc: [f64; 3], pd: [f64; 3], pe:
     let finlength = fast_expansion_sum_zeroelim(&abdet[..ablen], &cddet[..cdlen], &mut fin1);
     let mut det = estimate(&fin1[..finlength]);
     let errbound = PARAMS.isperrboundB * permanent;
-    if det >= errbound || -det >= errbound { return det }
+    if det >= errbound || -det >= errbound {
+        return det;
+    }
     let aextail = Two_Diff_Tail(pa[0], pe[0], aex);
     let aeytail = Two_Diff_Tail(pa[1], pe[1], aey);
     let aeztail = Two_Diff_Tail(pa[2], pe[2], aez);
@@ -3181,10 +3484,19 @@ pub fn insphereadapt(pa: [f64; 3], pb: [f64; 3], pc: [f64; 3], pd: [f64; 3], pe:
     let dextail = Two_Diff_Tail(pd[0], pe[0], dex);
     let deytail = Two_Diff_Tail(pd[1], pe[1], dey);
     let deztail = Two_Diff_Tail(pd[2], pe[2], dez);
-    if aextail == 0.0 && aeytail == 0.0 && aeztail == 0.0 &&
-           bextail == 0.0 && beytail == 0.0 && beztail == 0.0 &&
-           cextail == 0.0 && ceytail == 0.0 && ceztail == 0.0 &&
-           dextail == 0.0 && deytail == 0.0 && deztail == 0.0 {
+    if aextail == 0.0
+        && aeytail == 0.0
+        && aeztail == 0.0
+        && bextail == 0.0
+        && beytail == 0.0
+        && beztail == 0.0
+        && cextail == 0.0
+        && ceytail == 0.0
+        && ceztail == 0.0
+        && dextail == 0.0
+        && deytail == 0.0
+        && deztail == 0.0
+    {
         return det;
     }
     let errbound = PARAMS.isperrboundC * permanent + PARAMS.resulterrbound * Absolute(det);
@@ -3194,29 +3506,36 @@ pub fn insphereadapt(pa: [f64; 3], pb: [f64; 3], pc: [f64; 3], pd: [f64; 3], pe:
     let daeps = dex * aeytail + aey * dextail - (dey * aextail + aex * deytail);
     let aceps = aex * ceytail + cey * aextail - (aey * cextail + cex * aeytail);
     let bdeps = bex * deytail + dey * bextail - (bey * dextail + dex * beytail);
-    det +=
-        (bex * bex + bey * bey + bez * bez) *
-            (cez * daeps + dez * aceps + aez * cdeps +
-                 (ceztail * da[3] + deztail * ac[3] + aeztail * cd[3])) +
-            (dex * dex + dey * dey + dez * dez) *
-                (aez * bceps - bez * aceps + cez * abeps +
-                     (aeztail * bc[3] - beztail * ac[3] + ceztail * ab[3])) -
-            ((aex * aex + aey * aey + aez * aez) *
-                 (bez * cdeps - cez * bdeps + dez * bceps +
-                      (beztail * cd[3] - ceztail * bd[3] + deztail * bc[3])) +
-                 (cex * cex + cey * cey + cez * cez) *
-                     (dez * abeps + aez * bdeps + bez * daeps +
-                          (deztail * ab[3] + aeztail * bd[3] + beztail * da[3]))) +
-            2.0 *
-                ((bex * bextail + bey * beytail + bez * beztail) *
-                     (cez * da[3] + dez * ac[3] + aez * cd[3]) +
-                     (dex * dextail + dey * deytail + dez * deztail) *
-                         (aez * bc[3] - bez * ac[3] + cez * ab[3]) -
-                     ((aex * aextail + aey * aeytail + aez * aeztail) *
-                          (bez * cd[3] - cez * bd[3] + dez * bc[3]) +
-                          (cex * cextail + cey * ceytail + cez * ceztail) *
-                              (dez * ab[3] + aez * bd[3] + bez * da[3])));
-    if det >= errbound || -det >= errbound { return det }
+    det += (bex * bex + bey * bey + bez * bez)
+        * (cez * daeps
+            + dez * aceps
+            + aez * cdeps
+            + (ceztail * da[3] + deztail * ac[3] + aeztail * cd[3]))
+        + (dex * dex + dey * dey + dez * dez)
+            * (aez * bceps - bez * aceps
+                + cez * abeps
+                + (aeztail * bc[3] - beztail * ac[3] + ceztail * ab[3]))
+        - ((aex * aex + aey * aey + aez * aez)
+            * (bez * cdeps - cez * bdeps
+                + dez * bceps
+                + (beztail * cd[3] - ceztail * bd[3] + deztail * bc[3]))
+            + (cex * cex + cey * cey + cez * cez)
+                * (dez * abeps
+                    + aez * bdeps
+                    + bez * daeps
+                    + (deztail * ab[3] + aeztail * bd[3] + beztail * da[3])))
+        + 2.0
+            * ((bex * bextail + bey * beytail + bez * beztail)
+                * (cez * da[3] + dez * ac[3] + aez * cd[3])
+                + (dex * dextail + dey * deytail + dez * deztail)
+                    * (aez * bc[3] - bez * ac[3] + cez * ab[3])
+                - ((aex * aextail + aey * aeytail + aez * aeztail)
+                    * (bez * cd[3] - cez * bd[3] + dez * bc[3])
+                    + (cex * cextail + cey * ceytail + cez * ceztail)
+                        * (dez * ab[3] + aez * bd[3] + bez * da[3])));
+    if det >= errbound || -det >= errbound {
+        return det;
+    }
     insphere_exact(pa, pb, pc, pd, pe)
 }
 
@@ -3294,20 +3613,25 @@ pub fn insphere(pa: [f64; 3], pb: [f64; 3], pc: [f64; 3], pd: [f64; 3], pe: [f64
     let cexaeyplus = Absolute(cexaey);
     let bexdeyplus = Absolute(bexdey);
     let dexbeyplus = Absolute(dexbey);
-    let permanent =
-        ((cexdeyplus + dexceyplus) * bezplus +
-             (dexbeyplus + bexdeyplus) * cezplus +
-             (bexceyplus + cexbeyplus) * dezplus) * alift +
-            ((dexaeyplus + aexdeyplus) * cezplus +
-                 (aexceyplus + cexaeyplus) * dezplus +
-                 (cexdeyplus + dexceyplus) * aezplus) * blift +
-            ((aexbeyplus + bexaeyplus) * dezplus +
-                 (bexdeyplus + dexbeyplus) * aezplus +
-                 (dexaeyplus + aexdeyplus) * bezplus) * clift +
-            ((bexceyplus + cexbeyplus) * aezplus +
-                 (cexaeyplus + aexceyplus) * bezplus +
-                 (aexbeyplus + bexaeyplus) * cezplus) * dlift;
+    let permanent = ((cexdeyplus + dexceyplus) * bezplus
+        + (dexbeyplus + bexdeyplus) * cezplus
+        + (bexceyplus + cexbeyplus) * dezplus)
+        * alift
+        + ((dexaeyplus + aexdeyplus) * cezplus
+            + (aexceyplus + cexaeyplus) * dezplus
+            + (cexdeyplus + dexceyplus) * aezplus)
+            * blift
+        + ((aexbeyplus + bexaeyplus) * dezplus
+            + (bexdeyplus + dexbeyplus) * aezplus
+            + (dexaeyplus + aexdeyplus) * bezplus)
+            * clift
+        + ((bexceyplus + cexbeyplus) * aezplus
+            + (cexaeyplus + aexceyplus) * bezplus
+            + (aexbeyplus + bexaeyplus) * cezplus)
+            * dlift;
     let errbound = PARAMS.isperrboundA * permanent;
-    if det > errbound || -det > errbound { return det }
+    if det > errbound || -det > errbound {
+        return det;
+    }
     insphereadapt(pa, pb, pc, pd, pe, permanent)
 }

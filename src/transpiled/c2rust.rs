@@ -1,5 +1,12 @@
-#![allow(dead_code, mutable_transmutes, non_camel_case_types, non_snake_case,
-         non_upper_case_globals, unused_assignments, unused_mut)]
+#![allow(
+    dead_code,
+    mutable_transmutes,
+    non_camel_case_types,
+    non_snake_case,
+    non_upper_case_globals,
+    unused_assignments,
+    unused_mut
+)]
 /* ****************************************************************************/
 /*                                                                           */
 /*  Routines for Arbitrary Precision Floating-point Arithmetic               */
@@ -463,18 +470,22 @@ pub unsafe extern "C" fn exactinit() {
     epsilon = 1.0f64;
     splitter = 1.0f64;
     check = 1.0f64;
-    loop 
-         /* Repeatedly divide `epsilon' by two until it is too small to add to    */
-  /*   one without causing roundoff.  (Also check if the sum is equal to   */
-  /*   the previous sum, for machines that round up instead of using exact */
-  /*   rounding.  Not that this library will work on such machines anyway. */
-         {
+    loop
+    /* Repeatedly divide `epsilon' by two until it is too small to add to    */
+    /*   one without causing roundoff.  (Also check if the sum is equal to   */
+    /*   the previous sum, for machines that round up instead of using exact */
+    /*   rounding.  Not that this library will work on such machines anyway. */
+    {
         lastcheck = check;
         epsilon *= half;
-        if every_other != 0 { splitter *= 2.0f64 }
+        if every_other != 0 {
+            splitter *= 2.0f64
+        }
         every_other = (every_other == 0) as i32;
         check = 1.0f64 + epsilon;
-        if !(check != 1.0f64 && check != lastcheck) { break ; }
+        if !(check != 1.0f64 && check != lastcheck) {
+            break;
+        }
     }
     splitter += 1.0f64;
     /* Error bounds for orientation and incircle tests. */
@@ -505,11 +516,12 @@ pub unsafe extern "C" fn exactinit() {
 /*                                                                           */
 /* ****************************************************************************/
 #[no_mangle]
-pub unsafe extern "C" fn grow_expansion(mut elen: i32,
-                                        mut e: *const f64,
-                                        mut b: f64,
-                                        mut h: *mut f64)
- -> i32 {
+pub unsafe extern "C" fn grow_expansion(
+    mut elen: i32,
+    mut e: *const f64,
+    mut b: f64,
+    mut h: *mut f64,
+) -> i32 {
     let mut Q: f64 = 0.;
     let mut Qnew: f64 = 0.;
     let mut eindex: i32 = 0;
@@ -548,11 +560,12 @@ pub unsafe extern "C" fn grow_expansion(mut elen: i32,
 /*                                                                           */
 /* ****************************************************************************/
 #[no_mangle]
-pub unsafe extern "C" fn grow_expansion_zeroelim(mut elen: i32,
-                                                 mut e: *const f64,
-                                                 mut b: f64,
-                                                 mut h: *mut f64)
- -> i32 {
+pub unsafe extern "C" fn grow_expansion_zeroelim(
+    mut elen: i32,
+    mut e: *const f64,
+    mut b: f64,
+    mut h: *mut f64,
+) -> i32 {
     let mut Q: f64 = 0.;
     let mut hh: f64 = 0.;
     let mut Qnew: f64 = 0.;
@@ -602,12 +615,13 @@ pub unsafe extern "C" fn grow_expansion_zeroelim(mut elen: i32,
 /*                                                                           */
 /* ****************************************************************************/
 #[no_mangle]
-pub unsafe extern "C" fn expansion_sum(mut elen: i32,
-                                       mut e: *const f64,
-                                       mut flen: i32,
-                                       mut f: *const f64,
-                                       mut h: *mut f64)
- -> i32 {
+pub unsafe extern "C" fn expansion_sum(
+    mut elen: i32,
+    mut e: *const f64,
+    mut flen: i32,
+    mut f: *const f64,
+    mut h: *mut f64,
+) -> i32 {
     let mut Q: f64 = 0.;
     let mut Qnew: f64 = 0.;
     let mut findex: i32 = 0;
@@ -668,12 +682,13 @@ pub unsafe extern "C" fn expansion_sum(mut elen: i32,
 /*                                                                           */
 /* ****************************************************************************/
 #[no_mangle]
-pub unsafe extern "C" fn expansion_sum_zeroelim1(mut elen: i32,
-                                                 mut e: *const f64,
-                                                 mut flen: i32,
-                                                 mut f: *const f64,
-                                                 mut h: *mut f64)
- -> i32 {
+pub unsafe extern "C" fn expansion_sum_zeroelim1(
+    mut elen: i32,
+    mut e: *const f64,
+    mut flen: i32,
+    mut f: *const f64,
+    mut h: *mut f64,
+) -> i32 {
     let mut Q: f64 = 0.;
     let mut Qnew: f64 = 0.;
     let mut index: i32 = 0;
@@ -723,12 +738,17 @@ pub unsafe extern "C" fn expansion_sum_zeroelim1(mut elen: i32,
     index = 0 as i32;
     while index <= hlast {
         hnow = *h.offset(index as isize);
-        if hnow != 0.0f64 { hindex += 1; *h.offset(hindex as isize) = hnow }
+        if hnow != 0.0f64 {
+            hindex += 1;
+            *h.offset(hindex as isize) = hnow
+        }
         index += 1
     }
     if hindex == -(1 as i32) {
-        return 1 as i32
-    } else { return hindex + 1 as i32 };
+        return 1 as i32;
+    } else {
+        return hindex + 1 as i32;
+    };
 }
 /* ****************************************************************************/
 /*                                                                           */
@@ -744,12 +764,13 @@ pub unsafe extern "C" fn expansion_sum_zeroelim1(mut elen: i32,
 /*                                                                           */
 /* ****************************************************************************/
 #[no_mangle]
-pub unsafe extern "C" fn expansion_sum_zeroelim2(mut elen: i32,
-                                                 mut e: *const f64,
-                                                 mut flen: i32,
-                                                 mut f: *const f64,
-                                                 mut h: *mut f64)
- -> i32 {
+pub unsafe extern "C" fn expansion_sum_zeroelim2(
+    mut elen: i32,
+    mut e: *const f64,
+    mut flen: i32,
+    mut f: *const f64,
+    mut h: *mut f64,
+) -> i32 {
     let mut Q: f64 = 0.;
     let mut hh: f64 = 0.;
     let mut Qnew: f64 = 0.;
@@ -823,12 +844,13 @@ pub unsafe extern "C" fn expansion_sum_zeroelim2(mut elen: i32,
 /*                                                                           */
 /* ****************************************************************************/
 #[no_mangle]
-pub unsafe extern "C" fn fast_expansion_sum(mut elen: i32,
-                                            mut e: *const f64,
-                                            mut flen: i32,
-                                            mut f: *const f64,
-                                            mut h: *mut f64)
- -> i32 {
+pub unsafe extern "C" fn fast_expansion_sum(
+    mut elen: i32,
+    mut e: *const f64,
+    mut flen: i32,
+    mut f: *const f64,
+    mut h: *mut f64,
+) -> i32 {
     let mut Q: f64 = 0.;
     let mut Qnew: f64 = 0.;
     let mut bvirt: f64 = 0.;
@@ -848,7 +870,11 @@ pub unsafe extern "C" fn fast_expansion_sum(mut elen: i32,
         Q = enow;
         eindex += 1;
         enow = *e.offset(eindex as isize)
-    } else { Q = fnow; findex += 1; fnow = *f.offset(findex as isize) }
+    } else {
+        Q = fnow;
+        findex += 1;
+        fnow = *f.offset(findex as isize)
+    }
     hindex = 0 as i32;
     if eindex < elen && findex < flen {
         if (fnow > enow) as i32 == (fnow > -enow) as i32 {
@@ -931,15 +957,13 @@ pub unsafe extern "C" fn fast_expansion_sum(mut elen: i32,
 /*                                                                           */
 /* ****************************************************************************/
 #[no_mangle]
-pub unsafe extern "C" fn fast_expansion_sum_zeroelim(mut elen: i32,
-                                                     mut e:
-                                                         *const f64,
-                                                     mut flen: i32,
-                                                     mut f:
-                                                         *const f64,
-                                                     mut h:
-                                                         *mut f64)
- -> i32 {
+pub unsafe extern "C" fn fast_expansion_sum_zeroelim(
+    mut elen: i32,
+    mut e: *const f64,
+    mut flen: i32,
+    mut f: *const f64,
+    mut h: *mut f64,
+) -> i32 {
     let mut Q: f64 = 0.;
     let mut Qnew: f64 = 0.;
     let mut hh: f64 = 0.;
@@ -960,7 +984,11 @@ pub unsafe extern "C" fn fast_expansion_sum_zeroelim(mut elen: i32,
         Q = enow;
         eindex += 1;
         enow = *e.offset(eindex as isize)
-    } else { Q = fnow; findex += 1; fnow = *f.offset(findex as isize) }
+    } else {
+        Q = fnow;
+        findex += 1;
+        fnow = *f.offset(findex as isize)
+    }
     hindex = 0 as i32;
     if eindex < elen && findex < flen {
         if (fnow > enow) as i32 == (fnow > -enow) as i32 {
@@ -1060,12 +1088,13 @@ pub unsafe extern "C" fn fast_expansion_sum_zeroelim(mut elen: i32,
 /*                                                                           */
 /* ****************************************************************************/
 #[no_mangle]
-pub unsafe extern "C" fn linear_expansion_sum(mut elen: i32,
-                                              mut e: *const f64,
-                                              mut flen: i32,
-                                              mut f: *const f64,
-                                              mut h: *mut f64)
- -> i32 {
+pub unsafe extern "C" fn linear_expansion_sum(
+    mut elen: i32,
+    mut e: *const f64,
+    mut flen: i32,
+    mut f: *const f64,
+    mut h: *mut f64,
+) -> i32 {
     let mut Q: f64 = 0.;
     let mut q: f64 = 0.;
     let mut Qnew: f64 = 0.;
@@ -1088,11 +1117,12 @@ pub unsafe extern "C" fn linear_expansion_sum(mut elen: i32,
         g0 = enow;
         eindex += 1;
         enow = *e.offset(eindex as isize)
-    } else { g0 = fnow; findex += 1; fnow = *f.offset(findex as isize) }
-    if eindex < elen &&
-           (findex >= flen ||
-                (fnow > enow) as i32 == (fnow > -enow) as i32)
-       {
+    } else {
+        g0 = fnow;
+        findex += 1;
+        fnow = *f.offset(findex as isize)
+    }
+    if eindex < elen && (findex >= flen || (fnow > enow) as i32 == (fnow > -enow) as i32) {
         Qnew = enow + g0;
         bvirt = Qnew - enow;
         q = g0 - bvirt;
@@ -1108,10 +1138,7 @@ pub unsafe extern "C" fn linear_expansion_sum(mut elen: i32,
     Q = Qnew;
     hindex = 0 as i32;
     while hindex < elen + flen - 2 as i32 {
-        if eindex < elen &&
-               (findex >= flen ||
-                    (fnow > enow) as i32 ==
-                        (fnow > -enow) as i32) {
+        if eindex < elen && (findex >= flen || (fnow > enow) as i32 == (fnow > -enow) as i32) {
             R = enow + q;
             bvirt = R - enow;
             *h.offset(hindex as isize) = q - bvirt;
@@ -1149,15 +1176,13 @@ pub unsafe extern "C" fn linear_expansion_sum(mut elen: i32,
 /*                                                                           */
 /* ****************************************************************************/
 #[no_mangle]
-pub unsafe extern "C" fn linear_expansion_sum_zeroelim(mut elen: i32,
-                                                       mut e:
-                                                           *const f64,
-                                                       mut flen: i32,
-                                                       mut f:
-                                                           *const f64,
-                                                       mut h:
-                                                           *mut f64)
- -> i32 {
+pub unsafe extern "C" fn linear_expansion_sum_zeroelim(
+    mut elen: i32,
+    mut e: *const f64,
+    mut flen: i32,
+    mut f: *const f64,
+    mut h: *mut f64,
+) -> i32 {
     let mut Q: f64 = 0.;
     let mut q: f64 = 0.;
     let mut hh: f64 = 0.;
@@ -1183,11 +1208,12 @@ pub unsafe extern "C" fn linear_expansion_sum_zeroelim(mut elen: i32,
         g0 = enow;
         eindex += 1;
         enow = *e.offset(eindex as isize)
-    } else { g0 = fnow; findex += 1; fnow = *f.offset(findex as isize) }
-    if eindex < elen &&
-           (findex >= flen ||
-                (fnow > enow) as i32 == (fnow > -enow) as i32)
-       {
+    } else {
+        g0 = fnow;
+        findex += 1;
+        fnow = *f.offset(findex as isize)
+    }
+    if eindex < elen && (findex >= flen || (fnow > enow) as i32 == (fnow > -enow) as i32) {
         Qnew = enow + g0;
         bvirt = Qnew - enow;
         q = g0 - bvirt;
@@ -1203,10 +1229,7 @@ pub unsafe extern "C" fn linear_expansion_sum_zeroelim(mut elen: i32,
     Q = Qnew;
     count = 2 as i32;
     while count < elen + flen {
-        if eindex < elen &&
-               (findex >= flen ||
-                    (fnow > enow) as i32 ==
-                        (fnow > -enow) as i32) {
+        if eindex < elen && (findex >= flen || (fnow > enow) as i32 == (fnow > -enow) as i32) {
             R = enow + q;
             bvirt = R - enow;
             hh = q - bvirt;
@@ -1258,11 +1281,12 @@ pub unsafe extern "C" fn linear_expansion_sum_zeroelim(mut elen: i32,
 /*                                                                           */
 /* ****************************************************************************/
 #[no_mangle]
-pub unsafe extern "C" fn scale_expansion(mut elen: i32,
-                                         mut e: *const f64,
-                                         mut b: f64,
-                                         mut h: *mut f64)
- -> i32 {
+pub unsafe extern "C" fn scale_expansion(
+    mut elen: i32,
+    mut e: *const f64,
+    mut b: f64,
+    mut h: *mut f64,
+) -> i32 {
     let mut Q: f64 = 0.;
     let mut sum: f64 = 0.;
     let mut product1: f64 = 0.;
@@ -1343,12 +1367,12 @@ pub unsafe extern "C" fn scale_expansion(mut elen: i32,
 /*                                                                           */
 /* ****************************************************************************/
 #[no_mangle]
-pub unsafe extern "C" fn scale_expansion_zeroelim(mut elen: i32,
-                                                  mut e:
-                                                      *const f64,
-                                                  mut b: f64,
-                                                  mut h: *mut f64)
- -> i32 {
+pub unsafe extern "C" fn scale_expansion_zeroelim(
+    mut elen: i32,
+    mut e: *const f64,
+    mut b: f64,
+    mut h: *mut f64,
+) -> i32 {
     let mut Q: f64 = 0.;
     let mut sum: f64 = 0.;
     let mut hh: f64 = 0.;
@@ -1441,9 +1465,7 @@ pub unsafe extern "C" fn scale_expansion_zeroelim(mut elen: i32,
 /*                                                                           */
 /* ****************************************************************************/
 #[no_mangle]
-pub unsafe extern "C" fn compress(mut elen: i32,
-                                  mut e: *const f64,
-                                  mut h: *mut f64) -> i32 {
+pub unsafe extern "C" fn compress(mut elen: i32, mut e: *const f64, mut h: *mut f64) -> i32 {
     let mut Q: f64 = 0.;
     let mut q: f64 = 0.;
     let mut Qnew: f64 = 0.;
@@ -1467,7 +1489,9 @@ pub unsafe extern "C" fn compress(mut elen: i32,
             bottom = bottom - 1;
             *h.offset(fresh16 as isize) = Qnew;
             Q = q
-        } else { Q = Qnew }
+        } else {
+            Q = Qnew
+        }
         eindex -= 1
     }
     top = 0 as i32;
@@ -1496,14 +1520,15 @@ pub unsafe extern "C" fn compress(mut elen: i32,
 /*                                                                           */
 /* ****************************************************************************/
 #[no_mangle]
-pub unsafe extern "C" fn estimate(mut elen: i32,
-                                  mut e: *const f64)
- -> f64 {
+pub unsafe extern "C" fn estimate(mut elen: i32, mut e: *const f64) -> f64 {
     let mut Q: f64 = 0.;
     let mut eindex: i32 = 0;
     Q = *e.offset(0 as i32 as isize);
     eindex = 1 as i32;
-    while eindex < elen { Q += *e.offset(eindex as isize); eindex += 1 }
+    while eindex < elen {
+        Q += *e.offset(eindex as isize);
+        eindex += 1
+    }
     return Q;
 }
 /* ****************************************************************************/
@@ -1532,33 +1557,27 @@ pub unsafe extern "C" fn estimate(mut elen: i32,
 /*                                                                           */
 /* ****************************************************************************/
 #[no_mangle]
-pub unsafe extern "C" fn orient2dfast(mut pa: *const f64,
-                                      mut pb: *const f64,
-                                      mut pc: *const f64)
- -> f64 {
+pub unsafe extern "C" fn orient2dfast(
+    mut pa: *const f64,
+    mut pb: *const f64,
+    mut pc: *const f64,
+) -> f64 {
     let mut acx: f64 = 0.;
     let mut bcx: f64 = 0.;
     let mut acy: f64 = 0.;
     let mut bcy: f64 = 0.;
-    acx =
-        *pa.offset(0 as i32 as isize) -
-            *pc.offset(0 as i32 as isize);
-    bcx =
-        *pb.offset(0 as i32 as isize) -
-            *pc.offset(0 as i32 as isize);
-    acy =
-        *pa.offset(1 as i32 as isize) -
-            *pc.offset(1 as i32 as isize);
-    bcy =
-        *pb.offset(1 as i32 as isize) -
-            *pc.offset(1 as i32 as isize);
+    acx = *pa.offset(0 as i32 as isize) - *pc.offset(0 as i32 as isize);
+    bcx = *pb.offset(0 as i32 as isize) - *pc.offset(0 as i32 as isize);
+    acy = *pa.offset(1 as i32 as isize) - *pc.offset(1 as i32 as isize);
+    bcy = *pb.offset(1 as i32 as isize) - *pc.offset(1 as i32 as isize);
     return acx * bcy - acy * bcx;
 }
 #[no_mangle]
-pub unsafe extern "C" fn orient2dexact(mut pa: *const f64,
-                                       mut pb: *const f64,
-                                       mut pc: *const f64)
- -> f64 {
+pub unsafe extern "C" fn orient2dexact(
+    mut pa: *const f64,
+    mut pb: *const f64,
+    mut pc: *const f64,
+) -> f64 {
     let mut axby1: f64 = 0.;
     let mut axcy1: f64 = 0.;
     let mut bxcy1: f64 = 0.;
@@ -1597,9 +1616,7 @@ pub unsafe extern "C" fn orient2dexact(mut pa: *const f64,
     let mut _i: f64 = 0.;
     let mut _j: f64 = 0.;
     let mut _0: f64 = 0.;
-    axby1 =
-        *pa.offset(0 as i32 as isize) *
-            *pb.offset(1 as i32 as isize);
+    axby1 = *pa.offset(0 as i32 as isize) * *pb.offset(1 as i32 as isize);
     c = splitter * *pa.offset(0 as i32 as isize);
     abig = c - *pa.offset(0 as i32 as isize);
     ahi = c - abig;
@@ -1612,9 +1629,7 @@ pub unsafe extern "C" fn orient2dexact(mut pa: *const f64,
     err2 = err1 - alo * bhi;
     err3 = err2 - ahi * blo;
     axby0 = alo * blo - err3;
-    axcy1 =
-        *pa.offset(0 as i32 as isize) *
-            *pc.offset(1 as i32 as isize);
+    axcy1 = *pa.offset(0 as i32 as isize) * *pc.offset(1 as i32 as isize);
     c = splitter * *pa.offset(0 as i32 as isize);
     abig = c - *pa.offset(0 as i32 as isize);
     ahi = c - abig;
@@ -1652,9 +1667,7 @@ pub unsafe extern "C" fn orient2dexact(mut pa: *const f64,
     around = _j - avirt;
     aterms[2 as i32 as usize] = around + bround;
     aterms[3 as i32 as usize] = aterms3;
-    bxcy1 =
-        *pb.offset(0 as i32 as isize) *
-            *pc.offset(1 as i32 as isize);
+    bxcy1 = *pb.offset(0 as i32 as isize) * *pc.offset(1 as i32 as isize);
     c = splitter * *pb.offset(0 as i32 as isize);
     abig = c - *pb.offset(0 as i32 as isize);
     ahi = c - abig;
@@ -1667,9 +1680,7 @@ pub unsafe extern "C" fn orient2dexact(mut pa: *const f64,
     err2 = err1 - alo * bhi;
     err3 = err2 - ahi * blo;
     bxcy0 = alo * blo - err3;
-    bxay1 =
-        *pb.offset(0 as i32 as isize) *
-            *pa.offset(1 as i32 as isize);
+    bxay1 = *pb.offset(0 as i32 as isize) * *pa.offset(1 as i32 as isize);
     c = splitter * *pb.offset(0 as i32 as isize);
     abig = c - *pb.offset(0 as i32 as isize);
     ahi = c - abig;
@@ -1707,9 +1718,7 @@ pub unsafe extern "C" fn orient2dexact(mut pa: *const f64,
     around = _j - avirt;
     bterms[2 as i32 as usize] = around + bround;
     bterms[3 as i32 as usize] = bterms3;
-    cxay1 =
-        *pc.offset(0 as i32 as isize) *
-            *pa.offset(1 as i32 as isize);
+    cxay1 = *pc.offset(0 as i32 as isize) * *pa.offset(1 as i32 as isize);
     c = splitter * *pc.offset(0 as i32 as isize);
     abig = c - *pc.offset(0 as i32 as isize);
     ahi = c - abig;
@@ -1722,9 +1731,7 @@ pub unsafe extern "C" fn orient2dexact(mut pa: *const f64,
     err2 = err1 - alo * bhi;
     err3 = err2 - ahi * blo;
     cxay0 = alo * blo - err3;
-    cxby1 =
-        *pc.offset(0 as i32 as isize) *
-            *pb.offset(1 as i32 as isize);
+    cxby1 = *pc.offset(0 as i32 as isize) * *pb.offset(1 as i32 as isize);
     c = splitter * *pc.offset(0 as i32 as isize);
     abig = c - *pc.offset(0 as i32 as isize);
     ahi = c - abig;
@@ -1762,20 +1769,28 @@ pub unsafe extern "C" fn orient2dexact(mut pa: *const f64,
     around = _j - avirt;
     cterms[2 as i32 as usize] = around + bround;
     cterms[3 as i32 as usize] = cterms3;
-    vlength =
-        fast_expansion_sum_zeroelim(4 as i32, aterms.as_mut_ptr(),
-                                    4 as i32, bterms.as_mut_ptr(),
-                                    v.as_mut_ptr());
-    wlength =
-        fast_expansion_sum_zeroelim(vlength, v.as_mut_ptr(), 4 as i32,
-                                    cterms.as_mut_ptr(), w.as_mut_ptr());
+    vlength = fast_expansion_sum_zeroelim(
+        4 as i32,
+        aterms.as_mut_ptr(),
+        4 as i32,
+        bterms.as_mut_ptr(),
+        v.as_mut_ptr(),
+    );
+    wlength = fast_expansion_sum_zeroelim(
+        vlength,
+        v.as_mut_ptr(),
+        4 as i32,
+        cterms.as_mut_ptr(),
+        w.as_mut_ptr(),
+    );
     return w[(wlength - 1 as i32) as usize];
 }
 #[no_mangle]
-pub unsafe extern "C" fn orient2dslow(mut pa: *const f64,
-                                      mut pb: *const f64,
-                                      mut pc: *const f64)
- -> f64 {
+pub unsafe extern "C" fn orient2dslow(
+    mut pa: *const f64,
+    mut pb: *const f64,
+    mut pc: *const f64,
+) -> f64 {
     let mut acx: f64 = 0.;
     let mut acy: f64 = 0.;
     let mut bcx: f64 = 0.;
@@ -1816,33 +1831,25 @@ pub unsafe extern "C" fn orient2dslow(mut pa: *const f64,
     let mut _0: f64 = 0.;
     let mut _1: f64 = 0.;
     let mut _2: f64 = 0.;
-    acx =
-        *pa.offset(0 as i32 as isize) -
-            *pc.offset(0 as i32 as isize);
+    acx = *pa.offset(0 as i32 as isize) - *pc.offset(0 as i32 as isize);
     bvirt = *pa.offset(0 as i32 as isize) - acx;
     avirt = acx + bvirt;
     bround = bvirt - *pc.offset(0 as i32 as isize);
     around = *pa.offset(0 as i32 as isize) - avirt;
     acxtail = around + bround;
-    acy =
-        *pa.offset(1 as i32 as isize) -
-            *pc.offset(1 as i32 as isize);
+    acy = *pa.offset(1 as i32 as isize) - *pc.offset(1 as i32 as isize);
     bvirt = *pa.offset(1 as i32 as isize) - acy;
     avirt = acy + bvirt;
     bround = bvirt - *pc.offset(1 as i32 as isize);
     around = *pa.offset(1 as i32 as isize) - avirt;
     acytail = around + bround;
-    bcx =
-        *pb.offset(0 as i32 as isize) -
-            *pc.offset(0 as i32 as isize);
+    bcx = *pb.offset(0 as i32 as isize) - *pc.offset(0 as i32 as isize);
     bvirt = *pb.offset(0 as i32 as isize) - bcx;
     avirt = bcx + bvirt;
     bround = bvirt - *pc.offset(0 as i32 as isize);
     around = *pb.offset(0 as i32 as isize) - avirt;
     bcxtail = around + bround;
-    bcy =
-        *pb.offset(1 as i32 as isize) -
-            *pc.offset(1 as i32 as isize);
+    bcy = *pb.offset(1 as i32 as isize) - *pc.offset(1 as i32 as isize);
     bvirt = *pb.offset(1 as i32 as isize) - bcy;
     avirt = bcy + bvirt;
     bround = bvirt - *pc.offset(1 as i32 as isize);
@@ -2110,18 +2117,22 @@ pub unsafe extern "C" fn orient2dslow(mut pa: *const f64,
     around = _m - avirt;
     bxay[6 as i32 as usize] = around + bround;
     bxay[7 as i32 as usize] = bxay7;
-    deterlen =
-        fast_expansion_sum_zeroelim(8 as i32, axby.as_mut_ptr(),
-                                    8 as i32, bxay.as_mut_ptr(),
-                                    deter.as_mut_ptr());
+    deterlen = fast_expansion_sum_zeroelim(
+        8 as i32,
+        axby.as_mut_ptr(),
+        8 as i32,
+        bxay.as_mut_ptr(),
+        deter.as_mut_ptr(),
+    );
     return deter[(deterlen - 1 as i32) as usize];
 }
 #[no_mangle]
-pub unsafe extern "C" fn orient2dadapt(mut pa: *const f64,
-                                       mut pb: *const f64,
-                                       mut pc: *const f64,
-                                       mut detsum: f64)
- -> f64 {
+pub unsafe extern "C" fn orient2dadapt(
+    mut pa: *const f64,
+    mut pb: *const f64,
+    mut pc: *const f64,
+    mut detsum: f64,
+) -> f64 {
     let mut acx: f64 = 0.;
     let mut acy: f64 = 0.;
     let mut bcx: f64 = 0.;
@@ -2166,18 +2177,10 @@ pub unsafe extern "C" fn orient2dadapt(mut pa: *const f64,
     let mut _i: f64 = 0.;
     let mut _j: f64 = 0.;
     let mut _0: f64 = 0.;
-    acx =
-        *pa.offset(0 as i32 as isize) -
-            *pc.offset(0 as i32 as isize);
-    bcx =
-        *pb.offset(0 as i32 as isize) -
-            *pc.offset(0 as i32 as isize);
-    acy =
-        *pa.offset(1 as i32 as isize) -
-            *pc.offset(1 as i32 as isize);
-    bcy =
-        *pb.offset(1 as i32 as isize) -
-            *pc.offset(1 as i32 as isize);
+    acx = *pa.offset(0 as i32 as isize) - *pc.offset(0 as i32 as isize);
+    bcx = *pb.offset(0 as i32 as isize) - *pc.offset(0 as i32 as isize);
+    acy = *pa.offset(1 as i32 as isize) - *pc.offset(1 as i32 as isize);
+    bcy = *pb.offset(1 as i32 as isize) - *pc.offset(1 as i32 as isize);
     detleft = acx * bcy;
     c = splitter * acx;
     abig = c - acx;
@@ -2231,7 +2234,9 @@ pub unsafe extern "C" fn orient2dadapt(mut pa: *const f64,
     B[3 as i32 as usize] = B3;
     det = estimate(4 as i32, B.as_mut_ptr());
     errbound = ccwerrboundB * detsum;
-    if det >= errbound || -det >= errbound { return det }
+    if det >= errbound || -det >= errbound {
+        return det;
+    }
     bvirt = *pa.offset(0 as i32 as isize) - acx;
     avirt = acx + bvirt;
     bround = bvirt - *pc.offset(0 as i32 as isize);
@@ -2252,13 +2257,14 @@ pub unsafe extern "C" fn orient2dadapt(mut pa: *const f64,
     bround = bvirt - *pc.offset(1 as i32 as isize);
     around = *pb.offset(1 as i32 as isize) - avirt;
     bcytail = around + bround;
-    if acxtail == 0.0f64 && acytail == 0.0f64 && bcxtail == 0.0f64 &&
-           bcytail == 0.0f64 {
-        return det
+    if acxtail == 0.0f64 && acytail == 0.0f64 && bcxtail == 0.0f64 && bcytail == 0.0f64 {
+        return det;
     }
     errbound = ccwerrboundC * detsum + resulterrbound * Absolute(det);
     det += acx * bcytail + bcy * acxtail - (acy * bcxtail + bcx * acytail);
-    if det >= errbound || -det >= errbound { return det }
+    if det >= errbound || -det >= errbound {
+        return det;
+    }
     s1 = acxtail * bcy;
     c = splitter * acxtail;
     abig = c - acxtail;
@@ -2310,10 +2316,13 @@ pub unsafe extern "C" fn orient2dadapt(mut pa: *const f64,
     around = _j - avirt;
     u[2 as i32 as usize] = around + bround;
     u[3 as i32 as usize] = u3;
-    C1length =
-        fast_expansion_sum_zeroelim(4 as i32, B.as_mut_ptr(),
-                                    4 as i32, u.as_mut_ptr(),
-                                    C1.as_mut_ptr());
+    C1length = fast_expansion_sum_zeroelim(
+        4 as i32,
+        B.as_mut_ptr(),
+        4 as i32,
+        u.as_mut_ptr(),
+        C1.as_mut_ptr(),
+    );
     s1 = acx * bcytail;
     c = splitter * acx;
     abig = c - acx;
@@ -2365,10 +2374,13 @@ pub unsafe extern "C" fn orient2dadapt(mut pa: *const f64,
     around = _j - avirt;
     u[2 as i32 as usize] = around + bround;
     u[3 as i32 as usize] = u3;
-    C2length =
-        fast_expansion_sum_zeroelim(C1length, C1.as_mut_ptr(),
-                                    4 as i32, u.as_mut_ptr(),
-                                    C2.as_mut_ptr());
+    C2length = fast_expansion_sum_zeroelim(
+        C1length,
+        C1.as_mut_ptr(),
+        4 as i32,
+        u.as_mut_ptr(),
+        C2.as_mut_ptr(),
+    );
     s1 = acxtail * bcytail;
     c = splitter * acxtail;
     abig = c - acxtail;
@@ -2420,44 +2432,50 @@ pub unsafe extern "C" fn orient2dadapt(mut pa: *const f64,
     around = _j - avirt;
     u[2 as i32 as usize] = around + bround;
     u[3 as i32 as usize] = u3;
-    Dlength =
-        fast_expansion_sum_zeroelim(C2length, C2.as_mut_ptr(),
-                                    4 as i32, u.as_mut_ptr(),
-                                    D.as_mut_ptr());
+    Dlength = fast_expansion_sum_zeroelim(
+        C2length,
+        C2.as_mut_ptr(),
+        4 as i32,
+        u.as_mut_ptr(),
+        D.as_mut_ptr(),
+    );
     return D[(Dlength - 1 as i32) as usize];
 }
 #[no_mangle]
-pub unsafe extern "C" fn orient2d(mut pa: *const f64,
-                                  mut pb: *const f64,
-                                  mut pc: *const f64)
- -> f64 {
+pub unsafe extern "C" fn orient2d(
+    mut pa: *const f64,
+    mut pb: *const f64,
+    mut pc: *const f64,
+) -> f64 {
     let mut detleft: f64 = 0.;
     let mut detright: f64 = 0.;
     let mut det: f64 = 0.;
     let mut detsum: f64 = 0.;
     let mut errbound: f64 = 0.;
-    detleft =
-        (*pa.offset(0 as i32 as isize) -
-             *pc.offset(0 as i32 as isize)) *
-            (*pb.offset(1 as i32 as isize) -
-                 *pc.offset(1 as i32 as isize));
-    detright =
-        (*pa.offset(1 as i32 as isize) -
-             *pc.offset(1 as i32 as isize)) *
-            (*pb.offset(0 as i32 as isize) -
-                 *pc.offset(0 as i32 as isize));
+    detleft = (*pa.offset(0 as i32 as isize) - *pc.offset(0 as i32 as isize))
+        * (*pb.offset(1 as i32 as isize) - *pc.offset(1 as i32 as isize));
+    detright = (*pa.offset(1 as i32 as isize) - *pc.offset(1 as i32 as isize))
+        * (*pb.offset(0 as i32 as isize) - *pc.offset(0 as i32 as isize));
     det = detleft - detright;
     if detleft > 0.0f64 {
         if detright <= 0.0f64 {
-            return det
-        } else { detsum = detleft + detright }
+            return det;
+        } else {
+            detsum = detleft + detright
+        }
     } else if detleft < 0.0f64 {
         if detright >= 0.0f64 {
-            return det
-        } else { detsum = -detleft - detright }
-    } else { return det }
+            return det;
+        } else {
+            detsum = -detleft - detright
+        }
+    } else {
+        return det;
+    }
     errbound = ccwerrboundA * detsum;
-    if det >= errbound || -det >= errbound { return det }
+    if det >= errbound || -det >= errbound {
+        return det;
+    }
     return orient2dadapt(pa, pb, pc, detsum);
 }
 /* ****************************************************************************/
@@ -2489,11 +2507,12 @@ pub unsafe extern "C" fn orient2d(mut pa: *const f64,
 /*                                                                           */
 /* ****************************************************************************/
 #[no_mangle]
-pub unsafe extern "C" fn orient3dfast(mut pa: *const f64,
-                                      mut pb: *const f64,
-                                      mut pc: *const f64,
-                                      mut pd: *const f64)
- -> f64 {
+pub unsafe extern "C" fn orient3dfast(
+    mut pa: *const f64,
+    mut pb: *const f64,
+    mut pc: *const f64,
+    mut pd: *const f64,
+) -> f64 {
     let mut adx: f64 = 0.;
     let mut bdx: f64 = 0.;
     let mut cdx: f64 = 0.;
@@ -2503,42 +2522,26 @@ pub unsafe extern "C" fn orient3dfast(mut pa: *const f64,
     let mut adz: f64 = 0.;
     let mut bdz: f64 = 0.;
     let mut cdz: f64 = 0.;
-    adx =
-        *pa.offset(0 as i32 as isize) -
-            *pd.offset(0 as i32 as isize);
-    bdx =
-        *pb.offset(0 as i32 as isize) -
-            *pd.offset(0 as i32 as isize);
-    cdx =
-        *pc.offset(0 as i32 as isize) -
-            *pd.offset(0 as i32 as isize);
-    ady =
-        *pa.offset(1 as i32 as isize) -
-            *pd.offset(1 as i32 as isize);
-    bdy =
-        *pb.offset(1 as i32 as isize) -
-            *pd.offset(1 as i32 as isize);
-    cdy =
-        *pc.offset(1 as i32 as isize) -
-            *pd.offset(1 as i32 as isize);
-    adz =
-        *pa.offset(2 as i32 as isize) -
-            *pd.offset(2 as i32 as isize);
-    bdz =
-        *pb.offset(2 as i32 as isize) -
-            *pd.offset(2 as i32 as isize);
-    cdz =
-        *pc.offset(2 as i32 as isize) -
-            *pd.offset(2 as i32 as isize);
-    return adx * (bdy * cdz - bdz * cdy) + bdx * (cdy * adz - cdz * ady) +
-               cdx * (ady * bdz - adz * bdy);
+    adx = *pa.offset(0 as i32 as isize) - *pd.offset(0 as i32 as isize);
+    bdx = *pb.offset(0 as i32 as isize) - *pd.offset(0 as i32 as isize);
+    cdx = *pc.offset(0 as i32 as isize) - *pd.offset(0 as i32 as isize);
+    ady = *pa.offset(1 as i32 as isize) - *pd.offset(1 as i32 as isize);
+    bdy = *pb.offset(1 as i32 as isize) - *pd.offset(1 as i32 as isize);
+    cdy = *pc.offset(1 as i32 as isize) - *pd.offset(1 as i32 as isize);
+    adz = *pa.offset(2 as i32 as isize) - *pd.offset(2 as i32 as isize);
+    bdz = *pb.offset(2 as i32 as isize) - *pd.offset(2 as i32 as isize);
+    cdz = *pc.offset(2 as i32 as isize) - *pd.offset(2 as i32 as isize);
+    return adx * (bdy * cdz - bdz * cdy)
+        + bdx * (cdy * adz - cdz * ady)
+        + cdx * (ady * bdz - adz * bdy);
 }
 #[no_mangle]
-pub unsafe extern "C" fn orient3dexact(mut pa: *const f64,
-                                       mut pb: *const f64,
-                                       mut pc: *const f64,
-                                       mut pd: *const f64)
- -> f64 {
+pub unsafe extern "C" fn orient3dexact(
+    mut pa: *const f64,
+    mut pb: *const f64,
+    mut pc: *const f64,
+    mut pd: *const f64,
+) -> f64 {
     let mut axby1: f64 = 0.;
     let mut bxcy1: f64 = 0.;
     let mut cxdy1: f64 = 0.;
@@ -2610,9 +2613,7 @@ pub unsafe extern "C" fn orient3dexact(mut pa: *const f64,
     let mut _i: f64 = 0.;
     let mut _j: f64 = 0.;
     let mut _0: f64 = 0.;
-    axby1 =
-        *pa.offset(0 as i32 as isize) *
-            *pb.offset(1 as i32 as isize);
+    axby1 = *pa.offset(0 as i32 as isize) * *pb.offset(1 as i32 as isize);
     c = splitter * *pa.offset(0 as i32 as isize);
     abig = c - *pa.offset(0 as i32 as isize);
     ahi = c - abig;
@@ -2625,9 +2626,7 @@ pub unsafe extern "C" fn orient3dexact(mut pa: *const f64,
     err2 = err1 - alo * bhi;
     err3 = err2 - ahi * blo;
     axby0 = alo * blo - err3;
-    bxay1 =
-        *pb.offset(0 as i32 as isize) *
-            *pa.offset(1 as i32 as isize);
+    bxay1 = *pb.offset(0 as i32 as isize) * *pa.offset(1 as i32 as isize);
     c = splitter * *pb.offset(0 as i32 as isize);
     abig = c - *pb.offset(0 as i32 as isize);
     ahi = c - abig;
@@ -2664,9 +2663,7 @@ pub unsafe extern "C" fn orient3dexact(mut pa: *const f64,
     bround = _i - bvirt;
     around = _j - avirt;
     ab[2 as i32 as usize] = around + bround;
-    bxcy1 =
-        *pb.offset(0 as i32 as isize) *
-            *pc.offset(1 as i32 as isize);
+    bxcy1 = *pb.offset(0 as i32 as isize) * *pc.offset(1 as i32 as isize);
     c = splitter * *pb.offset(0 as i32 as isize);
     abig = c - *pb.offset(0 as i32 as isize);
     ahi = c - abig;
@@ -2679,9 +2676,7 @@ pub unsafe extern "C" fn orient3dexact(mut pa: *const f64,
     err2 = err1 - alo * bhi;
     err3 = err2 - ahi * blo;
     bxcy0 = alo * blo - err3;
-    cxby1 =
-        *pc.offset(0 as i32 as isize) *
-            *pb.offset(1 as i32 as isize);
+    cxby1 = *pc.offset(0 as i32 as isize) * *pb.offset(1 as i32 as isize);
     c = splitter * *pc.offset(0 as i32 as isize);
     abig = c - *pc.offset(0 as i32 as isize);
     ahi = c - abig;
@@ -2718,9 +2713,7 @@ pub unsafe extern "C" fn orient3dexact(mut pa: *const f64,
     bround = _i - bvirt;
     around = _j - avirt;
     bc[2 as i32 as usize] = around + bround;
-    cxdy1 =
-        *pc.offset(0 as i32 as isize) *
-            *pd.offset(1 as i32 as isize);
+    cxdy1 = *pc.offset(0 as i32 as isize) * *pd.offset(1 as i32 as isize);
     c = splitter * *pc.offset(0 as i32 as isize);
     abig = c - *pc.offset(0 as i32 as isize);
     ahi = c - abig;
@@ -2733,9 +2726,7 @@ pub unsafe extern "C" fn orient3dexact(mut pa: *const f64,
     err2 = err1 - alo * bhi;
     err3 = err2 - ahi * blo;
     cxdy0 = alo * blo - err3;
-    dxcy1 =
-        *pd.offset(0 as i32 as isize) *
-            *pc.offset(1 as i32 as isize);
+    dxcy1 = *pd.offset(0 as i32 as isize) * *pc.offset(1 as i32 as isize);
     c = splitter * *pd.offset(0 as i32 as isize);
     abig = c - *pd.offset(0 as i32 as isize);
     ahi = c - abig;
@@ -2772,9 +2763,7 @@ pub unsafe extern "C" fn orient3dexact(mut pa: *const f64,
     bround = _i - bvirt;
     around = _j - avirt;
     cd[2 as i32 as usize] = around + bround;
-    dxay1 =
-        *pd.offset(0 as i32 as isize) *
-            *pa.offset(1 as i32 as isize);
+    dxay1 = *pd.offset(0 as i32 as isize) * *pa.offset(1 as i32 as isize);
     c = splitter * *pd.offset(0 as i32 as isize);
     abig = c - *pd.offset(0 as i32 as isize);
     ahi = c - abig;
@@ -2787,9 +2776,7 @@ pub unsafe extern "C" fn orient3dexact(mut pa: *const f64,
     err2 = err1 - alo * bhi;
     err3 = err2 - ahi * blo;
     dxay0 = alo * blo - err3;
-    axdy1 =
-        *pa.offset(0 as i32 as isize) *
-            *pd.offset(1 as i32 as isize);
+    axdy1 = *pa.offset(0 as i32 as isize) * *pd.offset(1 as i32 as isize);
     c = splitter * *pa.offset(0 as i32 as isize);
     abig = c - *pa.offset(0 as i32 as isize);
     ahi = c - abig;
@@ -2826,9 +2813,7 @@ pub unsafe extern "C" fn orient3dexact(mut pa: *const f64,
     bround = _i - bvirt;
     around = _j - avirt;
     da[2 as i32 as usize] = around + bround;
-    axcy1 =
-        *pa.offset(0 as i32 as isize) *
-            *pc.offset(1 as i32 as isize);
+    axcy1 = *pa.offset(0 as i32 as isize) * *pc.offset(1 as i32 as isize);
     c = splitter * *pa.offset(0 as i32 as isize);
     abig = c - *pa.offset(0 as i32 as isize);
     ahi = c - abig;
@@ -2841,9 +2826,7 @@ pub unsafe extern "C" fn orient3dexact(mut pa: *const f64,
     err2 = err1 - alo * bhi;
     err3 = err2 - ahi * blo;
     axcy0 = alo * blo - err3;
-    cxay1 =
-        *pc.offset(0 as i32 as isize) *
-            *pa.offset(1 as i32 as isize);
+    cxay1 = *pc.offset(0 as i32 as isize) * *pa.offset(1 as i32 as isize);
     c = splitter * *pc.offset(0 as i32 as isize);
     abig = c - *pc.offset(0 as i32 as isize);
     ahi = c - abig;
@@ -2880,9 +2863,7 @@ pub unsafe extern "C" fn orient3dexact(mut pa: *const f64,
     bround = _i - bvirt;
     around = _j - avirt;
     ac[2 as i32 as usize] = around + bround;
-    bxdy1 =
-        *pb.offset(0 as i32 as isize) *
-            *pd.offset(1 as i32 as isize);
+    bxdy1 = *pb.offset(0 as i32 as isize) * *pd.offset(1 as i32 as isize);
     c = splitter * *pb.offset(0 as i32 as isize);
     abig = c - *pb.offset(0 as i32 as isize);
     ahi = c - abig;
@@ -2895,9 +2876,7 @@ pub unsafe extern "C" fn orient3dexact(mut pa: *const f64,
     err2 = err1 - alo * bhi;
     err3 = err2 - ahi * blo;
     bxdy0 = alo * blo - err3;
-    dxby1 =
-        *pd.offset(0 as i32 as isize) *
-            *pb.offset(1 as i32 as isize);
+    dxby1 = *pd.offset(0 as i32 as isize) * *pb.offset(1 as i32 as isize);
     c = splitter * *pd.offset(0 as i32 as isize);
     abig = c - *pd.offset(0 as i32 as isize);
     ahi = c - abig;
@@ -2934,77 +2913,122 @@ pub unsafe extern "C" fn orient3dexact(mut pa: *const f64,
     bround = _i - bvirt;
     around = _j - avirt;
     bd[2 as i32 as usize] = around + bround;
-    templen =
-        fast_expansion_sum_zeroelim(4 as i32, cd.as_mut_ptr(),
-                                    4 as i32, da.as_mut_ptr(),
-                                    temp8.as_mut_ptr());
-    cdalen =
-        fast_expansion_sum_zeroelim(templen, temp8.as_mut_ptr(),
-                                    4 as i32, ac.as_mut_ptr(),
-                                    cda.as_mut_ptr());
-    templen =
-        fast_expansion_sum_zeroelim(4 as i32, da.as_mut_ptr(),
-                                    4 as i32, ab.as_mut_ptr(),
-                                    temp8.as_mut_ptr());
-    dablen =
-        fast_expansion_sum_zeroelim(templen, temp8.as_mut_ptr(),
-                                    4 as i32, bd.as_mut_ptr(),
-                                    dab.as_mut_ptr());
+    templen = fast_expansion_sum_zeroelim(
+        4 as i32,
+        cd.as_mut_ptr(),
+        4 as i32,
+        da.as_mut_ptr(),
+        temp8.as_mut_ptr(),
+    );
+    cdalen = fast_expansion_sum_zeroelim(
+        templen,
+        temp8.as_mut_ptr(),
+        4 as i32,
+        ac.as_mut_ptr(),
+        cda.as_mut_ptr(),
+    );
+    templen = fast_expansion_sum_zeroelim(
+        4 as i32,
+        da.as_mut_ptr(),
+        4 as i32,
+        ab.as_mut_ptr(),
+        temp8.as_mut_ptr(),
+    );
+    dablen = fast_expansion_sum_zeroelim(
+        templen,
+        temp8.as_mut_ptr(),
+        4 as i32,
+        bd.as_mut_ptr(),
+        dab.as_mut_ptr(),
+    );
     i = 0 as i32;
     while i < 4 as i32 {
         bd[i as usize] = -bd[i as usize];
         ac[i as usize] = -ac[i as usize];
         i += 1
     }
-    templen =
-        fast_expansion_sum_zeroelim(4 as i32, ab.as_mut_ptr(),
-                                    4 as i32, bc.as_mut_ptr(),
-                                    temp8.as_mut_ptr());
-    abclen =
-        fast_expansion_sum_zeroelim(templen, temp8.as_mut_ptr(),
-                                    4 as i32, ac.as_mut_ptr(),
-                                    abc.as_mut_ptr());
-    templen =
-        fast_expansion_sum_zeroelim(4 as i32, bc.as_mut_ptr(),
-                                    4 as i32, cd.as_mut_ptr(),
-                                    temp8.as_mut_ptr());
-    bcdlen =
-        fast_expansion_sum_zeroelim(templen, temp8.as_mut_ptr(),
-                                    4 as i32, bd.as_mut_ptr(),
-                                    bcd.as_mut_ptr());
-    alen =
-        scale_expansion_zeroelim(bcdlen, bcd.as_mut_ptr(),
-                                 *pa.offset(2 as i32 as isize),
-                                 adet.as_mut_ptr());
-    blen =
-        scale_expansion_zeroelim(cdalen, cda.as_mut_ptr(),
-                                 -*pb.offset(2 as i32 as isize),
-                                 bdet.as_mut_ptr());
-    clen =
-        scale_expansion_zeroelim(dablen, dab.as_mut_ptr(),
-                                 *pc.offset(2 as i32 as isize),
-                                 cdet.as_mut_ptr());
-    dlen =
-        scale_expansion_zeroelim(abclen, abc.as_mut_ptr(),
-                                 -*pd.offset(2 as i32 as isize),
-                                 ddet.as_mut_ptr());
-    ablen =
-        fast_expansion_sum_zeroelim(alen, adet.as_mut_ptr(), blen,
-                                    bdet.as_mut_ptr(), abdet.as_mut_ptr());
-    cdlen =
-        fast_expansion_sum_zeroelim(clen, cdet.as_mut_ptr(), dlen,
-                                    ddet.as_mut_ptr(), cddet.as_mut_ptr());
-    deterlen =
-        fast_expansion_sum_zeroelim(ablen, abdet.as_mut_ptr(), cdlen,
-                                    cddet.as_mut_ptr(), deter.as_mut_ptr());
+    templen = fast_expansion_sum_zeroelim(
+        4 as i32,
+        ab.as_mut_ptr(),
+        4 as i32,
+        bc.as_mut_ptr(),
+        temp8.as_mut_ptr(),
+    );
+    abclen = fast_expansion_sum_zeroelim(
+        templen,
+        temp8.as_mut_ptr(),
+        4 as i32,
+        ac.as_mut_ptr(),
+        abc.as_mut_ptr(),
+    );
+    templen = fast_expansion_sum_zeroelim(
+        4 as i32,
+        bc.as_mut_ptr(),
+        4 as i32,
+        cd.as_mut_ptr(),
+        temp8.as_mut_ptr(),
+    );
+    bcdlen = fast_expansion_sum_zeroelim(
+        templen,
+        temp8.as_mut_ptr(),
+        4 as i32,
+        bd.as_mut_ptr(),
+        bcd.as_mut_ptr(),
+    );
+    alen = scale_expansion_zeroelim(
+        bcdlen,
+        bcd.as_mut_ptr(),
+        *pa.offset(2 as i32 as isize),
+        adet.as_mut_ptr(),
+    );
+    blen = scale_expansion_zeroelim(
+        cdalen,
+        cda.as_mut_ptr(),
+        -*pb.offset(2 as i32 as isize),
+        bdet.as_mut_ptr(),
+    );
+    clen = scale_expansion_zeroelim(
+        dablen,
+        dab.as_mut_ptr(),
+        *pc.offset(2 as i32 as isize),
+        cdet.as_mut_ptr(),
+    );
+    dlen = scale_expansion_zeroelim(
+        abclen,
+        abc.as_mut_ptr(),
+        -*pd.offset(2 as i32 as isize),
+        ddet.as_mut_ptr(),
+    );
+    ablen = fast_expansion_sum_zeroelim(
+        alen,
+        adet.as_mut_ptr(),
+        blen,
+        bdet.as_mut_ptr(),
+        abdet.as_mut_ptr(),
+    );
+    cdlen = fast_expansion_sum_zeroelim(
+        clen,
+        cdet.as_mut_ptr(),
+        dlen,
+        ddet.as_mut_ptr(),
+        cddet.as_mut_ptr(),
+    );
+    deterlen = fast_expansion_sum_zeroelim(
+        ablen,
+        abdet.as_mut_ptr(),
+        cdlen,
+        cddet.as_mut_ptr(),
+        deter.as_mut_ptr(),
+    );
     return deter[(deterlen - 1 as i32) as usize];
 }
 #[no_mangle]
-pub unsafe extern "C" fn orient3dslow(mut pa: *const f64,
-                                      mut pb: *const f64,
-                                      mut pc: *const f64,
-                                      mut pd: *const f64)
- -> f64 {
+pub unsafe extern "C" fn orient3dslow(
+    mut pa: *const f64,
+    mut pb: *const f64,
+    mut pc: *const f64,
+    mut pd: *const f64,
+) -> f64 {
     let mut adx: f64 = 0.;
     let mut ady: f64 = 0.;
     let mut adz: f64 = 0.;
@@ -3077,73 +3101,55 @@ pub unsafe extern "C" fn orient3dslow(mut pa: *const f64,
     let mut _0: f64 = 0.;
     let mut _1: f64 = 0.;
     let mut _2: f64 = 0.;
-    adx =
-        *pa.offset(0 as i32 as isize) -
-            *pd.offset(0 as i32 as isize);
+    adx = *pa.offset(0 as i32 as isize) - *pd.offset(0 as i32 as isize);
     bvirt = *pa.offset(0 as i32 as isize) - adx;
     avirt = adx + bvirt;
     bround = bvirt - *pd.offset(0 as i32 as isize);
     around = *pa.offset(0 as i32 as isize) - avirt;
     adxtail = around + bround;
-    ady =
-        *pa.offset(1 as i32 as isize) -
-            *pd.offset(1 as i32 as isize);
+    ady = *pa.offset(1 as i32 as isize) - *pd.offset(1 as i32 as isize);
     bvirt = *pa.offset(1 as i32 as isize) - ady;
     avirt = ady + bvirt;
     bround = bvirt - *pd.offset(1 as i32 as isize);
     around = *pa.offset(1 as i32 as isize) - avirt;
     adytail = around + bround;
-    adz =
-        *pa.offset(2 as i32 as isize) -
-            *pd.offset(2 as i32 as isize);
+    adz = *pa.offset(2 as i32 as isize) - *pd.offset(2 as i32 as isize);
     bvirt = *pa.offset(2 as i32 as isize) - adz;
     avirt = adz + bvirt;
     bround = bvirt - *pd.offset(2 as i32 as isize);
     around = *pa.offset(2 as i32 as isize) - avirt;
     adztail = around + bround;
-    bdx =
-        *pb.offset(0 as i32 as isize) -
-            *pd.offset(0 as i32 as isize);
+    bdx = *pb.offset(0 as i32 as isize) - *pd.offset(0 as i32 as isize);
     bvirt = *pb.offset(0 as i32 as isize) - bdx;
     avirt = bdx + bvirt;
     bround = bvirt - *pd.offset(0 as i32 as isize);
     around = *pb.offset(0 as i32 as isize) - avirt;
     bdxtail = around + bround;
-    bdy =
-        *pb.offset(1 as i32 as isize) -
-            *pd.offset(1 as i32 as isize);
+    bdy = *pb.offset(1 as i32 as isize) - *pd.offset(1 as i32 as isize);
     bvirt = *pb.offset(1 as i32 as isize) - bdy;
     avirt = bdy + bvirt;
     bround = bvirt - *pd.offset(1 as i32 as isize);
     around = *pb.offset(1 as i32 as isize) - avirt;
     bdytail = around + bround;
-    bdz =
-        *pb.offset(2 as i32 as isize) -
-            *pd.offset(2 as i32 as isize);
+    bdz = *pb.offset(2 as i32 as isize) - *pd.offset(2 as i32 as isize);
     bvirt = *pb.offset(2 as i32 as isize) - bdz;
     avirt = bdz + bvirt;
     bround = bvirt - *pd.offset(2 as i32 as isize);
     around = *pb.offset(2 as i32 as isize) - avirt;
     bdztail = around + bround;
-    cdx =
-        *pc.offset(0 as i32 as isize) -
-            *pd.offset(0 as i32 as isize);
+    cdx = *pc.offset(0 as i32 as isize) - *pd.offset(0 as i32 as isize);
     bvirt = *pc.offset(0 as i32 as isize) - cdx;
     avirt = cdx + bvirt;
     bround = bvirt - *pd.offset(0 as i32 as isize);
     around = *pc.offset(0 as i32 as isize) - avirt;
     cdxtail = around + bround;
-    cdy =
-        *pc.offset(1 as i32 as isize) -
-            *pd.offset(1 as i32 as isize);
+    cdy = *pc.offset(1 as i32 as isize) - *pd.offset(1 as i32 as isize);
     bvirt = *pc.offset(1 as i32 as isize) - cdy;
     avirt = cdy + bvirt;
     bround = bvirt - *pd.offset(1 as i32 as isize);
     around = *pc.offset(1 as i32 as isize) - avirt;
     cdytail = around + bround;
-    cdz =
-        *pc.offset(2 as i32 as isize) -
-            *pd.offset(2 as i32 as isize);
+    cdz = *pc.offset(2 as i32 as isize) - *pd.offset(2 as i32 as isize);
     bvirt = *pc.offset(2 as i32 as isize) - cdz;
     avirt = cdz + bvirt;
     bround = bvirt - *pd.offset(2 as i32 as isize);
@@ -3935,63 +3941,93 @@ pub unsafe extern "C" fn orient3dslow(mut pa: *const f64,
     around = _m - avirt;
     axcy[6 as i32 as usize] = around + bround;
     axcy[7 as i32 as usize] = axcy7;
-    temp16len =
-        fast_expansion_sum_zeroelim(8 as i32, bxcy.as_mut_ptr(),
-                                    8 as i32, cxby.as_mut_ptr(),
-                                    temp16.as_mut_ptr());
-    temp32len =
-        scale_expansion_zeroelim(temp16len, temp16.as_mut_ptr(), adz,
-                                 temp32.as_mut_ptr());
-    temp32tlen =
-        scale_expansion_zeroelim(temp16len, temp16.as_mut_ptr(), adztail,
-                                 temp32t.as_mut_ptr());
-    alen =
-        fast_expansion_sum_zeroelim(temp32len, temp32.as_mut_ptr(),
-                                    temp32tlen, temp32t.as_mut_ptr(),
-                                    adet.as_mut_ptr());
-    temp16len =
-        fast_expansion_sum_zeroelim(8 as i32, cxay.as_mut_ptr(),
-                                    8 as i32, axcy.as_mut_ptr(),
-                                    temp16.as_mut_ptr());
-    temp32len =
-        scale_expansion_zeroelim(temp16len, temp16.as_mut_ptr(), bdz,
-                                 temp32.as_mut_ptr());
-    temp32tlen =
-        scale_expansion_zeroelim(temp16len, temp16.as_mut_ptr(), bdztail,
-                                 temp32t.as_mut_ptr());
-    blen =
-        fast_expansion_sum_zeroelim(temp32len, temp32.as_mut_ptr(),
-                                    temp32tlen, temp32t.as_mut_ptr(),
-                                    bdet.as_mut_ptr());
-    temp16len =
-        fast_expansion_sum_zeroelim(8 as i32, axby.as_mut_ptr(),
-                                    8 as i32, bxay.as_mut_ptr(),
-                                    temp16.as_mut_ptr());
-    temp32len =
-        scale_expansion_zeroelim(temp16len, temp16.as_mut_ptr(), cdz,
-                                 temp32.as_mut_ptr());
-    temp32tlen =
-        scale_expansion_zeroelim(temp16len, temp16.as_mut_ptr(), cdztail,
-                                 temp32t.as_mut_ptr());
-    clen =
-        fast_expansion_sum_zeroelim(temp32len, temp32.as_mut_ptr(),
-                                    temp32tlen, temp32t.as_mut_ptr(),
-                                    cdet.as_mut_ptr());
-    ablen =
-        fast_expansion_sum_zeroelim(alen, adet.as_mut_ptr(), blen,
-                                    bdet.as_mut_ptr(), abdet.as_mut_ptr());
-    deterlen =
-        fast_expansion_sum_zeroelim(ablen, abdet.as_mut_ptr(), clen,
-                                    cdet.as_mut_ptr(), deter.as_mut_ptr());
+    temp16len = fast_expansion_sum_zeroelim(
+        8 as i32,
+        bxcy.as_mut_ptr(),
+        8 as i32,
+        cxby.as_mut_ptr(),
+        temp16.as_mut_ptr(),
+    );
+    temp32len = scale_expansion_zeroelim(temp16len, temp16.as_mut_ptr(), adz, temp32.as_mut_ptr());
+    temp32tlen = scale_expansion_zeroelim(
+        temp16len,
+        temp16.as_mut_ptr(),
+        adztail,
+        temp32t.as_mut_ptr(),
+    );
+    alen = fast_expansion_sum_zeroelim(
+        temp32len,
+        temp32.as_mut_ptr(),
+        temp32tlen,
+        temp32t.as_mut_ptr(),
+        adet.as_mut_ptr(),
+    );
+    temp16len = fast_expansion_sum_zeroelim(
+        8 as i32,
+        cxay.as_mut_ptr(),
+        8 as i32,
+        axcy.as_mut_ptr(),
+        temp16.as_mut_ptr(),
+    );
+    temp32len = scale_expansion_zeroelim(temp16len, temp16.as_mut_ptr(), bdz, temp32.as_mut_ptr());
+    temp32tlen = scale_expansion_zeroelim(
+        temp16len,
+        temp16.as_mut_ptr(),
+        bdztail,
+        temp32t.as_mut_ptr(),
+    );
+    blen = fast_expansion_sum_zeroelim(
+        temp32len,
+        temp32.as_mut_ptr(),
+        temp32tlen,
+        temp32t.as_mut_ptr(),
+        bdet.as_mut_ptr(),
+    );
+    temp16len = fast_expansion_sum_zeroelim(
+        8 as i32,
+        axby.as_mut_ptr(),
+        8 as i32,
+        bxay.as_mut_ptr(),
+        temp16.as_mut_ptr(),
+    );
+    temp32len = scale_expansion_zeroelim(temp16len, temp16.as_mut_ptr(), cdz, temp32.as_mut_ptr());
+    temp32tlen = scale_expansion_zeroelim(
+        temp16len,
+        temp16.as_mut_ptr(),
+        cdztail,
+        temp32t.as_mut_ptr(),
+    );
+    clen = fast_expansion_sum_zeroelim(
+        temp32len,
+        temp32.as_mut_ptr(),
+        temp32tlen,
+        temp32t.as_mut_ptr(),
+        cdet.as_mut_ptr(),
+    );
+    ablen = fast_expansion_sum_zeroelim(
+        alen,
+        adet.as_mut_ptr(),
+        blen,
+        bdet.as_mut_ptr(),
+        abdet.as_mut_ptr(),
+    );
+    deterlen = fast_expansion_sum_zeroelim(
+        ablen,
+        abdet.as_mut_ptr(),
+        clen,
+        cdet.as_mut_ptr(),
+        deter.as_mut_ptr(),
+    );
     return deter[(deterlen - 1 as i32) as usize];
 }
 #[no_mangle]
-pub unsafe extern "C" fn orient3dadapt(mut pa: *const f64,
-                                       mut pb: *const f64,
-                                       mut pc: *const f64,
-                                       mut pd: *const f64,
-                                       mut permanent: f64)
- -> f64 {
+pub unsafe extern "C" fn orient3dadapt(
+    mut pa: *const f64,
+    mut pb: *const f64,
+    mut pc: *const f64,
+    mut pd: *const f64,
+    mut permanent: f64,
+) -> f64 {
     let mut adx: f64 = 0.;
     let mut bdx: f64 = 0.;
     let mut cdx: f64 = 0.;
@@ -4128,33 +4164,15 @@ pub unsafe extern "C" fn orient3dadapt(mut pa: *const f64,
     let mut _j: f64 = 0.;
     let mut _k: f64 = 0.;
     let mut _0: f64 = 0.;
-    adx =
-        *pa.offset(0 as i32 as isize) -
-            *pd.offset(0 as i32 as isize);
-    bdx =
-        *pb.offset(0 as i32 as isize) -
-            *pd.offset(0 as i32 as isize);
-    cdx =
-        *pc.offset(0 as i32 as isize) -
-            *pd.offset(0 as i32 as isize);
-    ady =
-        *pa.offset(1 as i32 as isize) -
-            *pd.offset(1 as i32 as isize);
-    bdy =
-        *pb.offset(1 as i32 as isize) -
-            *pd.offset(1 as i32 as isize);
-    cdy =
-        *pc.offset(1 as i32 as isize) -
-            *pd.offset(1 as i32 as isize);
-    adz =
-        *pa.offset(2 as i32 as isize) -
-            *pd.offset(2 as i32 as isize);
-    bdz =
-        *pb.offset(2 as i32 as isize) -
-            *pd.offset(2 as i32 as isize);
-    cdz =
-        *pc.offset(2 as i32 as isize) -
-            *pd.offset(2 as i32 as isize);
+    adx = *pa.offset(0 as i32 as isize) - *pd.offset(0 as i32 as isize);
+    bdx = *pb.offset(0 as i32 as isize) - *pd.offset(0 as i32 as isize);
+    cdx = *pc.offset(0 as i32 as isize) - *pd.offset(0 as i32 as isize);
+    ady = *pa.offset(1 as i32 as isize) - *pd.offset(1 as i32 as isize);
+    bdy = *pb.offset(1 as i32 as isize) - *pd.offset(1 as i32 as isize);
+    cdy = *pc.offset(1 as i32 as isize) - *pd.offset(1 as i32 as isize);
+    adz = *pa.offset(2 as i32 as isize) - *pd.offset(2 as i32 as isize);
+    bdz = *pb.offset(2 as i32 as isize) - *pd.offset(2 as i32 as isize);
+    cdz = *pc.offset(2 as i32 as isize) - *pd.offset(2 as i32 as isize);
     bdxcdy1 = bdx * cdy;
     c = splitter * bdx;
     abig = c - bdx;
@@ -4206,9 +4224,7 @@ pub unsafe extern "C" fn orient3dadapt(mut pa: *const f64,
     around = _j - avirt;
     bc[2 as i32 as usize] = around + bround;
     bc[3 as i32 as usize] = bc3;
-    alen =
-        scale_expansion_zeroelim(4 as i32, bc.as_mut_ptr(), adz,
-                                 adet.as_mut_ptr());
+    alen = scale_expansion_zeroelim(4 as i32, bc.as_mut_ptr(), adz, adet.as_mut_ptr());
     cdxady1 = cdx * ady;
     c = splitter * cdx;
     abig = c - cdx;
@@ -4260,9 +4276,7 @@ pub unsafe extern "C" fn orient3dadapt(mut pa: *const f64,
     around = _j - avirt;
     ca[2 as i32 as usize] = around + bround;
     ca[3 as i32 as usize] = ca3;
-    blen =
-        scale_expansion_zeroelim(4 as i32, ca.as_mut_ptr(), bdz,
-                                 bdet.as_mut_ptr());
+    blen = scale_expansion_zeroelim(4 as i32, ca.as_mut_ptr(), bdz, bdet.as_mut_ptr());
     adxbdy1 = adx * bdy;
     c = splitter * adx;
     abig = c - adx;
@@ -4314,18 +4328,26 @@ pub unsafe extern "C" fn orient3dadapt(mut pa: *const f64,
     around = _j - avirt;
     ab[2 as i32 as usize] = around + bround;
     ab[3 as i32 as usize] = ab3;
-    clen =
-        scale_expansion_zeroelim(4 as i32, ab.as_mut_ptr(), cdz,
-                                 cdet.as_mut_ptr());
-    ablen =
-        fast_expansion_sum_zeroelim(alen, adet.as_mut_ptr(), blen,
-                                    bdet.as_mut_ptr(), abdet.as_mut_ptr());
-    finlength =
-        fast_expansion_sum_zeroelim(ablen, abdet.as_mut_ptr(), clen,
-                                    cdet.as_mut_ptr(), fin1.as_mut_ptr());
+    clen = scale_expansion_zeroelim(4 as i32, ab.as_mut_ptr(), cdz, cdet.as_mut_ptr());
+    ablen = fast_expansion_sum_zeroelim(
+        alen,
+        adet.as_mut_ptr(),
+        blen,
+        bdet.as_mut_ptr(),
+        abdet.as_mut_ptr(),
+    );
+    finlength = fast_expansion_sum_zeroelim(
+        ablen,
+        abdet.as_mut_ptr(),
+        clen,
+        cdet.as_mut_ptr(),
+        fin1.as_mut_ptr(),
+    );
     det = estimate(finlength, fin1.as_mut_ptr());
     errbound = o3derrboundB * permanent;
-    if det >= errbound || -det >= errbound { return det }
+    if det >= errbound || -det >= errbound {
+        return det;
+    }
     bvirt = *pa.offset(0 as i32 as isize) - adx;
     avirt = adx + bvirt;
     bround = bvirt - *pd.offset(0 as i32 as isize);
@@ -4371,25 +4393,28 @@ pub unsafe extern "C" fn orient3dadapt(mut pa: *const f64,
     bround = bvirt - *pd.offset(2 as i32 as isize);
     around = *pc.offset(2 as i32 as isize) - avirt;
     cdztail = around + bround;
-    if adxtail == 0.0f64 && bdxtail == 0.0f64 && cdxtail == 0.0f64 &&
-           adytail == 0.0f64 && bdytail == 0.0f64 && cdytail == 0.0f64 &&
-           adztail == 0.0f64 && bdztail == 0.0f64 && cdztail == 0.0f64 {
-        return det
+    if adxtail == 0.0f64
+        && bdxtail == 0.0f64
+        && cdxtail == 0.0f64
+        && adytail == 0.0f64
+        && bdytail == 0.0f64
+        && cdytail == 0.0f64
+        && adztail == 0.0f64
+        && bdztail == 0.0f64
+        && cdztail == 0.0f64
+    {
+        return det;
     }
     errbound = o3derrboundC * permanent + resulterrbound * Absolute(det);
-    det +=
-        adz *
-            (bdx * cdytail + cdy * bdxtail - (bdy * cdxtail + cdx * bdytail))
-            + adztail * (bdx * cdy - bdy * cdx) +
-            (bdz *
-                 (cdx * adytail + ady * cdxtail -
-                      (cdy * adxtail + adx * cdytail)) +
-                 bdztail * (cdx * ady - cdy * adx)) +
-            (cdz *
-                 (adx * bdytail + bdy * adxtail -
-                      (ady * bdxtail + bdx * adytail)) +
-                 cdztail * (adx * bdy - ady * bdx));
-    if det >= errbound || -det >= errbound { return det }
+    det += adz * (bdx * cdytail + cdy * bdxtail - (bdy * cdxtail + cdx * bdytail))
+        + adztail * (bdx * cdy - bdy * cdx)
+        + (bdz * (cdx * adytail + ady * cdxtail - (cdy * adxtail + adx * cdytail))
+            + bdztail * (cdx * ady - cdy * adx))
+        + (cdz * (adx * bdytail + bdy * adxtail - (ady * bdxtail + bdx * adytail))
+            + cdztail * (adx * bdy - ady * bdx));
+    if det >= errbound || -det >= errbound {
+        return det;
+    }
     finnow = fin1.as_mut_ptr();
     finother = fin2.as_mut_ptr();
     if adxtail == 0.0f64 {
@@ -4923,71 +4948,62 @@ pub unsafe extern "C" fn orient3dadapt(mut pa: *const f64,
         ct_b[3 as i32 as usize] = ct_blarge;
         ct_blen = 4 as i32
     }
-    bctlen =
-        fast_expansion_sum_zeroelim(bt_clen, bt_c.as_mut_ptr(), ct_blen,
-                                    ct_b.as_mut_ptr(), bct.as_mut_ptr());
-    wlength =
-        scale_expansion_zeroelim(bctlen, bct.as_mut_ptr(), adz,
-                                 w.as_mut_ptr());
-    finlength =
-        fast_expansion_sum_zeroelim(finlength, finnow, wlength,
-                                    w.as_mut_ptr(), finother);
+    bctlen = fast_expansion_sum_zeroelim(
+        bt_clen,
+        bt_c.as_mut_ptr(),
+        ct_blen,
+        ct_b.as_mut_ptr(),
+        bct.as_mut_ptr(),
+    );
+    wlength = scale_expansion_zeroelim(bctlen, bct.as_mut_ptr(), adz, w.as_mut_ptr());
+    finlength = fast_expansion_sum_zeroelim(finlength, finnow, wlength, w.as_mut_ptr(), finother);
     finswap = finnow;
     finnow = finother;
     finother = finswap;
-    catlen =
-        fast_expansion_sum_zeroelim(ct_alen, ct_a.as_mut_ptr(), at_clen,
-                                    at_c.as_mut_ptr(), cat.as_mut_ptr());
-    wlength =
-        scale_expansion_zeroelim(catlen, cat.as_mut_ptr(), bdz,
-                                 w.as_mut_ptr());
-    finlength =
-        fast_expansion_sum_zeroelim(finlength, finnow, wlength,
-                                    w.as_mut_ptr(), finother);
+    catlen = fast_expansion_sum_zeroelim(
+        ct_alen,
+        ct_a.as_mut_ptr(),
+        at_clen,
+        at_c.as_mut_ptr(),
+        cat.as_mut_ptr(),
+    );
+    wlength = scale_expansion_zeroelim(catlen, cat.as_mut_ptr(), bdz, w.as_mut_ptr());
+    finlength = fast_expansion_sum_zeroelim(finlength, finnow, wlength, w.as_mut_ptr(), finother);
     finswap = finnow;
     finnow = finother;
     finother = finswap;
-    abtlen =
-        fast_expansion_sum_zeroelim(at_blen, at_b.as_mut_ptr(), bt_alen,
-                                    bt_a.as_mut_ptr(), abt.as_mut_ptr());
-    wlength =
-        scale_expansion_zeroelim(abtlen, abt.as_mut_ptr(), cdz,
-                                 w.as_mut_ptr());
-    finlength =
-        fast_expansion_sum_zeroelim(finlength, finnow, wlength,
-                                    w.as_mut_ptr(), finother);
+    abtlen = fast_expansion_sum_zeroelim(
+        at_blen,
+        at_b.as_mut_ptr(),
+        bt_alen,
+        bt_a.as_mut_ptr(),
+        abt.as_mut_ptr(),
+    );
+    wlength = scale_expansion_zeroelim(abtlen, abt.as_mut_ptr(), cdz, w.as_mut_ptr());
+    finlength = fast_expansion_sum_zeroelim(finlength, finnow, wlength, w.as_mut_ptr(), finother);
     finswap = finnow;
     finnow = finother;
     finother = finswap;
     if adztail != 0.0f64 {
-        vlength =
-            scale_expansion_zeroelim(4 as i32, bc.as_mut_ptr(),
-                                     adztail, v.as_mut_ptr());
+        vlength = scale_expansion_zeroelim(4 as i32, bc.as_mut_ptr(), adztail, v.as_mut_ptr());
         finlength =
-            fast_expansion_sum_zeroelim(finlength, finnow, vlength,
-                                        v.as_mut_ptr(), finother);
+            fast_expansion_sum_zeroelim(finlength, finnow, vlength, v.as_mut_ptr(), finother);
         finswap = finnow;
         finnow = finother;
         finother = finswap
     }
     if bdztail != 0.0f64 {
-        vlength =
-            scale_expansion_zeroelim(4 as i32, ca.as_mut_ptr(),
-                                     bdztail, v.as_mut_ptr());
+        vlength = scale_expansion_zeroelim(4 as i32, ca.as_mut_ptr(), bdztail, v.as_mut_ptr());
         finlength =
-            fast_expansion_sum_zeroelim(finlength, finnow, vlength,
-                                        v.as_mut_ptr(), finother);
+            fast_expansion_sum_zeroelim(finlength, finnow, vlength, v.as_mut_ptr(), finother);
         finswap = finnow;
         finnow = finother;
         finother = finswap
     }
     if cdztail != 0.0f64 {
-        vlength =
-            scale_expansion_zeroelim(4 as i32, ab.as_mut_ptr(),
-                                     cdztail, v.as_mut_ptr());
+        vlength = scale_expansion_zeroelim(4 as i32, ab.as_mut_ptr(), cdztail, v.as_mut_ptr());
         finlength =
-            fast_expansion_sum_zeroelim(finlength, finnow, vlength,
-                                        v.as_mut_ptr(), finother);
+            fast_expansion_sum_zeroelim(finlength, finnow, vlength, v.as_mut_ptr(), finother);
         finswap = finnow;
         finnow = finother;
         finother = finswap
@@ -5040,9 +5056,7 @@ pub unsafe extern "C" fn orient3dadapt(mut pa: *const f64,
             u[2 as i32 as usize] = _k - bvirt;
             u[3 as i32 as usize] = u3;
             finlength =
-                fast_expansion_sum_zeroelim(finlength, finnow,
-                                            4 as i32, u.as_mut_ptr(),
-                                            finother);
+                fast_expansion_sum_zeroelim(finlength, finnow, 4 as i32, u.as_mut_ptr(), finother);
             finswap = finnow;
             finnow = finother;
             finother = finswap;
@@ -5079,10 +5093,13 @@ pub unsafe extern "C" fn orient3dadapt(mut pa: *const f64,
                 bvirt = u3 - _j;
                 u[2 as i32 as usize] = _k - bvirt;
                 u[3 as i32 as usize] = u3;
-                finlength =
-                    fast_expansion_sum_zeroelim(finlength, finnow,
-                                                4 as i32,
-                                                u.as_mut_ptr(), finother);
+                finlength = fast_expansion_sum_zeroelim(
+                    finlength,
+                    finnow,
+                    4 as i32,
+                    u.as_mut_ptr(),
+                    finother,
+                );
                 finswap = finnow;
                 finnow = finother;
                 finother = finswap
@@ -5136,9 +5153,7 @@ pub unsafe extern "C" fn orient3dadapt(mut pa: *const f64,
             u[2 as i32 as usize] = _k - bvirt;
             u[3 as i32 as usize] = u3;
             finlength =
-                fast_expansion_sum_zeroelim(finlength, finnow,
-                                            4 as i32, u.as_mut_ptr(),
-                                            finother);
+                fast_expansion_sum_zeroelim(finlength, finnow, 4 as i32, u.as_mut_ptr(), finother);
             finswap = finnow;
             finnow = finother;
             finother = finswap;
@@ -5175,10 +5190,13 @@ pub unsafe extern "C" fn orient3dadapt(mut pa: *const f64,
                 bvirt = u3 - _j;
                 u[2 as i32 as usize] = _k - bvirt;
                 u[3 as i32 as usize] = u3;
-                finlength =
-                    fast_expansion_sum_zeroelim(finlength, finnow,
-                                                4 as i32,
-                                                u.as_mut_ptr(), finother);
+                finlength = fast_expansion_sum_zeroelim(
+                    finlength,
+                    finnow,
+                    4 as i32,
+                    u.as_mut_ptr(),
+                    finother,
+                );
                 finswap = finnow;
                 finnow = finother;
                 finother = finswap
@@ -5233,9 +5251,7 @@ pub unsafe extern "C" fn orient3dadapt(mut pa: *const f64,
             u[2 as i32 as usize] = _k - bvirt;
             u[3 as i32 as usize] = u3;
             finlength =
-                fast_expansion_sum_zeroelim(finlength, finnow,
-                                            4 as i32, u.as_mut_ptr(),
-                                            finother);
+                fast_expansion_sum_zeroelim(finlength, finnow, 4 as i32, u.as_mut_ptr(), finother);
             finswap = finnow;
             finnow = finother;
             finother = finswap;
@@ -5272,10 +5288,13 @@ pub unsafe extern "C" fn orient3dadapt(mut pa: *const f64,
                 bvirt = u3 - _j;
                 u[2 as i32 as usize] = _k - bvirt;
                 u[3 as i32 as usize] = u3;
-                finlength =
-                    fast_expansion_sum_zeroelim(finlength, finnow,
-                                                4 as i32,
-                                                u.as_mut_ptr(), finother);
+                finlength = fast_expansion_sum_zeroelim(
+                    finlength,
+                    finnow,
+                    4 as i32,
+                    u.as_mut_ptr(),
+                    finother,
+                );
                 finswap = finnow;
                 finnow = finother;
                 finother = finswap
@@ -5329,9 +5348,7 @@ pub unsafe extern "C" fn orient3dadapt(mut pa: *const f64,
             u[2 as i32 as usize] = _k - bvirt;
             u[3 as i32 as usize] = u3;
             finlength =
-                fast_expansion_sum_zeroelim(finlength, finnow,
-                                            4 as i32, u.as_mut_ptr(),
-                                            finother);
+                fast_expansion_sum_zeroelim(finlength, finnow, 4 as i32, u.as_mut_ptr(), finother);
             finswap = finnow;
             finnow = finother;
             finother = finswap;
@@ -5368,10 +5385,13 @@ pub unsafe extern "C" fn orient3dadapt(mut pa: *const f64,
                 bvirt = u3 - _j;
                 u[2 as i32 as usize] = _k - bvirt;
                 u[3 as i32 as usize] = u3;
-                finlength =
-                    fast_expansion_sum_zeroelim(finlength, finnow,
-                                                4 as i32,
-                                                u.as_mut_ptr(), finother);
+                finlength = fast_expansion_sum_zeroelim(
+                    finlength,
+                    finnow,
+                    4 as i32,
+                    u.as_mut_ptr(),
+                    finother,
+                );
                 finswap = finnow;
                 finnow = finother;
                 finother = finswap
@@ -5426,9 +5446,7 @@ pub unsafe extern "C" fn orient3dadapt(mut pa: *const f64,
             u[2 as i32 as usize] = _k - bvirt;
             u[3 as i32 as usize] = u3;
             finlength =
-                fast_expansion_sum_zeroelim(finlength, finnow,
-                                            4 as i32, u.as_mut_ptr(),
-                                            finother);
+                fast_expansion_sum_zeroelim(finlength, finnow, 4 as i32, u.as_mut_ptr(), finother);
             finswap = finnow;
             finnow = finother;
             finother = finswap;
@@ -5465,10 +5483,13 @@ pub unsafe extern "C" fn orient3dadapt(mut pa: *const f64,
                 bvirt = u3 - _j;
                 u[2 as i32 as usize] = _k - bvirt;
                 u[3 as i32 as usize] = u3;
-                finlength =
-                    fast_expansion_sum_zeroelim(finlength, finnow,
-                                                4 as i32,
-                                                u.as_mut_ptr(), finother);
+                finlength = fast_expansion_sum_zeroelim(
+                    finlength,
+                    finnow,
+                    4 as i32,
+                    u.as_mut_ptr(),
+                    finother,
+                );
                 finswap = finnow;
                 finnow = finother;
                 finother = finswap
@@ -5522,9 +5543,7 @@ pub unsafe extern "C" fn orient3dadapt(mut pa: *const f64,
             u[2 as i32 as usize] = _k - bvirt;
             u[3 as i32 as usize] = u3;
             finlength =
-                fast_expansion_sum_zeroelim(finlength, finnow,
-                                            4 as i32, u.as_mut_ptr(),
-                                            finother);
+                fast_expansion_sum_zeroelim(finlength, finnow, 4 as i32, u.as_mut_ptr(), finother);
             finswap = finnow;
             finnow = finother;
             finother = finswap;
@@ -5561,10 +5580,13 @@ pub unsafe extern "C" fn orient3dadapt(mut pa: *const f64,
                 bvirt = u3 - _j;
                 u[2 as i32 as usize] = _k - bvirt;
                 u[3 as i32 as usize] = u3;
-                finlength =
-                    fast_expansion_sum_zeroelim(finlength, finnow,
-                                                4 as i32,
-                                                u.as_mut_ptr(), finother);
+                finlength = fast_expansion_sum_zeroelim(
+                    finlength,
+                    finnow,
+                    4 as i32,
+                    u.as_mut_ptr(),
+                    finother,
+                );
                 finswap = finnow;
                 finnow = finother;
                 finother = finswap
@@ -5572,34 +5594,25 @@ pub unsafe extern "C" fn orient3dadapt(mut pa: *const f64,
         }
     }
     if adztail != 0.0f64 {
-        wlength =
-            scale_expansion_zeroelim(bctlen, bct.as_mut_ptr(), adztail,
-                                     w.as_mut_ptr());
+        wlength = scale_expansion_zeroelim(bctlen, bct.as_mut_ptr(), adztail, w.as_mut_ptr());
         finlength =
-            fast_expansion_sum_zeroelim(finlength, finnow, wlength,
-                                        w.as_mut_ptr(), finother);
+            fast_expansion_sum_zeroelim(finlength, finnow, wlength, w.as_mut_ptr(), finother);
         finswap = finnow;
         finnow = finother;
         finother = finswap
     }
     if bdztail != 0.0f64 {
-        wlength =
-            scale_expansion_zeroelim(catlen, cat.as_mut_ptr(), bdztail,
-                                     w.as_mut_ptr());
+        wlength = scale_expansion_zeroelim(catlen, cat.as_mut_ptr(), bdztail, w.as_mut_ptr());
         finlength =
-            fast_expansion_sum_zeroelim(finlength, finnow, wlength,
-                                        w.as_mut_ptr(), finother);
+            fast_expansion_sum_zeroelim(finlength, finnow, wlength, w.as_mut_ptr(), finother);
         finswap = finnow;
         finnow = finother;
         finother = finswap
     }
     if cdztail != 0.0f64 {
-        wlength =
-            scale_expansion_zeroelim(abtlen, abt.as_mut_ptr(), cdztail,
-                                     w.as_mut_ptr());
+        wlength = scale_expansion_zeroelim(abtlen, abt.as_mut_ptr(), cdztail, w.as_mut_ptr());
         finlength =
-            fast_expansion_sum_zeroelim(finlength, finnow, wlength,
-                                        w.as_mut_ptr(), finother);
+            fast_expansion_sum_zeroelim(finlength, finnow, wlength, w.as_mut_ptr(), finother);
         finswap = finnow;
         finnow = finother;
         finother = finswap
@@ -5607,11 +5620,12 @@ pub unsafe extern "C" fn orient3dadapt(mut pa: *const f64,
     return *finnow.offset((finlength - 1 as i32) as isize);
 }
 #[no_mangle]
-pub unsafe extern "C" fn orient3d(mut pa: *const f64,
-                                  mut pb: *const f64,
-                                  mut pc: *const f64,
-                                  mut pd: *const f64)
- -> f64 {
+pub unsafe extern "C" fn orient3d(
+    mut pa: *const f64,
+    mut pb: *const f64,
+    mut pc: *const f64,
+    mut pd: *const f64,
+) -> f64 {
     let mut adx: f64 = 0.;
     let mut bdx: f64 = 0.;
     let mut cdx: f64 = 0.;
@@ -5630,48 +5644,29 @@ pub unsafe extern "C" fn orient3d(mut pa: *const f64,
     let mut det: f64 = 0.;
     let mut permanent: f64 = 0.;
     let mut errbound: f64 = 0.;
-    adx =
-        *pa.offset(0 as i32 as isize) -
-            *pd.offset(0 as i32 as isize);
-    bdx =
-        *pb.offset(0 as i32 as isize) -
-            *pd.offset(0 as i32 as isize);
-    cdx =
-        *pc.offset(0 as i32 as isize) -
-            *pd.offset(0 as i32 as isize);
-    ady =
-        *pa.offset(1 as i32 as isize) -
-            *pd.offset(1 as i32 as isize);
-    bdy =
-        *pb.offset(1 as i32 as isize) -
-            *pd.offset(1 as i32 as isize);
-    cdy =
-        *pc.offset(1 as i32 as isize) -
-            *pd.offset(1 as i32 as isize);
-    adz =
-        *pa.offset(2 as i32 as isize) -
-            *pd.offset(2 as i32 as isize);
-    bdz =
-        *pb.offset(2 as i32 as isize) -
-            *pd.offset(2 as i32 as isize);
-    cdz =
-        *pc.offset(2 as i32 as isize) -
-            *pd.offset(2 as i32 as isize);
+    adx = *pa.offset(0 as i32 as isize) - *pd.offset(0 as i32 as isize);
+    bdx = *pb.offset(0 as i32 as isize) - *pd.offset(0 as i32 as isize);
+    cdx = *pc.offset(0 as i32 as isize) - *pd.offset(0 as i32 as isize);
+    ady = *pa.offset(1 as i32 as isize) - *pd.offset(1 as i32 as isize);
+    bdy = *pb.offset(1 as i32 as isize) - *pd.offset(1 as i32 as isize);
+    cdy = *pc.offset(1 as i32 as isize) - *pd.offset(1 as i32 as isize);
+    adz = *pa.offset(2 as i32 as isize) - *pd.offset(2 as i32 as isize);
+    bdz = *pb.offset(2 as i32 as isize) - *pd.offset(2 as i32 as isize);
+    cdz = *pc.offset(2 as i32 as isize) - *pd.offset(2 as i32 as isize);
     bdxcdy = bdx * cdy;
     cdxbdy = cdx * bdy;
     cdxady = cdx * ady;
     adxcdy = adx * cdy;
     adxbdy = adx * bdy;
     bdxady = bdx * ady;
-    det =
-        adz * (bdxcdy - cdxbdy) + bdz * (cdxady - adxcdy) +
-            cdz * (adxbdy - bdxady);
-    permanent =
-        (Absolute(bdxcdy) + Absolute(cdxbdy)) * Absolute(adz) +
-            (Absolute(cdxady) + Absolute(adxcdy)) * Absolute(bdz) +
-            (Absolute(adxbdy) + Absolute(bdxady)) * Absolute(cdz);
+    det = adz * (bdxcdy - cdxbdy) + bdz * (cdxady - adxcdy) + cdz * (adxbdy - bdxady);
+    permanent = (Absolute(bdxcdy) + Absolute(cdxbdy)) * Absolute(adz)
+        + (Absolute(cdxady) + Absolute(adxcdy)) * Absolute(bdz)
+        + (Absolute(adxbdy) + Absolute(bdxady)) * Absolute(cdz);
     errbound = o3derrboundA * permanent;
-    if det > errbound || -det > errbound { return det }
+    if det > errbound || -det > errbound {
+        return det;
+    }
     return orient3dadapt(pa, pb, pc, pd, permanent);
 }
 /* ****************************************************************************/
@@ -5700,11 +5695,12 @@ pub unsafe extern "C" fn orient3d(mut pa: *const f64,
 /*                                                                           */
 /* ****************************************************************************/
 #[no_mangle]
-pub unsafe extern "C" fn incirclefast(mut pa: *const f64,
-                                      mut pb: *const f64,
-                                      mut pc: *const f64,
-                                      mut pd: *const f64)
- -> f64 {
+pub unsafe extern "C" fn incirclefast(
+    mut pa: *const f64,
+    mut pb: *const f64,
+    mut pc: *const f64,
+    mut pd: *const f64,
+) -> f64 {
     let mut adx: f64 = 0.;
     let mut ady: f64 = 0.;
     let mut bdx: f64 = 0.;
@@ -5717,24 +5713,12 @@ pub unsafe extern "C" fn incirclefast(mut pa: *const f64,
     let mut alift: f64 = 0.;
     let mut blift: f64 = 0.;
     let mut clift: f64 = 0.;
-    adx =
-        *pa.offset(0 as i32 as isize) -
-            *pd.offset(0 as i32 as isize);
-    ady =
-        *pa.offset(1 as i32 as isize) -
-            *pd.offset(1 as i32 as isize);
-    bdx =
-        *pb.offset(0 as i32 as isize) -
-            *pd.offset(0 as i32 as isize);
-    bdy =
-        *pb.offset(1 as i32 as isize) -
-            *pd.offset(1 as i32 as isize);
-    cdx =
-        *pc.offset(0 as i32 as isize) -
-            *pd.offset(0 as i32 as isize);
-    cdy =
-        *pc.offset(1 as i32 as isize) -
-            *pd.offset(1 as i32 as isize);
+    adx = *pa.offset(0 as i32 as isize) - *pd.offset(0 as i32 as isize);
+    ady = *pa.offset(1 as i32 as isize) - *pd.offset(1 as i32 as isize);
+    bdx = *pb.offset(0 as i32 as isize) - *pd.offset(0 as i32 as isize);
+    bdy = *pb.offset(1 as i32 as isize) - *pd.offset(1 as i32 as isize);
+    cdx = *pc.offset(0 as i32 as isize) - *pd.offset(0 as i32 as isize);
+    cdy = *pc.offset(1 as i32 as isize) - *pd.offset(1 as i32 as isize);
     abdet = adx * bdy - bdx * ady;
     bcdet = bdx * cdy - cdx * bdy;
     cadet = cdx * ady - adx * cdy;
@@ -5744,11 +5728,12 @@ pub unsafe extern "C" fn incirclefast(mut pa: *const f64,
     return alift * bcdet + blift * cadet + clift * abdet;
 }
 #[no_mangle]
-pub unsafe extern "C" fn incircleexact(mut pa: *mut f64,
-                                       mut pb: *mut f64,
-                                       mut pc: *mut f64,
-                                       mut pd: *mut f64)
- -> f64 {
+pub unsafe extern "C" fn incircleexact(
+    mut pa: *mut f64,
+    mut pb: *mut f64,
+    mut pc: *mut f64,
+    mut pd: *mut f64,
+) -> f64 {
     let mut axby1: f64 = 0.;
     let mut bxcy1: f64 = 0.;
     let mut cxdy1: f64 = 0.;
@@ -5826,9 +5811,7 @@ pub unsafe extern "C" fn incircleexact(mut pa: *mut f64,
     let mut _i: f64 = 0.;
     let mut _j: f64 = 0.;
     let mut _0: f64 = 0.;
-    axby1 =
-        *pa.offset(0 as i32 as isize) *
-            *pb.offset(1 as i32 as isize);
+    axby1 = *pa.offset(0 as i32 as isize) * *pb.offset(1 as i32 as isize);
     c = splitter * *pa.offset(0 as i32 as isize);
     abig = c - *pa.offset(0 as i32 as isize);
     ahi = c - abig;
@@ -5841,9 +5824,7 @@ pub unsafe extern "C" fn incircleexact(mut pa: *mut f64,
     err2 = err1 - alo * bhi;
     err3 = err2 - ahi * blo;
     axby0 = alo * blo - err3;
-    bxay1 =
-        *pb.offset(0 as i32 as isize) *
-            *pa.offset(1 as i32 as isize);
+    bxay1 = *pb.offset(0 as i32 as isize) * *pa.offset(1 as i32 as isize);
     c = splitter * *pb.offset(0 as i32 as isize);
     abig = c - *pb.offset(0 as i32 as isize);
     ahi = c - abig;
@@ -5880,9 +5861,7 @@ pub unsafe extern "C" fn incircleexact(mut pa: *mut f64,
     bround = _i - bvirt;
     around = _j - avirt;
     ab[2 as i32 as usize] = around + bround;
-    bxcy1 =
-        *pb.offset(0 as i32 as isize) *
-            *pc.offset(1 as i32 as isize);
+    bxcy1 = *pb.offset(0 as i32 as isize) * *pc.offset(1 as i32 as isize);
     c = splitter * *pb.offset(0 as i32 as isize);
     abig = c - *pb.offset(0 as i32 as isize);
     ahi = c - abig;
@@ -5895,9 +5874,7 @@ pub unsafe extern "C" fn incircleexact(mut pa: *mut f64,
     err2 = err1 - alo * bhi;
     err3 = err2 - ahi * blo;
     bxcy0 = alo * blo - err3;
-    cxby1 =
-        *pc.offset(0 as i32 as isize) *
-            *pb.offset(1 as i32 as isize);
+    cxby1 = *pc.offset(0 as i32 as isize) * *pb.offset(1 as i32 as isize);
     c = splitter * *pc.offset(0 as i32 as isize);
     abig = c - *pc.offset(0 as i32 as isize);
     ahi = c - abig;
@@ -5934,9 +5911,7 @@ pub unsafe extern "C" fn incircleexact(mut pa: *mut f64,
     bround = _i - bvirt;
     around = _j - avirt;
     bc[2 as i32 as usize] = around + bround;
-    cxdy1 =
-        *pc.offset(0 as i32 as isize) *
-            *pd.offset(1 as i32 as isize);
+    cxdy1 = *pc.offset(0 as i32 as isize) * *pd.offset(1 as i32 as isize);
     c = splitter * *pc.offset(0 as i32 as isize);
     abig = c - *pc.offset(0 as i32 as isize);
     ahi = c - abig;
@@ -5949,9 +5924,7 @@ pub unsafe extern "C" fn incircleexact(mut pa: *mut f64,
     err2 = err1 - alo * bhi;
     err3 = err2 - ahi * blo;
     cxdy0 = alo * blo - err3;
-    dxcy1 =
-        *pd.offset(0 as i32 as isize) *
-            *pc.offset(1 as i32 as isize);
+    dxcy1 = *pd.offset(0 as i32 as isize) * *pc.offset(1 as i32 as isize);
     c = splitter * *pd.offset(0 as i32 as isize);
     abig = c - *pd.offset(0 as i32 as isize);
     ahi = c - abig;
@@ -5988,9 +5961,7 @@ pub unsafe extern "C" fn incircleexact(mut pa: *mut f64,
     bround = _i - bvirt;
     around = _j - avirt;
     cd[2 as i32 as usize] = around + bround;
-    dxay1 =
-        *pd.offset(0 as i32 as isize) *
-            *pa.offset(1 as i32 as isize);
+    dxay1 = *pd.offset(0 as i32 as isize) * *pa.offset(1 as i32 as isize);
     c = splitter * *pd.offset(0 as i32 as isize);
     abig = c - *pd.offset(0 as i32 as isize);
     ahi = c - abig;
@@ -6003,9 +5974,7 @@ pub unsafe extern "C" fn incircleexact(mut pa: *mut f64,
     err2 = err1 - alo * bhi;
     err3 = err2 - ahi * blo;
     dxay0 = alo * blo - err3;
-    axdy1 =
-        *pa.offset(0 as i32 as isize) *
-            *pd.offset(1 as i32 as isize);
+    axdy1 = *pa.offset(0 as i32 as isize) * *pd.offset(1 as i32 as isize);
     c = splitter * *pa.offset(0 as i32 as isize);
     abig = c - *pa.offset(0 as i32 as isize);
     ahi = c - abig;
@@ -6042,9 +6011,7 @@ pub unsafe extern "C" fn incircleexact(mut pa: *mut f64,
     bround = _i - bvirt;
     around = _j - avirt;
     da[2 as i32 as usize] = around + bround;
-    axcy1 =
-        *pa.offset(0 as i32 as isize) *
-            *pc.offset(1 as i32 as isize);
+    axcy1 = *pa.offset(0 as i32 as isize) * *pc.offset(1 as i32 as isize);
     c = splitter * *pa.offset(0 as i32 as isize);
     abig = c - *pa.offset(0 as i32 as isize);
     ahi = c - abig;
@@ -6057,9 +6024,7 @@ pub unsafe extern "C" fn incircleexact(mut pa: *mut f64,
     err2 = err1 - alo * bhi;
     err3 = err2 - ahi * blo;
     axcy0 = alo * blo - err3;
-    cxay1 =
-        *pc.offset(0 as i32 as isize) *
-            *pa.offset(1 as i32 as isize);
+    cxay1 = *pc.offset(0 as i32 as isize) * *pa.offset(1 as i32 as isize);
     c = splitter * *pc.offset(0 as i32 as isize);
     abig = c - *pc.offset(0 as i32 as isize);
     ahi = c - abig;
@@ -6096,9 +6061,7 @@ pub unsafe extern "C" fn incircleexact(mut pa: *mut f64,
     bround = _i - bvirt;
     around = _j - avirt;
     ac[2 as i32 as usize] = around + bround;
-    bxdy1 =
-        *pb.offset(0 as i32 as isize) *
-            *pd.offset(1 as i32 as isize);
+    bxdy1 = *pb.offset(0 as i32 as isize) * *pd.offset(1 as i32 as isize);
     c = splitter * *pb.offset(0 as i32 as isize);
     abig = c - *pb.offset(0 as i32 as isize);
     ahi = c - abig;
@@ -6111,9 +6074,7 @@ pub unsafe extern "C" fn incircleexact(mut pa: *mut f64,
     err2 = err1 - alo * bhi;
     err3 = err2 - ahi * blo;
     bxdy0 = alo * blo - err3;
-    dxby1 =
-        *pd.offset(0 as i32 as isize) *
-            *pb.offset(1 as i32 as isize);
+    dxby1 = *pd.offset(0 as i32 as isize) * *pb.offset(1 as i32 as isize);
     c = splitter * *pd.offset(0 as i32 as isize);
     abig = c - *pd.offset(0 as i32 as isize);
     ahi = c - abig;
@@ -6150,137 +6111,222 @@ pub unsafe extern "C" fn incircleexact(mut pa: *mut f64,
     bround = _i - bvirt;
     around = _j - avirt;
     bd[2 as i32 as usize] = around + bround;
-    templen =
-        fast_expansion_sum_zeroelim(4 as i32, cd.as_mut_ptr(),
-                                    4 as i32, da.as_mut_ptr(),
-                                    temp8.as_mut_ptr());
-    cdalen =
-        fast_expansion_sum_zeroelim(templen, temp8.as_mut_ptr(),
-                                    4 as i32, ac.as_mut_ptr(),
-                                    cda.as_mut_ptr());
-    templen =
-        fast_expansion_sum_zeroelim(4 as i32, da.as_mut_ptr(),
-                                    4 as i32, ab.as_mut_ptr(),
-                                    temp8.as_mut_ptr());
-    dablen =
-        fast_expansion_sum_zeroelim(templen, temp8.as_mut_ptr(),
-                                    4 as i32, bd.as_mut_ptr(),
-                                    dab.as_mut_ptr());
+    templen = fast_expansion_sum_zeroelim(
+        4 as i32,
+        cd.as_mut_ptr(),
+        4 as i32,
+        da.as_mut_ptr(),
+        temp8.as_mut_ptr(),
+    );
+    cdalen = fast_expansion_sum_zeroelim(
+        templen,
+        temp8.as_mut_ptr(),
+        4 as i32,
+        ac.as_mut_ptr(),
+        cda.as_mut_ptr(),
+    );
+    templen = fast_expansion_sum_zeroelim(
+        4 as i32,
+        da.as_mut_ptr(),
+        4 as i32,
+        ab.as_mut_ptr(),
+        temp8.as_mut_ptr(),
+    );
+    dablen = fast_expansion_sum_zeroelim(
+        templen,
+        temp8.as_mut_ptr(),
+        4 as i32,
+        bd.as_mut_ptr(),
+        dab.as_mut_ptr(),
+    );
     i = 0 as i32;
     while i < 4 as i32 {
         bd[i as usize] = -bd[i as usize];
         ac[i as usize] = -ac[i as usize];
         i += 1
     }
-    templen =
-        fast_expansion_sum_zeroelim(4 as i32, ab.as_mut_ptr(),
-                                    4 as i32, bc.as_mut_ptr(),
-                                    temp8.as_mut_ptr());
-    abclen =
-        fast_expansion_sum_zeroelim(templen, temp8.as_mut_ptr(),
-                                    4 as i32, ac.as_mut_ptr(),
-                                    abc.as_mut_ptr());
-    templen =
-        fast_expansion_sum_zeroelim(4 as i32, bc.as_mut_ptr(),
-                                    4 as i32, cd.as_mut_ptr(),
-                                    temp8.as_mut_ptr());
-    bcdlen =
-        fast_expansion_sum_zeroelim(templen, temp8.as_mut_ptr(),
-                                    4 as i32, bd.as_mut_ptr(),
-                                    bcd.as_mut_ptr());
-    xlen =
-        scale_expansion_zeroelim(bcdlen, bcd.as_mut_ptr(),
-                                 *pa.offset(0 as i32 as isize),
-                                 det24x.as_mut_ptr());
-    xlen =
-        scale_expansion_zeroelim(xlen, det24x.as_mut_ptr(),
-                                 *pa.offset(0 as i32 as isize),
-                                 det48x.as_mut_ptr());
-    ylen =
-        scale_expansion_zeroelim(bcdlen, bcd.as_mut_ptr(),
-                                 *pa.offset(1 as i32 as isize),
-                                 det24y.as_mut_ptr());
-    ylen =
-        scale_expansion_zeroelim(ylen, det24y.as_mut_ptr(),
-                                 *pa.offset(1 as i32 as isize),
-                                 det48y.as_mut_ptr());
-    alen =
-        fast_expansion_sum_zeroelim(xlen, det48x.as_mut_ptr(), ylen,
-                                    det48y.as_mut_ptr(), adet.as_mut_ptr());
-    xlen =
-        scale_expansion_zeroelim(cdalen, cda.as_mut_ptr(),
-                                 *pb.offset(0 as i32 as isize),
-                                 det24x.as_mut_ptr());
-    xlen =
-        scale_expansion_zeroelim(xlen, det24x.as_mut_ptr(),
-                                 -*pb.offset(0 as i32 as isize),
-                                 det48x.as_mut_ptr());
-    ylen =
-        scale_expansion_zeroelim(cdalen, cda.as_mut_ptr(),
-                                 *pb.offset(1 as i32 as isize),
-                                 det24y.as_mut_ptr());
-    ylen =
-        scale_expansion_zeroelim(ylen, det24y.as_mut_ptr(),
-                                 -*pb.offset(1 as i32 as isize),
-                                 det48y.as_mut_ptr());
-    blen =
-        fast_expansion_sum_zeroelim(xlen, det48x.as_mut_ptr(), ylen,
-                                    det48y.as_mut_ptr(), bdet.as_mut_ptr());
-    xlen =
-        scale_expansion_zeroelim(dablen, dab.as_mut_ptr(),
-                                 *pc.offset(0 as i32 as isize),
-                                 det24x.as_mut_ptr());
-    xlen =
-        scale_expansion_zeroelim(xlen, det24x.as_mut_ptr(),
-                                 *pc.offset(0 as i32 as isize),
-                                 det48x.as_mut_ptr());
-    ylen =
-        scale_expansion_zeroelim(dablen, dab.as_mut_ptr(),
-                                 *pc.offset(1 as i32 as isize),
-                                 det24y.as_mut_ptr());
-    ylen =
-        scale_expansion_zeroelim(ylen, det24y.as_mut_ptr(),
-                                 *pc.offset(1 as i32 as isize),
-                                 det48y.as_mut_ptr());
-    clen =
-        fast_expansion_sum_zeroelim(xlen, det48x.as_mut_ptr(), ylen,
-                                    det48y.as_mut_ptr(), cdet.as_mut_ptr());
-    xlen =
-        scale_expansion_zeroelim(abclen, abc.as_mut_ptr(),
-                                 *pd.offset(0 as i32 as isize),
-                                 det24x.as_mut_ptr());
-    xlen =
-        scale_expansion_zeroelim(xlen, det24x.as_mut_ptr(),
-                                 -*pd.offset(0 as i32 as isize),
-                                 det48x.as_mut_ptr());
-    ylen =
-        scale_expansion_zeroelim(abclen, abc.as_mut_ptr(),
-                                 *pd.offset(1 as i32 as isize),
-                                 det24y.as_mut_ptr());
-    ylen =
-        scale_expansion_zeroelim(ylen, det24y.as_mut_ptr(),
-                                 -*pd.offset(1 as i32 as isize),
-                                 det48y.as_mut_ptr());
-    dlen =
-        fast_expansion_sum_zeroelim(xlen, det48x.as_mut_ptr(), ylen,
-                                    det48y.as_mut_ptr(), ddet.as_mut_ptr());
-    ablen =
-        fast_expansion_sum_zeroelim(alen, adet.as_mut_ptr(), blen,
-                                    bdet.as_mut_ptr(), abdet.as_mut_ptr());
-    cdlen =
-        fast_expansion_sum_zeroelim(clen, cdet.as_mut_ptr(), dlen,
-                                    ddet.as_mut_ptr(), cddet.as_mut_ptr());
-    deterlen =
-        fast_expansion_sum_zeroelim(ablen, abdet.as_mut_ptr(), cdlen,
-                                    cddet.as_mut_ptr(), deter.as_mut_ptr());
+    templen = fast_expansion_sum_zeroelim(
+        4 as i32,
+        ab.as_mut_ptr(),
+        4 as i32,
+        bc.as_mut_ptr(),
+        temp8.as_mut_ptr(),
+    );
+    abclen = fast_expansion_sum_zeroelim(
+        templen,
+        temp8.as_mut_ptr(),
+        4 as i32,
+        ac.as_mut_ptr(),
+        abc.as_mut_ptr(),
+    );
+    templen = fast_expansion_sum_zeroelim(
+        4 as i32,
+        bc.as_mut_ptr(),
+        4 as i32,
+        cd.as_mut_ptr(),
+        temp8.as_mut_ptr(),
+    );
+    bcdlen = fast_expansion_sum_zeroelim(
+        templen,
+        temp8.as_mut_ptr(),
+        4 as i32,
+        bd.as_mut_ptr(),
+        bcd.as_mut_ptr(),
+    );
+    xlen = scale_expansion_zeroelim(
+        bcdlen,
+        bcd.as_mut_ptr(),
+        *pa.offset(0 as i32 as isize),
+        det24x.as_mut_ptr(),
+    );
+    xlen = scale_expansion_zeroelim(
+        xlen,
+        det24x.as_mut_ptr(),
+        *pa.offset(0 as i32 as isize),
+        det48x.as_mut_ptr(),
+    );
+    ylen = scale_expansion_zeroelim(
+        bcdlen,
+        bcd.as_mut_ptr(),
+        *pa.offset(1 as i32 as isize),
+        det24y.as_mut_ptr(),
+    );
+    ylen = scale_expansion_zeroelim(
+        ylen,
+        det24y.as_mut_ptr(),
+        *pa.offset(1 as i32 as isize),
+        det48y.as_mut_ptr(),
+    );
+    alen = fast_expansion_sum_zeroelim(
+        xlen,
+        det48x.as_mut_ptr(),
+        ylen,
+        det48y.as_mut_ptr(),
+        adet.as_mut_ptr(),
+    );
+    xlen = scale_expansion_zeroelim(
+        cdalen,
+        cda.as_mut_ptr(),
+        *pb.offset(0 as i32 as isize),
+        det24x.as_mut_ptr(),
+    );
+    xlen = scale_expansion_zeroelim(
+        xlen,
+        det24x.as_mut_ptr(),
+        -*pb.offset(0 as i32 as isize),
+        det48x.as_mut_ptr(),
+    );
+    ylen = scale_expansion_zeroelim(
+        cdalen,
+        cda.as_mut_ptr(),
+        *pb.offset(1 as i32 as isize),
+        det24y.as_mut_ptr(),
+    );
+    ylen = scale_expansion_zeroelim(
+        ylen,
+        det24y.as_mut_ptr(),
+        -*pb.offset(1 as i32 as isize),
+        det48y.as_mut_ptr(),
+    );
+    blen = fast_expansion_sum_zeroelim(
+        xlen,
+        det48x.as_mut_ptr(),
+        ylen,
+        det48y.as_mut_ptr(),
+        bdet.as_mut_ptr(),
+    );
+    xlen = scale_expansion_zeroelim(
+        dablen,
+        dab.as_mut_ptr(),
+        *pc.offset(0 as i32 as isize),
+        det24x.as_mut_ptr(),
+    );
+    xlen = scale_expansion_zeroelim(
+        xlen,
+        det24x.as_mut_ptr(),
+        *pc.offset(0 as i32 as isize),
+        det48x.as_mut_ptr(),
+    );
+    ylen = scale_expansion_zeroelim(
+        dablen,
+        dab.as_mut_ptr(),
+        *pc.offset(1 as i32 as isize),
+        det24y.as_mut_ptr(),
+    );
+    ylen = scale_expansion_zeroelim(
+        ylen,
+        det24y.as_mut_ptr(),
+        *pc.offset(1 as i32 as isize),
+        det48y.as_mut_ptr(),
+    );
+    clen = fast_expansion_sum_zeroelim(
+        xlen,
+        det48x.as_mut_ptr(),
+        ylen,
+        det48y.as_mut_ptr(),
+        cdet.as_mut_ptr(),
+    );
+    xlen = scale_expansion_zeroelim(
+        abclen,
+        abc.as_mut_ptr(),
+        *pd.offset(0 as i32 as isize),
+        det24x.as_mut_ptr(),
+    );
+    xlen = scale_expansion_zeroelim(
+        xlen,
+        det24x.as_mut_ptr(),
+        -*pd.offset(0 as i32 as isize),
+        det48x.as_mut_ptr(),
+    );
+    ylen = scale_expansion_zeroelim(
+        abclen,
+        abc.as_mut_ptr(),
+        *pd.offset(1 as i32 as isize),
+        det24y.as_mut_ptr(),
+    );
+    ylen = scale_expansion_zeroelim(
+        ylen,
+        det24y.as_mut_ptr(),
+        -*pd.offset(1 as i32 as isize),
+        det48y.as_mut_ptr(),
+    );
+    dlen = fast_expansion_sum_zeroelim(
+        xlen,
+        det48x.as_mut_ptr(),
+        ylen,
+        det48y.as_mut_ptr(),
+        ddet.as_mut_ptr(),
+    );
+    ablen = fast_expansion_sum_zeroelim(
+        alen,
+        adet.as_mut_ptr(),
+        blen,
+        bdet.as_mut_ptr(),
+        abdet.as_mut_ptr(),
+    );
+    cdlen = fast_expansion_sum_zeroelim(
+        clen,
+        cdet.as_mut_ptr(),
+        dlen,
+        ddet.as_mut_ptr(),
+        cddet.as_mut_ptr(),
+    );
+    deterlen = fast_expansion_sum_zeroelim(
+        ablen,
+        abdet.as_mut_ptr(),
+        cdlen,
+        cddet.as_mut_ptr(),
+        deter.as_mut_ptr(),
+    );
     return deter[(deterlen - 1 as i32) as usize];
 }
 #[no_mangle]
-pub unsafe extern "C" fn incircleslow(mut pa: *const f64,
-                                      mut pb: *const f64,
-                                      mut pc: *const f64,
-                                      mut pd: *const f64)
- -> f64 {
+pub unsafe extern "C" fn incircleslow(
+    mut pa: *const f64,
+    mut pb: *const f64,
+    mut pc: *const f64,
+    mut pd: *const f64,
+) -> f64 {
     let mut adx: f64 = 0.;
     let mut bdx: f64 = 0.;
     let mut cdx: f64 = 0.;
@@ -6372,49 +6418,37 @@ pub unsafe extern "C" fn incircleslow(mut pa: *const f64,
     let mut _0: f64 = 0.;
     let mut _1: f64 = 0.;
     let mut _2: f64 = 0.;
-    adx =
-        *pa.offset(0 as i32 as isize) -
-            *pd.offset(0 as i32 as isize);
+    adx = *pa.offset(0 as i32 as isize) - *pd.offset(0 as i32 as isize);
     bvirt = *pa.offset(0 as i32 as isize) - adx;
     avirt = adx + bvirt;
     bround = bvirt - *pd.offset(0 as i32 as isize);
     around = *pa.offset(0 as i32 as isize) - avirt;
     adxtail = around + bround;
-    ady =
-        *pa.offset(1 as i32 as isize) -
-            *pd.offset(1 as i32 as isize);
+    ady = *pa.offset(1 as i32 as isize) - *pd.offset(1 as i32 as isize);
     bvirt = *pa.offset(1 as i32 as isize) - ady;
     avirt = ady + bvirt;
     bround = bvirt - *pd.offset(1 as i32 as isize);
     around = *pa.offset(1 as i32 as isize) - avirt;
     adytail = around + bround;
-    bdx =
-        *pb.offset(0 as i32 as isize) -
-            *pd.offset(0 as i32 as isize);
+    bdx = *pb.offset(0 as i32 as isize) - *pd.offset(0 as i32 as isize);
     bvirt = *pb.offset(0 as i32 as isize) - bdx;
     avirt = bdx + bvirt;
     bround = bvirt - *pd.offset(0 as i32 as isize);
     around = *pb.offset(0 as i32 as isize) - avirt;
     bdxtail = around + bround;
-    bdy =
-        *pb.offset(1 as i32 as isize) -
-            *pd.offset(1 as i32 as isize);
+    bdy = *pb.offset(1 as i32 as isize) - *pd.offset(1 as i32 as isize);
     bvirt = *pb.offset(1 as i32 as isize) - bdy;
     avirt = bdy + bvirt;
     bround = bvirt - *pd.offset(1 as i32 as isize);
     around = *pb.offset(1 as i32 as isize) - avirt;
     bdytail = around + bround;
-    cdx =
-        *pc.offset(0 as i32 as isize) -
-            *pd.offset(0 as i32 as isize);
+    cdx = *pc.offset(0 as i32 as isize) - *pd.offset(0 as i32 as isize);
     bvirt = *pc.offset(0 as i32 as isize) - cdx;
     avirt = cdx + bvirt;
     bround = bvirt - *pd.offset(0 as i32 as isize);
     around = *pc.offset(0 as i32 as isize) - avirt;
     cdxtail = around + bround;
-    cdy =
-        *pc.offset(1 as i32 as isize) -
-            *pd.offset(1 as i32 as isize);
+    cdy = *pc.offset(1 as i32 as isize) - *pd.offset(1 as i32 as isize);
     bvirt = *pc.offset(1 as i32 as isize) - cdy;
     avirt = cdy + bvirt;
     bround = bvirt - *pd.offset(1 as i32 as isize);
@@ -7206,180 +7240,216 @@ pub unsafe extern "C" fn incircleslow(mut pa: *const f64,
     around = _m - avirt;
     axcy[6 as i32 as usize] = around + bround;
     axcy[7 as i32 as usize] = axcy7;
-    temp16len =
-        fast_expansion_sum_zeroelim(8 as i32, bxcy.as_mut_ptr(),
-                                    8 as i32, cxby.as_mut_ptr(),
-                                    temp16.as_mut_ptr());
-    xlen =
-        scale_expansion_zeroelim(temp16len, temp16.as_mut_ptr(), adx,
-                                 detx.as_mut_ptr());
-    xxlen =
-        scale_expansion_zeroelim(xlen, detx.as_mut_ptr(), adx,
-                                 detxx.as_mut_ptr());
-    xtlen =
-        scale_expansion_zeroelim(temp16len, temp16.as_mut_ptr(), adxtail,
-                                 detxt.as_mut_ptr());
-    xxtlen =
-        scale_expansion_zeroelim(xtlen, detxt.as_mut_ptr(), adx,
-                                 detxxt.as_mut_ptr());
+    temp16len = fast_expansion_sum_zeroelim(
+        8 as i32,
+        bxcy.as_mut_ptr(),
+        8 as i32,
+        cxby.as_mut_ptr(),
+        temp16.as_mut_ptr(),
+    );
+    xlen = scale_expansion_zeroelim(temp16len, temp16.as_mut_ptr(), adx, detx.as_mut_ptr());
+    xxlen = scale_expansion_zeroelim(xlen, detx.as_mut_ptr(), adx, detxx.as_mut_ptr());
+    xtlen = scale_expansion_zeroelim(temp16len, temp16.as_mut_ptr(), adxtail, detxt.as_mut_ptr());
+    xxtlen = scale_expansion_zeroelim(xtlen, detxt.as_mut_ptr(), adx, detxxt.as_mut_ptr());
     i = 0 as i32;
-    while i < xxtlen { detxxt[i as usize] *= 2.0f64; i += 1 }
-    xtxtlen =
-        scale_expansion_zeroelim(xtlen, detxt.as_mut_ptr(), adxtail,
-                                 detxtxt.as_mut_ptr());
-    x1len =
-        fast_expansion_sum_zeroelim(xxlen, detxx.as_mut_ptr(), xxtlen,
-                                    detxxt.as_mut_ptr(), x1.as_mut_ptr());
-    x2len =
-        fast_expansion_sum_zeroelim(x1len, x1.as_mut_ptr(), xtxtlen,
-                                    detxtxt.as_mut_ptr(), x2.as_mut_ptr());
-    ylen =
-        scale_expansion_zeroelim(temp16len, temp16.as_mut_ptr(), ady,
-                                 dety.as_mut_ptr());
-    yylen =
-        scale_expansion_zeroelim(ylen, dety.as_mut_ptr(), ady,
-                                 detyy.as_mut_ptr());
-    ytlen =
-        scale_expansion_zeroelim(temp16len, temp16.as_mut_ptr(), adytail,
-                                 detyt.as_mut_ptr());
-    yytlen =
-        scale_expansion_zeroelim(ytlen, detyt.as_mut_ptr(), ady,
-                                 detyyt.as_mut_ptr());
+    while i < xxtlen {
+        detxxt[i as usize] *= 2.0f64;
+        i += 1
+    }
+    xtxtlen = scale_expansion_zeroelim(xtlen, detxt.as_mut_ptr(), adxtail, detxtxt.as_mut_ptr());
+    x1len = fast_expansion_sum_zeroelim(
+        xxlen,
+        detxx.as_mut_ptr(),
+        xxtlen,
+        detxxt.as_mut_ptr(),
+        x1.as_mut_ptr(),
+    );
+    x2len = fast_expansion_sum_zeroelim(
+        x1len,
+        x1.as_mut_ptr(),
+        xtxtlen,
+        detxtxt.as_mut_ptr(),
+        x2.as_mut_ptr(),
+    );
+    ylen = scale_expansion_zeroelim(temp16len, temp16.as_mut_ptr(), ady, dety.as_mut_ptr());
+    yylen = scale_expansion_zeroelim(ylen, dety.as_mut_ptr(), ady, detyy.as_mut_ptr());
+    ytlen = scale_expansion_zeroelim(temp16len, temp16.as_mut_ptr(), adytail, detyt.as_mut_ptr());
+    yytlen = scale_expansion_zeroelim(ytlen, detyt.as_mut_ptr(), ady, detyyt.as_mut_ptr());
     i = 0 as i32;
-    while i < yytlen { detyyt[i as usize] *= 2.0f64; i += 1 }
-    ytytlen =
-        scale_expansion_zeroelim(ytlen, detyt.as_mut_ptr(), adytail,
-                                 detytyt.as_mut_ptr());
-    y1len =
-        fast_expansion_sum_zeroelim(yylen, detyy.as_mut_ptr(), yytlen,
-                                    detyyt.as_mut_ptr(), y1.as_mut_ptr());
-    y2len =
-        fast_expansion_sum_zeroelim(y1len, y1.as_mut_ptr(), ytytlen,
-                                    detytyt.as_mut_ptr(), y2.as_mut_ptr());
-    alen =
-        fast_expansion_sum_zeroelim(x2len, x2.as_mut_ptr(), y2len,
-                                    y2.as_mut_ptr(), adet.as_mut_ptr());
-    temp16len =
-        fast_expansion_sum_zeroelim(8 as i32, cxay.as_mut_ptr(),
-                                    8 as i32, axcy.as_mut_ptr(),
-                                    temp16.as_mut_ptr());
-    xlen =
-        scale_expansion_zeroelim(temp16len, temp16.as_mut_ptr(), bdx,
-                                 detx.as_mut_ptr());
-    xxlen =
-        scale_expansion_zeroelim(xlen, detx.as_mut_ptr(), bdx,
-                                 detxx.as_mut_ptr());
-    xtlen =
-        scale_expansion_zeroelim(temp16len, temp16.as_mut_ptr(), bdxtail,
-                                 detxt.as_mut_ptr());
-    xxtlen =
-        scale_expansion_zeroelim(xtlen, detxt.as_mut_ptr(), bdx,
-                                 detxxt.as_mut_ptr());
+    while i < yytlen {
+        detyyt[i as usize] *= 2.0f64;
+        i += 1
+    }
+    ytytlen = scale_expansion_zeroelim(ytlen, detyt.as_mut_ptr(), adytail, detytyt.as_mut_ptr());
+    y1len = fast_expansion_sum_zeroelim(
+        yylen,
+        detyy.as_mut_ptr(),
+        yytlen,
+        detyyt.as_mut_ptr(),
+        y1.as_mut_ptr(),
+    );
+    y2len = fast_expansion_sum_zeroelim(
+        y1len,
+        y1.as_mut_ptr(),
+        ytytlen,
+        detytyt.as_mut_ptr(),
+        y2.as_mut_ptr(),
+    );
+    alen = fast_expansion_sum_zeroelim(
+        x2len,
+        x2.as_mut_ptr(),
+        y2len,
+        y2.as_mut_ptr(),
+        adet.as_mut_ptr(),
+    );
+    temp16len = fast_expansion_sum_zeroelim(
+        8 as i32,
+        cxay.as_mut_ptr(),
+        8 as i32,
+        axcy.as_mut_ptr(),
+        temp16.as_mut_ptr(),
+    );
+    xlen = scale_expansion_zeroelim(temp16len, temp16.as_mut_ptr(), bdx, detx.as_mut_ptr());
+    xxlen = scale_expansion_zeroelim(xlen, detx.as_mut_ptr(), bdx, detxx.as_mut_ptr());
+    xtlen = scale_expansion_zeroelim(temp16len, temp16.as_mut_ptr(), bdxtail, detxt.as_mut_ptr());
+    xxtlen = scale_expansion_zeroelim(xtlen, detxt.as_mut_ptr(), bdx, detxxt.as_mut_ptr());
     i = 0 as i32;
-    while i < xxtlen { detxxt[i as usize] *= 2.0f64; i += 1 }
-    xtxtlen =
-        scale_expansion_zeroelim(xtlen, detxt.as_mut_ptr(), bdxtail,
-                                 detxtxt.as_mut_ptr());
-    x1len =
-        fast_expansion_sum_zeroelim(xxlen, detxx.as_mut_ptr(), xxtlen,
-                                    detxxt.as_mut_ptr(), x1.as_mut_ptr());
-    x2len =
-        fast_expansion_sum_zeroelim(x1len, x1.as_mut_ptr(), xtxtlen,
-                                    detxtxt.as_mut_ptr(), x2.as_mut_ptr());
-    ylen =
-        scale_expansion_zeroelim(temp16len, temp16.as_mut_ptr(), bdy,
-                                 dety.as_mut_ptr());
-    yylen =
-        scale_expansion_zeroelim(ylen, dety.as_mut_ptr(), bdy,
-                                 detyy.as_mut_ptr());
-    ytlen =
-        scale_expansion_zeroelim(temp16len, temp16.as_mut_ptr(), bdytail,
-                                 detyt.as_mut_ptr());
-    yytlen =
-        scale_expansion_zeroelim(ytlen, detyt.as_mut_ptr(), bdy,
-                                 detyyt.as_mut_ptr());
+    while i < xxtlen {
+        detxxt[i as usize] *= 2.0f64;
+        i += 1
+    }
+    xtxtlen = scale_expansion_zeroelim(xtlen, detxt.as_mut_ptr(), bdxtail, detxtxt.as_mut_ptr());
+    x1len = fast_expansion_sum_zeroelim(
+        xxlen,
+        detxx.as_mut_ptr(),
+        xxtlen,
+        detxxt.as_mut_ptr(),
+        x1.as_mut_ptr(),
+    );
+    x2len = fast_expansion_sum_zeroelim(
+        x1len,
+        x1.as_mut_ptr(),
+        xtxtlen,
+        detxtxt.as_mut_ptr(),
+        x2.as_mut_ptr(),
+    );
+    ylen = scale_expansion_zeroelim(temp16len, temp16.as_mut_ptr(), bdy, dety.as_mut_ptr());
+    yylen = scale_expansion_zeroelim(ylen, dety.as_mut_ptr(), bdy, detyy.as_mut_ptr());
+    ytlen = scale_expansion_zeroelim(temp16len, temp16.as_mut_ptr(), bdytail, detyt.as_mut_ptr());
+    yytlen = scale_expansion_zeroelim(ytlen, detyt.as_mut_ptr(), bdy, detyyt.as_mut_ptr());
     i = 0 as i32;
-    while i < yytlen { detyyt[i as usize] *= 2.0f64; i += 1 }
-    ytytlen =
-        scale_expansion_zeroelim(ytlen, detyt.as_mut_ptr(), bdytail,
-                                 detytyt.as_mut_ptr());
-    y1len =
-        fast_expansion_sum_zeroelim(yylen, detyy.as_mut_ptr(), yytlen,
-                                    detyyt.as_mut_ptr(), y1.as_mut_ptr());
-    y2len =
-        fast_expansion_sum_zeroelim(y1len, y1.as_mut_ptr(), ytytlen,
-                                    detytyt.as_mut_ptr(), y2.as_mut_ptr());
-    blen =
-        fast_expansion_sum_zeroelim(x2len, x2.as_mut_ptr(), y2len,
-                                    y2.as_mut_ptr(), bdet.as_mut_ptr());
-    temp16len =
-        fast_expansion_sum_zeroelim(8 as i32, axby.as_mut_ptr(),
-                                    8 as i32, bxay.as_mut_ptr(),
-                                    temp16.as_mut_ptr());
-    xlen =
-        scale_expansion_zeroelim(temp16len, temp16.as_mut_ptr(), cdx,
-                                 detx.as_mut_ptr());
-    xxlen =
-        scale_expansion_zeroelim(xlen, detx.as_mut_ptr(), cdx,
-                                 detxx.as_mut_ptr());
-    xtlen =
-        scale_expansion_zeroelim(temp16len, temp16.as_mut_ptr(), cdxtail,
-                                 detxt.as_mut_ptr());
-    xxtlen =
-        scale_expansion_zeroelim(xtlen, detxt.as_mut_ptr(), cdx,
-                                 detxxt.as_mut_ptr());
+    while i < yytlen {
+        detyyt[i as usize] *= 2.0f64;
+        i += 1
+    }
+    ytytlen = scale_expansion_zeroelim(ytlen, detyt.as_mut_ptr(), bdytail, detytyt.as_mut_ptr());
+    y1len = fast_expansion_sum_zeroelim(
+        yylen,
+        detyy.as_mut_ptr(),
+        yytlen,
+        detyyt.as_mut_ptr(),
+        y1.as_mut_ptr(),
+    );
+    y2len = fast_expansion_sum_zeroelim(
+        y1len,
+        y1.as_mut_ptr(),
+        ytytlen,
+        detytyt.as_mut_ptr(),
+        y2.as_mut_ptr(),
+    );
+    blen = fast_expansion_sum_zeroelim(
+        x2len,
+        x2.as_mut_ptr(),
+        y2len,
+        y2.as_mut_ptr(),
+        bdet.as_mut_ptr(),
+    );
+    temp16len = fast_expansion_sum_zeroelim(
+        8 as i32,
+        axby.as_mut_ptr(),
+        8 as i32,
+        bxay.as_mut_ptr(),
+        temp16.as_mut_ptr(),
+    );
+    xlen = scale_expansion_zeroelim(temp16len, temp16.as_mut_ptr(), cdx, detx.as_mut_ptr());
+    xxlen = scale_expansion_zeroelim(xlen, detx.as_mut_ptr(), cdx, detxx.as_mut_ptr());
+    xtlen = scale_expansion_zeroelim(temp16len, temp16.as_mut_ptr(), cdxtail, detxt.as_mut_ptr());
+    xxtlen = scale_expansion_zeroelim(xtlen, detxt.as_mut_ptr(), cdx, detxxt.as_mut_ptr());
     i = 0 as i32;
-    while i < xxtlen { detxxt[i as usize] *= 2.0f64; i += 1 }
-    xtxtlen =
-        scale_expansion_zeroelim(xtlen, detxt.as_mut_ptr(), cdxtail,
-                                 detxtxt.as_mut_ptr());
-    x1len =
-        fast_expansion_sum_zeroelim(xxlen, detxx.as_mut_ptr(), xxtlen,
-                                    detxxt.as_mut_ptr(), x1.as_mut_ptr());
-    x2len =
-        fast_expansion_sum_zeroelim(x1len, x1.as_mut_ptr(), xtxtlen,
-                                    detxtxt.as_mut_ptr(), x2.as_mut_ptr());
-    ylen =
-        scale_expansion_zeroelim(temp16len, temp16.as_mut_ptr(), cdy,
-                                 dety.as_mut_ptr());
-    yylen =
-        scale_expansion_zeroelim(ylen, dety.as_mut_ptr(), cdy,
-                                 detyy.as_mut_ptr());
-    ytlen =
-        scale_expansion_zeroelim(temp16len, temp16.as_mut_ptr(), cdytail,
-                                 detyt.as_mut_ptr());
-    yytlen =
-        scale_expansion_zeroelim(ytlen, detyt.as_mut_ptr(), cdy,
-                                 detyyt.as_mut_ptr());
+    while i < xxtlen {
+        detxxt[i as usize] *= 2.0f64;
+        i += 1
+    }
+    xtxtlen = scale_expansion_zeroelim(xtlen, detxt.as_mut_ptr(), cdxtail, detxtxt.as_mut_ptr());
+    x1len = fast_expansion_sum_zeroelim(
+        xxlen,
+        detxx.as_mut_ptr(),
+        xxtlen,
+        detxxt.as_mut_ptr(),
+        x1.as_mut_ptr(),
+    );
+    x2len = fast_expansion_sum_zeroelim(
+        x1len,
+        x1.as_mut_ptr(),
+        xtxtlen,
+        detxtxt.as_mut_ptr(),
+        x2.as_mut_ptr(),
+    );
+    ylen = scale_expansion_zeroelim(temp16len, temp16.as_mut_ptr(), cdy, dety.as_mut_ptr());
+    yylen = scale_expansion_zeroelim(ylen, dety.as_mut_ptr(), cdy, detyy.as_mut_ptr());
+    ytlen = scale_expansion_zeroelim(temp16len, temp16.as_mut_ptr(), cdytail, detyt.as_mut_ptr());
+    yytlen = scale_expansion_zeroelim(ytlen, detyt.as_mut_ptr(), cdy, detyyt.as_mut_ptr());
     i = 0 as i32;
-    while i < yytlen { detyyt[i as usize] *= 2.0f64; i += 1 }
-    ytytlen =
-        scale_expansion_zeroelim(ytlen, detyt.as_mut_ptr(), cdytail,
-                                 detytyt.as_mut_ptr());
-    y1len =
-        fast_expansion_sum_zeroelim(yylen, detyy.as_mut_ptr(), yytlen,
-                                    detyyt.as_mut_ptr(), y1.as_mut_ptr());
-    y2len =
-        fast_expansion_sum_zeroelim(y1len, y1.as_mut_ptr(), ytytlen,
-                                    detytyt.as_mut_ptr(), y2.as_mut_ptr());
-    clen =
-        fast_expansion_sum_zeroelim(x2len, x2.as_mut_ptr(), y2len,
-                                    y2.as_mut_ptr(), cdet.as_mut_ptr());
-    ablen =
-        fast_expansion_sum_zeroelim(alen, adet.as_mut_ptr(), blen,
-                                    bdet.as_mut_ptr(), abdet.as_mut_ptr());
-    deterlen =
-        fast_expansion_sum_zeroelim(ablen, abdet.as_mut_ptr(), clen,
-                                    cdet.as_mut_ptr(), deter.as_mut_ptr());
+    while i < yytlen {
+        detyyt[i as usize] *= 2.0f64;
+        i += 1
+    }
+    ytytlen = scale_expansion_zeroelim(ytlen, detyt.as_mut_ptr(), cdytail, detytyt.as_mut_ptr());
+    y1len = fast_expansion_sum_zeroelim(
+        yylen,
+        detyy.as_mut_ptr(),
+        yytlen,
+        detyyt.as_mut_ptr(),
+        y1.as_mut_ptr(),
+    );
+    y2len = fast_expansion_sum_zeroelim(
+        y1len,
+        y1.as_mut_ptr(),
+        ytytlen,
+        detytyt.as_mut_ptr(),
+        y2.as_mut_ptr(),
+    );
+    clen = fast_expansion_sum_zeroelim(
+        x2len,
+        x2.as_mut_ptr(),
+        y2len,
+        y2.as_mut_ptr(),
+        cdet.as_mut_ptr(),
+    );
+    ablen = fast_expansion_sum_zeroelim(
+        alen,
+        adet.as_mut_ptr(),
+        blen,
+        bdet.as_mut_ptr(),
+        abdet.as_mut_ptr(),
+    );
+    deterlen = fast_expansion_sum_zeroelim(
+        ablen,
+        abdet.as_mut_ptr(),
+        clen,
+        cdet.as_mut_ptr(),
+        deter.as_mut_ptr(),
+    );
     return deter[(deterlen - 1 as i32) as usize];
 }
 #[no_mangle]
-pub unsafe extern "C" fn incircleadapt(mut pa: *const f64,
-                                       mut pb: *const f64,
-                                       mut pc: *const f64,
-                                       mut pd: *const f64,
-                                       mut permanent: f64)
- -> f64 {
+pub unsafe extern "C" fn incircleadapt(
+    mut pa: *const f64,
+    mut pb: *const f64,
+    mut pc: *const f64,
+    mut pd: *const f64,
+    mut permanent: f64,
+) -> f64 {
     let mut adx: f64 = 0.;
     let mut bdx: f64 = 0.;
     let mut cdx: f64 = 0.;
@@ -7584,24 +7654,12 @@ pub unsafe extern "C" fn incircleadapt(mut pa: *const f64,
     let mut _i: f64 = 0.;
     let mut _j: f64 = 0.;
     let mut _0: f64 = 0.;
-    adx =
-        *pa.offset(0 as i32 as isize) -
-            *pd.offset(0 as i32 as isize);
-    bdx =
-        *pb.offset(0 as i32 as isize) -
-            *pd.offset(0 as i32 as isize);
-    cdx =
-        *pc.offset(0 as i32 as isize) -
-            *pd.offset(0 as i32 as isize);
-    ady =
-        *pa.offset(1 as i32 as isize) -
-            *pd.offset(1 as i32 as isize);
-    bdy =
-        *pb.offset(1 as i32 as isize) -
-            *pd.offset(1 as i32 as isize);
-    cdy =
-        *pc.offset(1 as i32 as isize) -
-            *pd.offset(1 as i32 as isize);
+    adx = *pa.offset(0 as i32 as isize) - *pd.offset(0 as i32 as isize);
+    bdx = *pb.offset(0 as i32 as isize) - *pd.offset(0 as i32 as isize);
+    cdx = *pc.offset(0 as i32 as isize) - *pd.offset(0 as i32 as isize);
+    ady = *pa.offset(1 as i32 as isize) - *pd.offset(1 as i32 as isize);
+    bdy = *pb.offset(1 as i32 as isize) - *pd.offset(1 as i32 as isize);
+    cdy = *pc.offset(1 as i32 as isize) - *pd.offset(1 as i32 as isize);
     bdxcdy1 = bdx * cdy;
     c = splitter * bdx;
     abig = c - bdx;
@@ -7653,21 +7711,17 @@ pub unsafe extern "C" fn incircleadapt(mut pa: *const f64,
     around = _j - avirt;
     bc[2 as i32 as usize] = around + bround;
     bc[3 as i32 as usize] = bc3;
-    axbclen =
-        scale_expansion_zeroelim(4 as i32, bc.as_mut_ptr(), adx,
-                                 axbc.as_mut_ptr());
-    axxbclen =
-        scale_expansion_zeroelim(axbclen, axbc.as_mut_ptr(), adx,
-                                 axxbc.as_mut_ptr());
-    aybclen =
-        scale_expansion_zeroelim(4 as i32, bc.as_mut_ptr(), ady,
-                                 aybc.as_mut_ptr());
-    ayybclen =
-        scale_expansion_zeroelim(aybclen, aybc.as_mut_ptr(), ady,
-                                 ayybc.as_mut_ptr());
-    alen =
-        fast_expansion_sum_zeroelim(axxbclen, axxbc.as_mut_ptr(), ayybclen,
-                                    ayybc.as_mut_ptr(), adet.as_mut_ptr());
+    axbclen = scale_expansion_zeroelim(4 as i32, bc.as_mut_ptr(), adx, axbc.as_mut_ptr());
+    axxbclen = scale_expansion_zeroelim(axbclen, axbc.as_mut_ptr(), adx, axxbc.as_mut_ptr());
+    aybclen = scale_expansion_zeroelim(4 as i32, bc.as_mut_ptr(), ady, aybc.as_mut_ptr());
+    ayybclen = scale_expansion_zeroelim(aybclen, aybc.as_mut_ptr(), ady, ayybc.as_mut_ptr());
+    alen = fast_expansion_sum_zeroelim(
+        axxbclen,
+        axxbc.as_mut_ptr(),
+        ayybclen,
+        ayybc.as_mut_ptr(),
+        adet.as_mut_ptr(),
+    );
     cdxady1 = cdx * ady;
     c = splitter * cdx;
     abig = c - cdx;
@@ -7719,21 +7773,17 @@ pub unsafe extern "C" fn incircleadapt(mut pa: *const f64,
     around = _j - avirt;
     ca[2 as i32 as usize] = around + bround;
     ca[3 as i32 as usize] = ca3;
-    bxcalen =
-        scale_expansion_zeroelim(4 as i32, ca.as_mut_ptr(), bdx,
-                                 bxca.as_mut_ptr());
-    bxxcalen =
-        scale_expansion_zeroelim(bxcalen, bxca.as_mut_ptr(), bdx,
-                                 bxxca.as_mut_ptr());
-    bycalen =
-        scale_expansion_zeroelim(4 as i32, ca.as_mut_ptr(), bdy,
-                                 byca.as_mut_ptr());
-    byycalen =
-        scale_expansion_zeroelim(bycalen, byca.as_mut_ptr(), bdy,
-                                 byyca.as_mut_ptr());
-    blen =
-        fast_expansion_sum_zeroelim(bxxcalen, bxxca.as_mut_ptr(), byycalen,
-                                    byyca.as_mut_ptr(), bdet.as_mut_ptr());
+    bxcalen = scale_expansion_zeroelim(4 as i32, ca.as_mut_ptr(), bdx, bxca.as_mut_ptr());
+    bxxcalen = scale_expansion_zeroelim(bxcalen, bxca.as_mut_ptr(), bdx, bxxca.as_mut_ptr());
+    bycalen = scale_expansion_zeroelim(4 as i32, ca.as_mut_ptr(), bdy, byca.as_mut_ptr());
+    byycalen = scale_expansion_zeroelim(bycalen, byca.as_mut_ptr(), bdy, byyca.as_mut_ptr());
+    blen = fast_expansion_sum_zeroelim(
+        bxxcalen,
+        bxxca.as_mut_ptr(),
+        byycalen,
+        byyca.as_mut_ptr(),
+        bdet.as_mut_ptr(),
+    );
     adxbdy1 = adx * bdy;
     c = splitter * adx;
     abig = c - adx;
@@ -7785,30 +7835,36 @@ pub unsafe extern "C" fn incircleadapt(mut pa: *const f64,
     around = _j - avirt;
     ab[2 as i32 as usize] = around + bround;
     ab[3 as i32 as usize] = ab3;
-    cxablen =
-        scale_expansion_zeroelim(4 as i32, ab.as_mut_ptr(), cdx,
-                                 cxab.as_mut_ptr());
-    cxxablen =
-        scale_expansion_zeroelim(cxablen, cxab.as_mut_ptr(), cdx,
-                                 cxxab.as_mut_ptr());
-    cyablen =
-        scale_expansion_zeroelim(4 as i32, ab.as_mut_ptr(), cdy,
-                                 cyab.as_mut_ptr());
-    cyyablen =
-        scale_expansion_zeroelim(cyablen, cyab.as_mut_ptr(), cdy,
-                                 cyyab.as_mut_ptr());
-    clen =
-        fast_expansion_sum_zeroelim(cxxablen, cxxab.as_mut_ptr(), cyyablen,
-                                    cyyab.as_mut_ptr(), cdet.as_mut_ptr());
-    ablen =
-        fast_expansion_sum_zeroelim(alen, adet.as_mut_ptr(), blen,
-                                    bdet.as_mut_ptr(), abdet.as_mut_ptr());
-    finlength =
-        fast_expansion_sum_zeroelim(ablen, abdet.as_mut_ptr(), clen,
-                                    cdet.as_mut_ptr(), fin1.as_mut_ptr());
+    cxablen = scale_expansion_zeroelim(4 as i32, ab.as_mut_ptr(), cdx, cxab.as_mut_ptr());
+    cxxablen = scale_expansion_zeroelim(cxablen, cxab.as_mut_ptr(), cdx, cxxab.as_mut_ptr());
+    cyablen = scale_expansion_zeroelim(4 as i32, ab.as_mut_ptr(), cdy, cyab.as_mut_ptr());
+    cyyablen = scale_expansion_zeroelim(cyablen, cyab.as_mut_ptr(), cdy, cyyab.as_mut_ptr());
+    clen = fast_expansion_sum_zeroelim(
+        cxxablen,
+        cxxab.as_mut_ptr(),
+        cyyablen,
+        cyyab.as_mut_ptr(),
+        cdet.as_mut_ptr(),
+    );
+    ablen = fast_expansion_sum_zeroelim(
+        alen,
+        adet.as_mut_ptr(),
+        blen,
+        bdet.as_mut_ptr(),
+        abdet.as_mut_ptr(),
+    );
+    finlength = fast_expansion_sum_zeroelim(
+        ablen,
+        abdet.as_mut_ptr(),
+        clen,
+        cdet.as_mut_ptr(),
+        fin1.as_mut_ptr(),
+    );
     det = estimate(finlength, fin1.as_mut_ptr());
     errbound = iccerrboundB * permanent;
-    if det >= errbound || -det >= errbound { return det }
+    if det >= errbound || -det >= errbound {
+        return det;
+    }
     bvirt = *pa.offset(0 as i32 as isize) - adx;
     avirt = adx + bvirt;
     bround = bvirt - *pd.offset(0 as i32 as isize);
@@ -7839,32 +7895,31 @@ pub unsafe extern "C" fn incircleadapt(mut pa: *const f64,
     bround = bvirt - *pd.offset(1 as i32 as isize);
     around = *pc.offset(1 as i32 as isize) - avirt;
     cdytail = around + bround;
-    if adxtail == 0.0f64 && bdxtail == 0.0f64 && cdxtail == 0.0f64 &&
-           adytail == 0.0f64 && bdytail == 0.0f64 && cdytail == 0.0f64 {
-        return det
+    if adxtail == 0.0f64
+        && bdxtail == 0.0f64
+        && cdxtail == 0.0f64
+        && adytail == 0.0f64
+        && bdytail == 0.0f64
+        && cdytail == 0.0f64
+    {
+        return det;
     }
     errbound = iccerrboundC * permanent + resulterrbound * Absolute(det);
-    det +=
-        (adx * adx + ady * ady) *
-            (bdx * cdytail + cdy * bdxtail - (bdy * cdxtail + cdx * bdytail))
-            +
-            2.0f64 * (adx * adxtail + ady * adytail) * (bdx * cdy - bdy * cdx)
-            +
-            ((bdx * bdx + bdy * bdy) *
-                 (cdx * adytail + ady * cdxtail -
-                      (cdy * adxtail + adx * cdytail)) +
-                 2.0f64 * (bdx * bdxtail + bdy * bdytail) *
-                     (cdx * ady - cdy * adx)) +
-            ((cdx * cdx + cdy * cdy) *
-                 (adx * bdytail + bdy * adxtail -
-                      (ady * bdxtail + bdx * adytail)) +
-                 2.0f64 * (cdx * cdxtail + cdy * cdytail) *
-                     (adx * bdy - ady * bdx));
-    if det >= errbound || -det >= errbound { return det }
+    det += (adx * adx + ady * ady)
+        * (bdx * cdytail + cdy * bdxtail - (bdy * cdxtail + cdx * bdytail))
+        + 2.0f64 * (adx * adxtail + ady * adytail) * (bdx * cdy - bdy * cdx)
+        + ((bdx * bdx + bdy * bdy)
+            * (cdx * adytail + ady * cdxtail - (cdy * adxtail + adx * cdytail))
+            + 2.0f64 * (bdx * bdxtail + bdy * bdytail) * (cdx * ady - cdy * adx))
+        + ((cdx * cdx + cdy * cdy)
+            * (adx * bdytail + bdy * adxtail - (ady * bdxtail + bdx * adytail))
+            + 2.0f64 * (cdx * cdxtail + cdy * cdytail) * (adx * bdy - ady * bdx));
+    if det >= errbound || -det >= errbound {
+        return det;
+    }
     finnow = fin1.as_mut_ptr();
     finother = fin2.as_mut_ptr();
-    if bdxtail != 0.0f64 || bdytail != 0.0f64 || cdxtail != 0.0f64 ||
-           cdytail != 0.0f64 {
+    if bdxtail != 0.0f64 || bdytail != 0.0f64 || cdxtail != 0.0f64 || cdytail != 0.0f64 {
         adxadx1 = adx * adx;
         c = splitter * adx;
         abig = c - adx;
@@ -7907,8 +7962,7 @@ pub unsafe extern "C" fn incircleadapt(mut pa: *const f64,
         aa[2 as i32 as usize] = around + bround;
         aa[3 as i32 as usize] = aa3
     }
-    if cdxtail != 0.0f64 || cdytail != 0.0f64 || adxtail != 0.0f64 ||
-           adytail != 0.0f64 {
+    if cdxtail != 0.0f64 || cdytail != 0.0f64 || adxtail != 0.0f64 || adytail != 0.0f64 {
         bdxbdx1 = bdx * bdx;
         c = splitter * bdx;
         abig = c - bdx;
@@ -7951,8 +8005,7 @@ pub unsafe extern "C" fn incircleadapt(mut pa: *const f64,
         bb[2 as i32 as usize] = around + bround;
         bb[3 as i32 as usize] = bb3
     }
-    if adxtail != 0.0f64 || adytail != 0.0f64 || bdxtail != 0.0f64 ||
-           bdytail != 0.0f64 {
+    if adxtail != 0.0f64 || adytail != 0.0f64 || bdxtail != 0.0f64 || bdytail != 0.0f64 {
         cdxcdx1 = cdx * cdx;
         c = splitter * cdx;
         abig = c - cdx;
@@ -7996,212 +8049,241 @@ pub unsafe extern "C" fn incircleadapt(mut pa: *const f64,
         cc[3 as i32 as usize] = cc3
     }
     if adxtail != 0.0f64 {
-        axtbclen =
-            scale_expansion_zeroelim(4 as i32, bc.as_mut_ptr(),
-                                     adxtail, axtbc.as_mut_ptr());
-        temp16alen =
-            scale_expansion_zeroelim(axtbclen, axtbc.as_mut_ptr(),
-                                     2.0f64 * adx, temp16a.as_mut_ptr());
-        axtcclen =
-            scale_expansion_zeroelim(4 as i32, cc.as_mut_ptr(),
-                                     adxtail, axtcc.as_mut_ptr());
+        axtbclen = scale_expansion_zeroelim(4 as i32, bc.as_mut_ptr(), adxtail, axtbc.as_mut_ptr());
+        temp16alen = scale_expansion_zeroelim(
+            axtbclen,
+            axtbc.as_mut_ptr(),
+            2.0f64 * adx,
+            temp16a.as_mut_ptr(),
+        );
+        axtcclen = scale_expansion_zeroelim(4 as i32, cc.as_mut_ptr(), adxtail, axtcc.as_mut_ptr());
         temp16blen =
-            scale_expansion_zeroelim(axtcclen, axtcc.as_mut_ptr(), bdy,
-                                     temp16b.as_mut_ptr());
-        axtbblen =
-            scale_expansion_zeroelim(4 as i32, bb.as_mut_ptr(),
-                                     adxtail, axtbb.as_mut_ptr());
+            scale_expansion_zeroelim(axtcclen, axtcc.as_mut_ptr(), bdy, temp16b.as_mut_ptr());
+        axtbblen = scale_expansion_zeroelim(4 as i32, bb.as_mut_ptr(), adxtail, axtbb.as_mut_ptr());
         temp16clen =
-            scale_expansion_zeroelim(axtbblen, axtbb.as_mut_ptr(), -cdy,
-                                     temp16c.as_mut_ptr());
-        temp32alen =
-            fast_expansion_sum_zeroelim(temp16alen, temp16a.as_mut_ptr(),
-                                        temp16blen, temp16b.as_mut_ptr(),
-                                        temp32a.as_mut_ptr());
-        temp48len =
-            fast_expansion_sum_zeroelim(temp16clen, temp16c.as_mut_ptr(),
-                                        temp32alen, temp32a.as_mut_ptr(),
-                                        temp48.as_mut_ptr());
-        finlength =
-            fast_expansion_sum_zeroelim(finlength, finnow, temp48len,
-                                        temp48.as_mut_ptr(), finother);
+            scale_expansion_zeroelim(axtbblen, axtbb.as_mut_ptr(), -cdy, temp16c.as_mut_ptr());
+        temp32alen = fast_expansion_sum_zeroelim(
+            temp16alen,
+            temp16a.as_mut_ptr(),
+            temp16blen,
+            temp16b.as_mut_ptr(),
+            temp32a.as_mut_ptr(),
+        );
+        temp48len = fast_expansion_sum_zeroelim(
+            temp16clen,
+            temp16c.as_mut_ptr(),
+            temp32alen,
+            temp32a.as_mut_ptr(),
+            temp48.as_mut_ptr(),
+        );
+        finlength = fast_expansion_sum_zeroelim(
+            finlength,
+            finnow,
+            temp48len,
+            temp48.as_mut_ptr(),
+            finother,
+        );
         finswap = finnow;
         finnow = finother;
         finother = finswap
     }
     if adytail != 0.0f64 {
-        aytbclen =
-            scale_expansion_zeroelim(4 as i32, bc.as_mut_ptr(),
-                                     adytail, aytbc.as_mut_ptr());
-        temp16alen =
-            scale_expansion_zeroelim(aytbclen, aytbc.as_mut_ptr(),
-                                     2.0f64 * ady, temp16a.as_mut_ptr());
-        aytbblen =
-            scale_expansion_zeroelim(4 as i32, bb.as_mut_ptr(),
-                                     adytail, aytbb.as_mut_ptr());
+        aytbclen = scale_expansion_zeroelim(4 as i32, bc.as_mut_ptr(), adytail, aytbc.as_mut_ptr());
+        temp16alen = scale_expansion_zeroelim(
+            aytbclen,
+            aytbc.as_mut_ptr(),
+            2.0f64 * ady,
+            temp16a.as_mut_ptr(),
+        );
+        aytbblen = scale_expansion_zeroelim(4 as i32, bb.as_mut_ptr(), adytail, aytbb.as_mut_ptr());
         temp16blen =
-            scale_expansion_zeroelim(aytbblen, aytbb.as_mut_ptr(), cdx,
-                                     temp16b.as_mut_ptr());
-        aytcclen =
-            scale_expansion_zeroelim(4 as i32, cc.as_mut_ptr(),
-                                     adytail, aytcc.as_mut_ptr());
+            scale_expansion_zeroelim(aytbblen, aytbb.as_mut_ptr(), cdx, temp16b.as_mut_ptr());
+        aytcclen = scale_expansion_zeroelim(4 as i32, cc.as_mut_ptr(), adytail, aytcc.as_mut_ptr());
         temp16clen =
-            scale_expansion_zeroelim(aytcclen, aytcc.as_mut_ptr(), -bdx,
-                                     temp16c.as_mut_ptr());
-        temp32alen =
-            fast_expansion_sum_zeroelim(temp16alen, temp16a.as_mut_ptr(),
-                                        temp16blen, temp16b.as_mut_ptr(),
-                                        temp32a.as_mut_ptr());
-        temp48len =
-            fast_expansion_sum_zeroelim(temp16clen, temp16c.as_mut_ptr(),
-                                        temp32alen, temp32a.as_mut_ptr(),
-                                        temp48.as_mut_ptr());
-        finlength =
-            fast_expansion_sum_zeroelim(finlength, finnow, temp48len,
-                                        temp48.as_mut_ptr(), finother);
+            scale_expansion_zeroelim(aytcclen, aytcc.as_mut_ptr(), -bdx, temp16c.as_mut_ptr());
+        temp32alen = fast_expansion_sum_zeroelim(
+            temp16alen,
+            temp16a.as_mut_ptr(),
+            temp16blen,
+            temp16b.as_mut_ptr(),
+            temp32a.as_mut_ptr(),
+        );
+        temp48len = fast_expansion_sum_zeroelim(
+            temp16clen,
+            temp16c.as_mut_ptr(),
+            temp32alen,
+            temp32a.as_mut_ptr(),
+            temp48.as_mut_ptr(),
+        );
+        finlength = fast_expansion_sum_zeroelim(
+            finlength,
+            finnow,
+            temp48len,
+            temp48.as_mut_ptr(),
+            finother,
+        );
         finswap = finnow;
         finnow = finother;
         finother = finswap
     }
     if bdxtail != 0.0f64 {
-        bxtcalen =
-            scale_expansion_zeroelim(4 as i32, ca.as_mut_ptr(),
-                                     bdxtail, bxtca.as_mut_ptr());
-        temp16alen =
-            scale_expansion_zeroelim(bxtcalen, bxtca.as_mut_ptr(),
-                                     2.0f64 * bdx, temp16a.as_mut_ptr());
-        bxtaalen =
-            scale_expansion_zeroelim(4 as i32, aa.as_mut_ptr(),
-                                     bdxtail, bxtaa.as_mut_ptr());
+        bxtcalen = scale_expansion_zeroelim(4 as i32, ca.as_mut_ptr(), bdxtail, bxtca.as_mut_ptr());
+        temp16alen = scale_expansion_zeroelim(
+            bxtcalen,
+            bxtca.as_mut_ptr(),
+            2.0f64 * bdx,
+            temp16a.as_mut_ptr(),
+        );
+        bxtaalen = scale_expansion_zeroelim(4 as i32, aa.as_mut_ptr(), bdxtail, bxtaa.as_mut_ptr());
         temp16blen =
-            scale_expansion_zeroelim(bxtaalen, bxtaa.as_mut_ptr(), cdy,
-                                     temp16b.as_mut_ptr());
-        bxtcclen =
-            scale_expansion_zeroelim(4 as i32, cc.as_mut_ptr(),
-                                     bdxtail, bxtcc.as_mut_ptr());
+            scale_expansion_zeroelim(bxtaalen, bxtaa.as_mut_ptr(), cdy, temp16b.as_mut_ptr());
+        bxtcclen = scale_expansion_zeroelim(4 as i32, cc.as_mut_ptr(), bdxtail, bxtcc.as_mut_ptr());
         temp16clen =
-            scale_expansion_zeroelim(bxtcclen, bxtcc.as_mut_ptr(), -ady,
-                                     temp16c.as_mut_ptr());
-        temp32alen =
-            fast_expansion_sum_zeroelim(temp16alen, temp16a.as_mut_ptr(),
-                                        temp16blen, temp16b.as_mut_ptr(),
-                                        temp32a.as_mut_ptr());
-        temp48len =
-            fast_expansion_sum_zeroelim(temp16clen, temp16c.as_mut_ptr(),
-                                        temp32alen, temp32a.as_mut_ptr(),
-                                        temp48.as_mut_ptr());
-        finlength =
-            fast_expansion_sum_zeroelim(finlength, finnow, temp48len,
-                                        temp48.as_mut_ptr(), finother);
+            scale_expansion_zeroelim(bxtcclen, bxtcc.as_mut_ptr(), -ady, temp16c.as_mut_ptr());
+        temp32alen = fast_expansion_sum_zeroelim(
+            temp16alen,
+            temp16a.as_mut_ptr(),
+            temp16blen,
+            temp16b.as_mut_ptr(),
+            temp32a.as_mut_ptr(),
+        );
+        temp48len = fast_expansion_sum_zeroelim(
+            temp16clen,
+            temp16c.as_mut_ptr(),
+            temp32alen,
+            temp32a.as_mut_ptr(),
+            temp48.as_mut_ptr(),
+        );
+        finlength = fast_expansion_sum_zeroelim(
+            finlength,
+            finnow,
+            temp48len,
+            temp48.as_mut_ptr(),
+            finother,
+        );
         finswap = finnow;
         finnow = finother;
         finother = finswap
     }
     if bdytail != 0.0f64 {
-        bytcalen =
-            scale_expansion_zeroelim(4 as i32, ca.as_mut_ptr(),
-                                     bdytail, bytca.as_mut_ptr());
-        temp16alen =
-            scale_expansion_zeroelim(bytcalen, bytca.as_mut_ptr(),
-                                     2.0f64 * bdy, temp16a.as_mut_ptr());
-        bytcclen =
-            scale_expansion_zeroelim(4 as i32, cc.as_mut_ptr(),
-                                     bdytail, bytcc.as_mut_ptr());
+        bytcalen = scale_expansion_zeroelim(4 as i32, ca.as_mut_ptr(), bdytail, bytca.as_mut_ptr());
+        temp16alen = scale_expansion_zeroelim(
+            bytcalen,
+            bytca.as_mut_ptr(),
+            2.0f64 * bdy,
+            temp16a.as_mut_ptr(),
+        );
+        bytcclen = scale_expansion_zeroelim(4 as i32, cc.as_mut_ptr(), bdytail, bytcc.as_mut_ptr());
         temp16blen =
-            scale_expansion_zeroelim(bytcclen, bytcc.as_mut_ptr(), adx,
-                                     temp16b.as_mut_ptr());
-        bytaalen =
-            scale_expansion_zeroelim(4 as i32, aa.as_mut_ptr(),
-                                     bdytail, bytaa.as_mut_ptr());
+            scale_expansion_zeroelim(bytcclen, bytcc.as_mut_ptr(), adx, temp16b.as_mut_ptr());
+        bytaalen = scale_expansion_zeroelim(4 as i32, aa.as_mut_ptr(), bdytail, bytaa.as_mut_ptr());
         temp16clen =
-            scale_expansion_zeroelim(bytaalen, bytaa.as_mut_ptr(), -cdx,
-                                     temp16c.as_mut_ptr());
-        temp32alen =
-            fast_expansion_sum_zeroelim(temp16alen, temp16a.as_mut_ptr(),
-                                        temp16blen, temp16b.as_mut_ptr(),
-                                        temp32a.as_mut_ptr());
-        temp48len =
-            fast_expansion_sum_zeroelim(temp16clen, temp16c.as_mut_ptr(),
-                                        temp32alen, temp32a.as_mut_ptr(),
-                                        temp48.as_mut_ptr());
-        finlength =
-            fast_expansion_sum_zeroelim(finlength, finnow, temp48len,
-                                        temp48.as_mut_ptr(), finother);
+            scale_expansion_zeroelim(bytaalen, bytaa.as_mut_ptr(), -cdx, temp16c.as_mut_ptr());
+        temp32alen = fast_expansion_sum_zeroelim(
+            temp16alen,
+            temp16a.as_mut_ptr(),
+            temp16blen,
+            temp16b.as_mut_ptr(),
+            temp32a.as_mut_ptr(),
+        );
+        temp48len = fast_expansion_sum_zeroelim(
+            temp16clen,
+            temp16c.as_mut_ptr(),
+            temp32alen,
+            temp32a.as_mut_ptr(),
+            temp48.as_mut_ptr(),
+        );
+        finlength = fast_expansion_sum_zeroelim(
+            finlength,
+            finnow,
+            temp48len,
+            temp48.as_mut_ptr(),
+            finother,
+        );
         finswap = finnow;
         finnow = finother;
         finother = finswap
     }
     if cdxtail != 0.0f64 {
-        cxtablen =
-            scale_expansion_zeroelim(4 as i32, ab.as_mut_ptr(),
-                                     cdxtail, cxtab.as_mut_ptr());
-        temp16alen =
-            scale_expansion_zeroelim(cxtablen, cxtab.as_mut_ptr(),
-                                     2.0f64 * cdx, temp16a.as_mut_ptr());
-        cxtbblen =
-            scale_expansion_zeroelim(4 as i32, bb.as_mut_ptr(),
-                                     cdxtail, cxtbb.as_mut_ptr());
+        cxtablen = scale_expansion_zeroelim(4 as i32, ab.as_mut_ptr(), cdxtail, cxtab.as_mut_ptr());
+        temp16alen = scale_expansion_zeroelim(
+            cxtablen,
+            cxtab.as_mut_ptr(),
+            2.0f64 * cdx,
+            temp16a.as_mut_ptr(),
+        );
+        cxtbblen = scale_expansion_zeroelim(4 as i32, bb.as_mut_ptr(), cdxtail, cxtbb.as_mut_ptr());
         temp16blen =
-            scale_expansion_zeroelim(cxtbblen, cxtbb.as_mut_ptr(), ady,
-                                     temp16b.as_mut_ptr());
-        cxtaalen =
-            scale_expansion_zeroelim(4 as i32, aa.as_mut_ptr(),
-                                     cdxtail, cxtaa.as_mut_ptr());
+            scale_expansion_zeroelim(cxtbblen, cxtbb.as_mut_ptr(), ady, temp16b.as_mut_ptr());
+        cxtaalen = scale_expansion_zeroelim(4 as i32, aa.as_mut_ptr(), cdxtail, cxtaa.as_mut_ptr());
         temp16clen =
-            scale_expansion_zeroelim(cxtaalen, cxtaa.as_mut_ptr(), -bdy,
-                                     temp16c.as_mut_ptr());
-        temp32alen =
-            fast_expansion_sum_zeroelim(temp16alen, temp16a.as_mut_ptr(),
-                                        temp16blen, temp16b.as_mut_ptr(),
-                                        temp32a.as_mut_ptr());
-        temp48len =
-            fast_expansion_sum_zeroelim(temp16clen, temp16c.as_mut_ptr(),
-                                        temp32alen, temp32a.as_mut_ptr(),
-                                        temp48.as_mut_ptr());
-        finlength =
-            fast_expansion_sum_zeroelim(finlength, finnow, temp48len,
-                                        temp48.as_mut_ptr(), finother);
+            scale_expansion_zeroelim(cxtaalen, cxtaa.as_mut_ptr(), -bdy, temp16c.as_mut_ptr());
+        temp32alen = fast_expansion_sum_zeroelim(
+            temp16alen,
+            temp16a.as_mut_ptr(),
+            temp16blen,
+            temp16b.as_mut_ptr(),
+            temp32a.as_mut_ptr(),
+        );
+        temp48len = fast_expansion_sum_zeroelim(
+            temp16clen,
+            temp16c.as_mut_ptr(),
+            temp32alen,
+            temp32a.as_mut_ptr(),
+            temp48.as_mut_ptr(),
+        );
+        finlength = fast_expansion_sum_zeroelim(
+            finlength,
+            finnow,
+            temp48len,
+            temp48.as_mut_ptr(),
+            finother,
+        );
         finswap = finnow;
         finnow = finother;
         finother = finswap
     }
     if cdytail != 0.0f64 {
-        cytablen =
-            scale_expansion_zeroelim(4 as i32, ab.as_mut_ptr(),
-                                     cdytail, cytab.as_mut_ptr());
-        temp16alen =
-            scale_expansion_zeroelim(cytablen, cytab.as_mut_ptr(),
-                                     2.0f64 * cdy, temp16a.as_mut_ptr());
-        cytaalen =
-            scale_expansion_zeroelim(4 as i32, aa.as_mut_ptr(),
-                                     cdytail, cytaa.as_mut_ptr());
+        cytablen = scale_expansion_zeroelim(4 as i32, ab.as_mut_ptr(), cdytail, cytab.as_mut_ptr());
+        temp16alen = scale_expansion_zeroelim(
+            cytablen,
+            cytab.as_mut_ptr(),
+            2.0f64 * cdy,
+            temp16a.as_mut_ptr(),
+        );
+        cytaalen = scale_expansion_zeroelim(4 as i32, aa.as_mut_ptr(), cdytail, cytaa.as_mut_ptr());
         temp16blen =
-            scale_expansion_zeroelim(cytaalen, cytaa.as_mut_ptr(), bdx,
-                                     temp16b.as_mut_ptr());
-        cytbblen =
-            scale_expansion_zeroelim(4 as i32, bb.as_mut_ptr(),
-                                     cdytail, cytbb.as_mut_ptr());
+            scale_expansion_zeroelim(cytaalen, cytaa.as_mut_ptr(), bdx, temp16b.as_mut_ptr());
+        cytbblen = scale_expansion_zeroelim(4 as i32, bb.as_mut_ptr(), cdytail, cytbb.as_mut_ptr());
         temp16clen =
-            scale_expansion_zeroelim(cytbblen, cytbb.as_mut_ptr(), -adx,
-                                     temp16c.as_mut_ptr());
-        temp32alen =
-            fast_expansion_sum_zeroelim(temp16alen, temp16a.as_mut_ptr(),
-                                        temp16blen, temp16b.as_mut_ptr(),
-                                        temp32a.as_mut_ptr());
-        temp48len =
-            fast_expansion_sum_zeroelim(temp16clen, temp16c.as_mut_ptr(),
-                                        temp32alen, temp32a.as_mut_ptr(),
-                                        temp48.as_mut_ptr());
-        finlength =
-            fast_expansion_sum_zeroelim(finlength, finnow, temp48len,
-                                        temp48.as_mut_ptr(), finother);
+            scale_expansion_zeroelim(cytbblen, cytbb.as_mut_ptr(), -adx, temp16c.as_mut_ptr());
+        temp32alen = fast_expansion_sum_zeroelim(
+            temp16alen,
+            temp16a.as_mut_ptr(),
+            temp16blen,
+            temp16b.as_mut_ptr(),
+            temp32a.as_mut_ptr(),
+        );
+        temp48len = fast_expansion_sum_zeroelim(
+            temp16clen,
+            temp16c.as_mut_ptr(),
+            temp32alen,
+            temp32a.as_mut_ptr(),
+            temp48.as_mut_ptr(),
+        );
+        finlength = fast_expansion_sum_zeroelim(
+            finlength,
+            finnow,
+            temp48len,
+            temp48.as_mut_ptr(),
+            finother,
+        );
         finswap = finnow;
         finnow = finother;
         finother = finswap
     }
     if adxtail != 0.0f64 || adytail != 0.0f64 {
-        if bdxtail != 0.0f64 || bdytail != 0.0f64 || cdxtail != 0.0f64 ||
-               cdytail != 0.0f64 {
+        if bdxtail != 0.0f64 || bdytail != 0.0f64 || cdxtail != 0.0f64 || cdytail != 0.0f64 {
             ti1 = bdxtail * cdy;
             c = splitter * bdxtail;
             abig = c - bdxtail;
@@ -8306,10 +8388,13 @@ pub unsafe extern "C" fn incircleadapt(mut pa: *const f64,
             around = _j - avirt;
             v[2 as i32 as usize] = around + bround;
             v[3 as i32 as usize] = v3;
-            bctlen =
-                fast_expansion_sum_zeroelim(4 as i32, u.as_mut_ptr(),
-                                            4 as i32, v.as_mut_ptr(),
-                                            bct.as_mut_ptr());
+            bctlen = fast_expansion_sum_zeroelim(
+                4 as i32,
+                u.as_mut_ptr(),
+                4 as i32,
+                v.as_mut_ptr(),
+                bct.as_mut_ptr(),
+            );
             ti1 = bdxtail * cdytail;
             c = splitter * bdxtail;
             abig = c - bdxtail;
@@ -8369,135 +8454,210 @@ pub unsafe extern "C" fn incircleadapt(mut pa: *const f64,
             bcttlen = 1 as i32
         }
         if adxtail != 0.0f64 {
-            temp16alen =
-                scale_expansion_zeroelim(axtbclen, axtbc.as_mut_ptr(),
-                                         adxtail, temp16a.as_mut_ptr());
+            temp16alen = scale_expansion_zeroelim(
+                axtbclen,
+                axtbc.as_mut_ptr(),
+                adxtail,
+                temp16a.as_mut_ptr(),
+            );
             axtbctlen =
-                scale_expansion_zeroelim(bctlen, bct.as_mut_ptr(), adxtail,
-                                         axtbct.as_mut_ptr());
-            temp32alen =
-                scale_expansion_zeroelim(axtbctlen, axtbct.as_mut_ptr(),
-                                         2.0f64 * adx, temp32a.as_mut_ptr());
-            temp48len =
-                fast_expansion_sum_zeroelim(temp16alen, temp16a.as_mut_ptr(),
-                                            temp32alen, temp32a.as_mut_ptr(),
-                                            temp48.as_mut_ptr());
-            finlength =
-                fast_expansion_sum_zeroelim(finlength, finnow, temp48len,
-                                            temp48.as_mut_ptr(), finother);
+                scale_expansion_zeroelim(bctlen, bct.as_mut_ptr(), adxtail, axtbct.as_mut_ptr());
+            temp32alen = scale_expansion_zeroelim(
+                axtbctlen,
+                axtbct.as_mut_ptr(),
+                2.0f64 * adx,
+                temp32a.as_mut_ptr(),
+            );
+            temp48len = fast_expansion_sum_zeroelim(
+                temp16alen,
+                temp16a.as_mut_ptr(),
+                temp32alen,
+                temp32a.as_mut_ptr(),
+                temp48.as_mut_ptr(),
+            );
+            finlength = fast_expansion_sum_zeroelim(
+                finlength,
+                finnow,
+                temp48len,
+                temp48.as_mut_ptr(),
+                finother,
+            );
             finswap = finnow;
             finnow = finother;
             finother = finswap;
             if bdytail != 0.0f64 {
-                temp8len =
-                    scale_expansion_zeroelim(4 as i32,
-                                             cc.as_mut_ptr(), adxtail,
-                                             temp8.as_mut_ptr());
-                temp16alen =
-                    scale_expansion_zeroelim(temp8len, temp8.as_mut_ptr(),
-                                             bdytail, temp16a.as_mut_ptr());
-                finlength =
-                    fast_expansion_sum_zeroelim(finlength, finnow, temp16alen,
-                                                temp16a.as_mut_ptr(),
-                                                finother);
+                temp8len = scale_expansion_zeroelim(
+                    4 as i32,
+                    cc.as_mut_ptr(),
+                    adxtail,
+                    temp8.as_mut_ptr(),
+                );
+                temp16alen = scale_expansion_zeroelim(
+                    temp8len,
+                    temp8.as_mut_ptr(),
+                    bdytail,
+                    temp16a.as_mut_ptr(),
+                );
+                finlength = fast_expansion_sum_zeroelim(
+                    finlength,
+                    finnow,
+                    temp16alen,
+                    temp16a.as_mut_ptr(),
+                    finother,
+                );
                 finswap = finnow;
                 finnow = finother;
                 finother = finswap
             }
             if cdytail != 0.0f64 {
-                temp8len =
-                    scale_expansion_zeroelim(4 as i32,
-                                             bb.as_mut_ptr(), -adxtail,
-                                             temp8.as_mut_ptr());
-                temp16alen =
-                    scale_expansion_zeroelim(temp8len, temp8.as_mut_ptr(),
-                                             cdytail, temp16a.as_mut_ptr());
-                finlength =
-                    fast_expansion_sum_zeroelim(finlength, finnow, temp16alen,
-                                                temp16a.as_mut_ptr(),
-                                                finother);
+                temp8len = scale_expansion_zeroelim(
+                    4 as i32,
+                    bb.as_mut_ptr(),
+                    -adxtail,
+                    temp8.as_mut_ptr(),
+                );
+                temp16alen = scale_expansion_zeroelim(
+                    temp8len,
+                    temp8.as_mut_ptr(),
+                    cdytail,
+                    temp16a.as_mut_ptr(),
+                );
+                finlength = fast_expansion_sum_zeroelim(
+                    finlength,
+                    finnow,
+                    temp16alen,
+                    temp16a.as_mut_ptr(),
+                    finother,
+                );
                 finswap = finnow;
                 finnow = finother;
                 finother = finswap
             }
-            temp32alen =
-                scale_expansion_zeroelim(axtbctlen, axtbct.as_mut_ptr(),
-                                         adxtail, temp32a.as_mut_ptr());
+            temp32alen = scale_expansion_zeroelim(
+                axtbctlen,
+                axtbct.as_mut_ptr(),
+                adxtail,
+                temp32a.as_mut_ptr(),
+            );
             axtbcttlen =
-                scale_expansion_zeroelim(bcttlen, bctt.as_mut_ptr(), adxtail,
-                                         axtbctt.as_mut_ptr());
-            temp16alen =
-                scale_expansion_zeroelim(axtbcttlen, axtbctt.as_mut_ptr(),
-                                         2.0f64 * adx, temp16a.as_mut_ptr());
-            temp16blen =
-                scale_expansion_zeroelim(axtbcttlen, axtbctt.as_mut_ptr(),
-                                         adxtail, temp16b.as_mut_ptr());
-            temp32blen =
-                fast_expansion_sum_zeroelim(temp16alen, temp16a.as_mut_ptr(),
-                                            temp16blen, temp16b.as_mut_ptr(),
-                                            temp32b.as_mut_ptr());
-            temp64len =
-                fast_expansion_sum_zeroelim(temp32alen, temp32a.as_mut_ptr(),
-                                            temp32blen, temp32b.as_mut_ptr(),
-                                            temp64.as_mut_ptr());
-            finlength =
-                fast_expansion_sum_zeroelim(finlength, finnow, temp64len,
-                                            temp64.as_mut_ptr(), finother);
+                scale_expansion_zeroelim(bcttlen, bctt.as_mut_ptr(), adxtail, axtbctt.as_mut_ptr());
+            temp16alen = scale_expansion_zeroelim(
+                axtbcttlen,
+                axtbctt.as_mut_ptr(),
+                2.0f64 * adx,
+                temp16a.as_mut_ptr(),
+            );
+            temp16blen = scale_expansion_zeroelim(
+                axtbcttlen,
+                axtbctt.as_mut_ptr(),
+                adxtail,
+                temp16b.as_mut_ptr(),
+            );
+            temp32blen = fast_expansion_sum_zeroelim(
+                temp16alen,
+                temp16a.as_mut_ptr(),
+                temp16blen,
+                temp16b.as_mut_ptr(),
+                temp32b.as_mut_ptr(),
+            );
+            temp64len = fast_expansion_sum_zeroelim(
+                temp32alen,
+                temp32a.as_mut_ptr(),
+                temp32blen,
+                temp32b.as_mut_ptr(),
+                temp64.as_mut_ptr(),
+            );
+            finlength = fast_expansion_sum_zeroelim(
+                finlength,
+                finnow,
+                temp64len,
+                temp64.as_mut_ptr(),
+                finother,
+            );
             finswap = finnow;
             finnow = finother;
             finother = finswap
         }
         if adytail != 0.0f64 {
-            temp16alen =
-                scale_expansion_zeroelim(aytbclen, aytbc.as_mut_ptr(),
-                                         adytail, temp16a.as_mut_ptr());
+            temp16alen = scale_expansion_zeroelim(
+                aytbclen,
+                aytbc.as_mut_ptr(),
+                adytail,
+                temp16a.as_mut_ptr(),
+            );
             aytbctlen =
-                scale_expansion_zeroelim(bctlen, bct.as_mut_ptr(), adytail,
-                                         aytbct.as_mut_ptr());
-            temp32alen =
-                scale_expansion_zeroelim(aytbctlen, aytbct.as_mut_ptr(),
-                                         2.0f64 * ady, temp32a.as_mut_ptr());
-            temp48len =
-                fast_expansion_sum_zeroelim(temp16alen, temp16a.as_mut_ptr(),
-                                            temp32alen, temp32a.as_mut_ptr(),
-                                            temp48.as_mut_ptr());
-            finlength =
-                fast_expansion_sum_zeroelim(finlength, finnow, temp48len,
-                                            temp48.as_mut_ptr(), finother);
+                scale_expansion_zeroelim(bctlen, bct.as_mut_ptr(), adytail, aytbct.as_mut_ptr());
+            temp32alen = scale_expansion_zeroelim(
+                aytbctlen,
+                aytbct.as_mut_ptr(),
+                2.0f64 * ady,
+                temp32a.as_mut_ptr(),
+            );
+            temp48len = fast_expansion_sum_zeroelim(
+                temp16alen,
+                temp16a.as_mut_ptr(),
+                temp32alen,
+                temp32a.as_mut_ptr(),
+                temp48.as_mut_ptr(),
+            );
+            finlength = fast_expansion_sum_zeroelim(
+                finlength,
+                finnow,
+                temp48len,
+                temp48.as_mut_ptr(),
+                finother,
+            );
             finswap = finnow;
             finnow = finother;
             finother = finswap;
-            temp32alen =
-                scale_expansion_zeroelim(aytbctlen, aytbct.as_mut_ptr(),
-                                         adytail, temp32a.as_mut_ptr());
+            temp32alen = scale_expansion_zeroelim(
+                aytbctlen,
+                aytbct.as_mut_ptr(),
+                adytail,
+                temp32a.as_mut_ptr(),
+            );
             aytbcttlen =
-                scale_expansion_zeroelim(bcttlen, bctt.as_mut_ptr(), adytail,
-                                         aytbctt.as_mut_ptr());
-            temp16alen =
-                scale_expansion_zeroelim(aytbcttlen, aytbctt.as_mut_ptr(),
-                                         2.0f64 * ady, temp16a.as_mut_ptr());
-            temp16blen =
-                scale_expansion_zeroelim(aytbcttlen, aytbctt.as_mut_ptr(),
-                                         adytail, temp16b.as_mut_ptr());
-            temp32blen =
-                fast_expansion_sum_zeroelim(temp16alen, temp16a.as_mut_ptr(),
-                                            temp16blen, temp16b.as_mut_ptr(),
-                                            temp32b.as_mut_ptr());
-            temp64len =
-                fast_expansion_sum_zeroelim(temp32alen, temp32a.as_mut_ptr(),
-                                            temp32blen, temp32b.as_mut_ptr(),
-                                            temp64.as_mut_ptr());
-            finlength =
-                fast_expansion_sum_zeroelim(finlength, finnow, temp64len,
-                                            temp64.as_mut_ptr(), finother);
+                scale_expansion_zeroelim(bcttlen, bctt.as_mut_ptr(), adytail, aytbctt.as_mut_ptr());
+            temp16alen = scale_expansion_zeroelim(
+                aytbcttlen,
+                aytbctt.as_mut_ptr(),
+                2.0f64 * ady,
+                temp16a.as_mut_ptr(),
+            );
+            temp16blen = scale_expansion_zeroelim(
+                aytbcttlen,
+                aytbctt.as_mut_ptr(),
+                adytail,
+                temp16b.as_mut_ptr(),
+            );
+            temp32blen = fast_expansion_sum_zeroelim(
+                temp16alen,
+                temp16a.as_mut_ptr(),
+                temp16blen,
+                temp16b.as_mut_ptr(),
+                temp32b.as_mut_ptr(),
+            );
+            temp64len = fast_expansion_sum_zeroelim(
+                temp32alen,
+                temp32a.as_mut_ptr(),
+                temp32blen,
+                temp32b.as_mut_ptr(),
+                temp64.as_mut_ptr(),
+            );
+            finlength = fast_expansion_sum_zeroelim(
+                finlength,
+                finnow,
+                temp64len,
+                temp64.as_mut_ptr(),
+                finother,
+            );
             finswap = finnow;
             finnow = finother;
             finother = finswap
         }
     }
     if bdxtail != 0.0f64 || bdytail != 0.0f64 {
-        if cdxtail != 0.0f64 || cdytail != 0.0f64 || adxtail != 0.0f64 ||
-               adytail != 0.0f64 {
+        if cdxtail != 0.0f64 || cdytail != 0.0f64 || adxtail != 0.0f64 || adytail != 0.0f64 {
             ti1 = cdxtail * ady;
             c = splitter * cdxtail;
             abig = c - cdxtail;
@@ -8602,10 +8762,13 @@ pub unsafe extern "C" fn incircleadapt(mut pa: *const f64,
             around = _j - avirt;
             v[2 as i32 as usize] = around + bround;
             v[3 as i32 as usize] = v3;
-            catlen =
-                fast_expansion_sum_zeroelim(4 as i32, u.as_mut_ptr(),
-                                            4 as i32, v.as_mut_ptr(),
-                                            cat.as_mut_ptr());
+            catlen = fast_expansion_sum_zeroelim(
+                4 as i32,
+                u.as_mut_ptr(),
+                4 as i32,
+                v.as_mut_ptr(),
+                cat.as_mut_ptr(),
+            );
             ti1 = cdxtail * adytail;
             c = splitter * cdxtail;
             abig = c - cdxtail;
@@ -8665,135 +8828,210 @@ pub unsafe extern "C" fn incircleadapt(mut pa: *const f64,
             cattlen = 1 as i32
         }
         if bdxtail != 0.0f64 {
-            temp16alen =
-                scale_expansion_zeroelim(bxtcalen, bxtca.as_mut_ptr(),
-                                         bdxtail, temp16a.as_mut_ptr());
+            temp16alen = scale_expansion_zeroelim(
+                bxtcalen,
+                bxtca.as_mut_ptr(),
+                bdxtail,
+                temp16a.as_mut_ptr(),
+            );
             bxtcatlen =
-                scale_expansion_zeroelim(catlen, cat.as_mut_ptr(), bdxtail,
-                                         bxtcat.as_mut_ptr());
-            temp32alen =
-                scale_expansion_zeroelim(bxtcatlen, bxtcat.as_mut_ptr(),
-                                         2.0f64 * bdx, temp32a.as_mut_ptr());
-            temp48len =
-                fast_expansion_sum_zeroelim(temp16alen, temp16a.as_mut_ptr(),
-                                            temp32alen, temp32a.as_mut_ptr(),
-                                            temp48.as_mut_ptr());
-            finlength =
-                fast_expansion_sum_zeroelim(finlength, finnow, temp48len,
-                                            temp48.as_mut_ptr(), finother);
+                scale_expansion_zeroelim(catlen, cat.as_mut_ptr(), bdxtail, bxtcat.as_mut_ptr());
+            temp32alen = scale_expansion_zeroelim(
+                bxtcatlen,
+                bxtcat.as_mut_ptr(),
+                2.0f64 * bdx,
+                temp32a.as_mut_ptr(),
+            );
+            temp48len = fast_expansion_sum_zeroelim(
+                temp16alen,
+                temp16a.as_mut_ptr(),
+                temp32alen,
+                temp32a.as_mut_ptr(),
+                temp48.as_mut_ptr(),
+            );
+            finlength = fast_expansion_sum_zeroelim(
+                finlength,
+                finnow,
+                temp48len,
+                temp48.as_mut_ptr(),
+                finother,
+            );
             finswap = finnow;
             finnow = finother;
             finother = finswap;
             if cdytail != 0.0f64 {
-                temp8len =
-                    scale_expansion_zeroelim(4 as i32,
-                                             aa.as_mut_ptr(), bdxtail,
-                                             temp8.as_mut_ptr());
-                temp16alen =
-                    scale_expansion_zeroelim(temp8len, temp8.as_mut_ptr(),
-                                             cdytail, temp16a.as_mut_ptr());
-                finlength =
-                    fast_expansion_sum_zeroelim(finlength, finnow, temp16alen,
-                                                temp16a.as_mut_ptr(),
-                                                finother);
+                temp8len = scale_expansion_zeroelim(
+                    4 as i32,
+                    aa.as_mut_ptr(),
+                    bdxtail,
+                    temp8.as_mut_ptr(),
+                );
+                temp16alen = scale_expansion_zeroelim(
+                    temp8len,
+                    temp8.as_mut_ptr(),
+                    cdytail,
+                    temp16a.as_mut_ptr(),
+                );
+                finlength = fast_expansion_sum_zeroelim(
+                    finlength,
+                    finnow,
+                    temp16alen,
+                    temp16a.as_mut_ptr(),
+                    finother,
+                );
                 finswap = finnow;
                 finnow = finother;
                 finother = finswap
             }
             if adytail != 0.0f64 {
-                temp8len =
-                    scale_expansion_zeroelim(4 as i32,
-                                             cc.as_mut_ptr(), -bdxtail,
-                                             temp8.as_mut_ptr());
-                temp16alen =
-                    scale_expansion_zeroelim(temp8len, temp8.as_mut_ptr(),
-                                             adytail, temp16a.as_mut_ptr());
-                finlength =
-                    fast_expansion_sum_zeroelim(finlength, finnow, temp16alen,
-                                                temp16a.as_mut_ptr(),
-                                                finother);
+                temp8len = scale_expansion_zeroelim(
+                    4 as i32,
+                    cc.as_mut_ptr(),
+                    -bdxtail,
+                    temp8.as_mut_ptr(),
+                );
+                temp16alen = scale_expansion_zeroelim(
+                    temp8len,
+                    temp8.as_mut_ptr(),
+                    adytail,
+                    temp16a.as_mut_ptr(),
+                );
+                finlength = fast_expansion_sum_zeroelim(
+                    finlength,
+                    finnow,
+                    temp16alen,
+                    temp16a.as_mut_ptr(),
+                    finother,
+                );
                 finswap = finnow;
                 finnow = finother;
                 finother = finswap
             }
-            temp32alen =
-                scale_expansion_zeroelim(bxtcatlen, bxtcat.as_mut_ptr(),
-                                         bdxtail, temp32a.as_mut_ptr());
+            temp32alen = scale_expansion_zeroelim(
+                bxtcatlen,
+                bxtcat.as_mut_ptr(),
+                bdxtail,
+                temp32a.as_mut_ptr(),
+            );
             bxtcattlen =
-                scale_expansion_zeroelim(cattlen, catt.as_mut_ptr(), bdxtail,
-                                         bxtcatt.as_mut_ptr());
-            temp16alen =
-                scale_expansion_zeroelim(bxtcattlen, bxtcatt.as_mut_ptr(),
-                                         2.0f64 * bdx, temp16a.as_mut_ptr());
-            temp16blen =
-                scale_expansion_zeroelim(bxtcattlen, bxtcatt.as_mut_ptr(),
-                                         bdxtail, temp16b.as_mut_ptr());
-            temp32blen =
-                fast_expansion_sum_zeroelim(temp16alen, temp16a.as_mut_ptr(),
-                                            temp16blen, temp16b.as_mut_ptr(),
-                                            temp32b.as_mut_ptr());
-            temp64len =
-                fast_expansion_sum_zeroelim(temp32alen, temp32a.as_mut_ptr(),
-                                            temp32blen, temp32b.as_mut_ptr(),
-                                            temp64.as_mut_ptr());
-            finlength =
-                fast_expansion_sum_zeroelim(finlength, finnow, temp64len,
-                                            temp64.as_mut_ptr(), finother);
+                scale_expansion_zeroelim(cattlen, catt.as_mut_ptr(), bdxtail, bxtcatt.as_mut_ptr());
+            temp16alen = scale_expansion_zeroelim(
+                bxtcattlen,
+                bxtcatt.as_mut_ptr(),
+                2.0f64 * bdx,
+                temp16a.as_mut_ptr(),
+            );
+            temp16blen = scale_expansion_zeroelim(
+                bxtcattlen,
+                bxtcatt.as_mut_ptr(),
+                bdxtail,
+                temp16b.as_mut_ptr(),
+            );
+            temp32blen = fast_expansion_sum_zeroelim(
+                temp16alen,
+                temp16a.as_mut_ptr(),
+                temp16blen,
+                temp16b.as_mut_ptr(),
+                temp32b.as_mut_ptr(),
+            );
+            temp64len = fast_expansion_sum_zeroelim(
+                temp32alen,
+                temp32a.as_mut_ptr(),
+                temp32blen,
+                temp32b.as_mut_ptr(),
+                temp64.as_mut_ptr(),
+            );
+            finlength = fast_expansion_sum_zeroelim(
+                finlength,
+                finnow,
+                temp64len,
+                temp64.as_mut_ptr(),
+                finother,
+            );
             finswap = finnow;
             finnow = finother;
             finother = finswap
         }
         if bdytail != 0.0f64 {
-            temp16alen =
-                scale_expansion_zeroelim(bytcalen, bytca.as_mut_ptr(),
-                                         bdytail, temp16a.as_mut_ptr());
+            temp16alen = scale_expansion_zeroelim(
+                bytcalen,
+                bytca.as_mut_ptr(),
+                bdytail,
+                temp16a.as_mut_ptr(),
+            );
             bytcatlen =
-                scale_expansion_zeroelim(catlen, cat.as_mut_ptr(), bdytail,
-                                         bytcat.as_mut_ptr());
-            temp32alen =
-                scale_expansion_zeroelim(bytcatlen, bytcat.as_mut_ptr(),
-                                         2.0f64 * bdy, temp32a.as_mut_ptr());
-            temp48len =
-                fast_expansion_sum_zeroelim(temp16alen, temp16a.as_mut_ptr(),
-                                            temp32alen, temp32a.as_mut_ptr(),
-                                            temp48.as_mut_ptr());
-            finlength =
-                fast_expansion_sum_zeroelim(finlength, finnow, temp48len,
-                                            temp48.as_mut_ptr(), finother);
+                scale_expansion_zeroelim(catlen, cat.as_mut_ptr(), bdytail, bytcat.as_mut_ptr());
+            temp32alen = scale_expansion_zeroelim(
+                bytcatlen,
+                bytcat.as_mut_ptr(),
+                2.0f64 * bdy,
+                temp32a.as_mut_ptr(),
+            );
+            temp48len = fast_expansion_sum_zeroelim(
+                temp16alen,
+                temp16a.as_mut_ptr(),
+                temp32alen,
+                temp32a.as_mut_ptr(),
+                temp48.as_mut_ptr(),
+            );
+            finlength = fast_expansion_sum_zeroelim(
+                finlength,
+                finnow,
+                temp48len,
+                temp48.as_mut_ptr(),
+                finother,
+            );
             finswap = finnow;
             finnow = finother;
             finother = finswap;
-            temp32alen =
-                scale_expansion_zeroelim(bytcatlen, bytcat.as_mut_ptr(),
-                                         bdytail, temp32a.as_mut_ptr());
+            temp32alen = scale_expansion_zeroelim(
+                bytcatlen,
+                bytcat.as_mut_ptr(),
+                bdytail,
+                temp32a.as_mut_ptr(),
+            );
             bytcattlen =
-                scale_expansion_zeroelim(cattlen, catt.as_mut_ptr(), bdytail,
-                                         bytcatt.as_mut_ptr());
-            temp16alen =
-                scale_expansion_zeroelim(bytcattlen, bytcatt.as_mut_ptr(),
-                                         2.0f64 * bdy, temp16a.as_mut_ptr());
-            temp16blen =
-                scale_expansion_zeroelim(bytcattlen, bytcatt.as_mut_ptr(),
-                                         bdytail, temp16b.as_mut_ptr());
-            temp32blen =
-                fast_expansion_sum_zeroelim(temp16alen, temp16a.as_mut_ptr(),
-                                            temp16blen, temp16b.as_mut_ptr(),
-                                            temp32b.as_mut_ptr());
-            temp64len =
-                fast_expansion_sum_zeroelim(temp32alen, temp32a.as_mut_ptr(),
-                                            temp32blen, temp32b.as_mut_ptr(),
-                                            temp64.as_mut_ptr());
-            finlength =
-                fast_expansion_sum_zeroelim(finlength, finnow, temp64len,
-                                            temp64.as_mut_ptr(), finother);
+                scale_expansion_zeroelim(cattlen, catt.as_mut_ptr(), bdytail, bytcatt.as_mut_ptr());
+            temp16alen = scale_expansion_zeroelim(
+                bytcattlen,
+                bytcatt.as_mut_ptr(),
+                2.0f64 * bdy,
+                temp16a.as_mut_ptr(),
+            );
+            temp16blen = scale_expansion_zeroelim(
+                bytcattlen,
+                bytcatt.as_mut_ptr(),
+                bdytail,
+                temp16b.as_mut_ptr(),
+            );
+            temp32blen = fast_expansion_sum_zeroelim(
+                temp16alen,
+                temp16a.as_mut_ptr(),
+                temp16blen,
+                temp16b.as_mut_ptr(),
+                temp32b.as_mut_ptr(),
+            );
+            temp64len = fast_expansion_sum_zeroelim(
+                temp32alen,
+                temp32a.as_mut_ptr(),
+                temp32blen,
+                temp32b.as_mut_ptr(),
+                temp64.as_mut_ptr(),
+            );
+            finlength = fast_expansion_sum_zeroelim(
+                finlength,
+                finnow,
+                temp64len,
+                temp64.as_mut_ptr(),
+                finother,
+            );
             finswap = finnow;
             finnow = finother;
             finother = finswap
         }
     }
     if cdxtail != 0.0f64 || cdytail != 0.0f64 {
-        if adxtail != 0.0f64 || adytail != 0.0f64 || bdxtail != 0.0f64 ||
-               bdytail != 0.0f64 {
+        if adxtail != 0.0f64 || adytail != 0.0f64 || bdxtail != 0.0f64 || bdytail != 0.0f64 {
             ti1 = adxtail * bdy;
             c = splitter * adxtail;
             abig = c - adxtail;
@@ -8898,10 +9136,13 @@ pub unsafe extern "C" fn incircleadapt(mut pa: *const f64,
             around = _j - avirt;
             v[2 as i32 as usize] = around + bround;
             v[3 as i32 as usize] = v3;
-            abtlen =
-                fast_expansion_sum_zeroelim(4 as i32, u.as_mut_ptr(),
-                                            4 as i32, v.as_mut_ptr(),
-                                            abt.as_mut_ptr());
+            abtlen = fast_expansion_sum_zeroelim(
+                4 as i32,
+                u.as_mut_ptr(),
+                4 as i32,
+                v.as_mut_ptr(),
+                abt.as_mut_ptr(),
+            );
             ti1 = adxtail * bdytail;
             c = splitter * adxtail;
             abig = c - adxtail;
@@ -8961,127 +9202,203 @@ pub unsafe extern "C" fn incircleadapt(mut pa: *const f64,
             abttlen = 1 as i32
         }
         if cdxtail != 0.0f64 {
-            temp16alen =
-                scale_expansion_zeroelim(cxtablen, cxtab.as_mut_ptr(),
-                                         cdxtail, temp16a.as_mut_ptr());
+            temp16alen = scale_expansion_zeroelim(
+                cxtablen,
+                cxtab.as_mut_ptr(),
+                cdxtail,
+                temp16a.as_mut_ptr(),
+            );
             cxtabtlen =
-                scale_expansion_zeroelim(abtlen, abt.as_mut_ptr(), cdxtail,
-                                         cxtabt.as_mut_ptr());
-            temp32alen =
-                scale_expansion_zeroelim(cxtabtlen, cxtabt.as_mut_ptr(),
-                                         2.0f64 * cdx, temp32a.as_mut_ptr());
-            temp48len =
-                fast_expansion_sum_zeroelim(temp16alen, temp16a.as_mut_ptr(),
-                                            temp32alen, temp32a.as_mut_ptr(),
-                                            temp48.as_mut_ptr());
-            finlength =
-                fast_expansion_sum_zeroelim(finlength, finnow, temp48len,
-                                            temp48.as_mut_ptr(), finother);
+                scale_expansion_zeroelim(abtlen, abt.as_mut_ptr(), cdxtail, cxtabt.as_mut_ptr());
+            temp32alen = scale_expansion_zeroelim(
+                cxtabtlen,
+                cxtabt.as_mut_ptr(),
+                2.0f64 * cdx,
+                temp32a.as_mut_ptr(),
+            );
+            temp48len = fast_expansion_sum_zeroelim(
+                temp16alen,
+                temp16a.as_mut_ptr(),
+                temp32alen,
+                temp32a.as_mut_ptr(),
+                temp48.as_mut_ptr(),
+            );
+            finlength = fast_expansion_sum_zeroelim(
+                finlength,
+                finnow,
+                temp48len,
+                temp48.as_mut_ptr(),
+                finother,
+            );
             finswap = finnow;
             finnow = finother;
             finother = finswap;
             if adytail != 0.0f64 {
-                temp8len =
-                    scale_expansion_zeroelim(4 as i32,
-                                             bb.as_mut_ptr(), cdxtail,
-                                             temp8.as_mut_ptr());
-                temp16alen =
-                    scale_expansion_zeroelim(temp8len, temp8.as_mut_ptr(),
-                                             adytail, temp16a.as_mut_ptr());
-                finlength =
-                    fast_expansion_sum_zeroelim(finlength, finnow, temp16alen,
-                                                temp16a.as_mut_ptr(),
-                                                finother);
+                temp8len = scale_expansion_zeroelim(
+                    4 as i32,
+                    bb.as_mut_ptr(),
+                    cdxtail,
+                    temp8.as_mut_ptr(),
+                );
+                temp16alen = scale_expansion_zeroelim(
+                    temp8len,
+                    temp8.as_mut_ptr(),
+                    adytail,
+                    temp16a.as_mut_ptr(),
+                );
+                finlength = fast_expansion_sum_zeroelim(
+                    finlength,
+                    finnow,
+                    temp16alen,
+                    temp16a.as_mut_ptr(),
+                    finother,
+                );
                 finswap = finnow;
                 finnow = finother;
                 finother = finswap
             }
             if bdytail != 0.0f64 {
-                temp8len =
-                    scale_expansion_zeroelim(4 as i32,
-                                             aa.as_mut_ptr(), -cdxtail,
-                                             temp8.as_mut_ptr());
-                temp16alen =
-                    scale_expansion_zeroelim(temp8len, temp8.as_mut_ptr(),
-                                             bdytail, temp16a.as_mut_ptr());
-                finlength =
-                    fast_expansion_sum_zeroelim(finlength, finnow, temp16alen,
-                                                temp16a.as_mut_ptr(),
-                                                finother);
+                temp8len = scale_expansion_zeroelim(
+                    4 as i32,
+                    aa.as_mut_ptr(),
+                    -cdxtail,
+                    temp8.as_mut_ptr(),
+                );
+                temp16alen = scale_expansion_zeroelim(
+                    temp8len,
+                    temp8.as_mut_ptr(),
+                    bdytail,
+                    temp16a.as_mut_ptr(),
+                );
+                finlength = fast_expansion_sum_zeroelim(
+                    finlength,
+                    finnow,
+                    temp16alen,
+                    temp16a.as_mut_ptr(),
+                    finother,
+                );
                 finswap = finnow;
                 finnow = finother;
                 finother = finswap
             }
-            temp32alen =
-                scale_expansion_zeroelim(cxtabtlen, cxtabt.as_mut_ptr(),
-                                         cdxtail, temp32a.as_mut_ptr());
+            temp32alen = scale_expansion_zeroelim(
+                cxtabtlen,
+                cxtabt.as_mut_ptr(),
+                cdxtail,
+                temp32a.as_mut_ptr(),
+            );
             cxtabttlen =
-                scale_expansion_zeroelim(abttlen, abtt.as_mut_ptr(), cdxtail,
-                                         cxtabtt.as_mut_ptr());
-            temp16alen =
-                scale_expansion_zeroelim(cxtabttlen, cxtabtt.as_mut_ptr(),
-                                         2.0f64 * cdx, temp16a.as_mut_ptr());
-            temp16blen =
-                scale_expansion_zeroelim(cxtabttlen, cxtabtt.as_mut_ptr(),
-                                         cdxtail, temp16b.as_mut_ptr());
-            temp32blen =
-                fast_expansion_sum_zeroelim(temp16alen, temp16a.as_mut_ptr(),
-                                            temp16blen, temp16b.as_mut_ptr(),
-                                            temp32b.as_mut_ptr());
-            temp64len =
-                fast_expansion_sum_zeroelim(temp32alen, temp32a.as_mut_ptr(),
-                                            temp32blen, temp32b.as_mut_ptr(),
-                                            temp64.as_mut_ptr());
-            finlength =
-                fast_expansion_sum_zeroelim(finlength, finnow, temp64len,
-                                            temp64.as_mut_ptr(), finother);
+                scale_expansion_zeroelim(abttlen, abtt.as_mut_ptr(), cdxtail, cxtabtt.as_mut_ptr());
+            temp16alen = scale_expansion_zeroelim(
+                cxtabttlen,
+                cxtabtt.as_mut_ptr(),
+                2.0f64 * cdx,
+                temp16a.as_mut_ptr(),
+            );
+            temp16blen = scale_expansion_zeroelim(
+                cxtabttlen,
+                cxtabtt.as_mut_ptr(),
+                cdxtail,
+                temp16b.as_mut_ptr(),
+            );
+            temp32blen = fast_expansion_sum_zeroelim(
+                temp16alen,
+                temp16a.as_mut_ptr(),
+                temp16blen,
+                temp16b.as_mut_ptr(),
+                temp32b.as_mut_ptr(),
+            );
+            temp64len = fast_expansion_sum_zeroelim(
+                temp32alen,
+                temp32a.as_mut_ptr(),
+                temp32blen,
+                temp32b.as_mut_ptr(),
+                temp64.as_mut_ptr(),
+            );
+            finlength = fast_expansion_sum_zeroelim(
+                finlength,
+                finnow,
+                temp64len,
+                temp64.as_mut_ptr(),
+                finother,
+            );
             finswap = finnow;
             finnow = finother;
             finother = finswap
         }
         if cdytail != 0.0f64 {
-            temp16alen =
-                scale_expansion_zeroelim(cytablen, cytab.as_mut_ptr(),
-                                         cdytail, temp16a.as_mut_ptr());
+            temp16alen = scale_expansion_zeroelim(
+                cytablen,
+                cytab.as_mut_ptr(),
+                cdytail,
+                temp16a.as_mut_ptr(),
+            );
             cytabtlen =
-                scale_expansion_zeroelim(abtlen, abt.as_mut_ptr(), cdytail,
-                                         cytabt.as_mut_ptr());
-            temp32alen =
-                scale_expansion_zeroelim(cytabtlen, cytabt.as_mut_ptr(),
-                                         2.0f64 * cdy, temp32a.as_mut_ptr());
-            temp48len =
-                fast_expansion_sum_zeroelim(temp16alen, temp16a.as_mut_ptr(),
-                                            temp32alen, temp32a.as_mut_ptr(),
-                                            temp48.as_mut_ptr());
-            finlength =
-                fast_expansion_sum_zeroelim(finlength, finnow, temp48len,
-                                            temp48.as_mut_ptr(), finother);
+                scale_expansion_zeroelim(abtlen, abt.as_mut_ptr(), cdytail, cytabt.as_mut_ptr());
+            temp32alen = scale_expansion_zeroelim(
+                cytabtlen,
+                cytabt.as_mut_ptr(),
+                2.0f64 * cdy,
+                temp32a.as_mut_ptr(),
+            );
+            temp48len = fast_expansion_sum_zeroelim(
+                temp16alen,
+                temp16a.as_mut_ptr(),
+                temp32alen,
+                temp32a.as_mut_ptr(),
+                temp48.as_mut_ptr(),
+            );
+            finlength = fast_expansion_sum_zeroelim(
+                finlength,
+                finnow,
+                temp48len,
+                temp48.as_mut_ptr(),
+                finother,
+            );
             finswap = finnow;
             finnow = finother;
             finother = finswap;
-            temp32alen =
-                scale_expansion_zeroelim(cytabtlen, cytabt.as_mut_ptr(),
-                                         cdytail, temp32a.as_mut_ptr());
+            temp32alen = scale_expansion_zeroelim(
+                cytabtlen,
+                cytabt.as_mut_ptr(),
+                cdytail,
+                temp32a.as_mut_ptr(),
+            );
             cytabttlen =
-                scale_expansion_zeroelim(abttlen, abtt.as_mut_ptr(), cdytail,
-                                         cytabtt.as_mut_ptr());
-            temp16alen =
-                scale_expansion_zeroelim(cytabttlen, cytabtt.as_mut_ptr(),
-                                         2.0f64 * cdy, temp16a.as_mut_ptr());
-            temp16blen =
-                scale_expansion_zeroelim(cytabttlen, cytabtt.as_mut_ptr(),
-                                         cdytail, temp16b.as_mut_ptr());
-            temp32blen =
-                fast_expansion_sum_zeroelim(temp16alen, temp16a.as_mut_ptr(),
-                                            temp16blen, temp16b.as_mut_ptr(),
-                                            temp32b.as_mut_ptr());
-            temp64len =
-                fast_expansion_sum_zeroelim(temp32alen, temp32a.as_mut_ptr(),
-                                            temp32blen, temp32b.as_mut_ptr(),
-                                            temp64.as_mut_ptr());
-            finlength =
-                fast_expansion_sum_zeroelim(finlength, finnow, temp64len,
-                                            temp64.as_mut_ptr(), finother);
+                scale_expansion_zeroelim(abttlen, abtt.as_mut_ptr(), cdytail, cytabtt.as_mut_ptr());
+            temp16alen = scale_expansion_zeroelim(
+                cytabttlen,
+                cytabtt.as_mut_ptr(),
+                2.0f64 * cdy,
+                temp16a.as_mut_ptr(),
+            );
+            temp16blen = scale_expansion_zeroelim(
+                cytabttlen,
+                cytabtt.as_mut_ptr(),
+                cdytail,
+                temp16b.as_mut_ptr(),
+            );
+            temp32blen = fast_expansion_sum_zeroelim(
+                temp16alen,
+                temp16a.as_mut_ptr(),
+                temp16blen,
+                temp16b.as_mut_ptr(),
+                temp32b.as_mut_ptr(),
+            );
+            temp64len = fast_expansion_sum_zeroelim(
+                temp32alen,
+                temp32a.as_mut_ptr(),
+                temp32blen,
+                temp32b.as_mut_ptr(),
+                temp64.as_mut_ptr(),
+            );
+            finlength = fast_expansion_sum_zeroelim(
+                finlength,
+                finnow,
+                temp64len,
+                temp64.as_mut_ptr(),
+                finother,
+            );
             finswap = finnow;
             finnow = finother;
             finother = finswap
@@ -9090,11 +9407,12 @@ pub unsafe extern "C" fn incircleadapt(mut pa: *const f64,
     return *finnow.offset((finlength - 1 as i32) as isize);
 }
 #[no_mangle]
-pub unsafe extern "C" fn incircle(mut pa: *const f64,
-                                  mut pb: *const f64,
-                                  mut pc: *const f64,
-                                  mut pd: *const f64)
- -> f64 {
+pub unsafe extern "C" fn incircle(
+    mut pa: *const f64,
+    mut pb: *const f64,
+    mut pc: *const f64,
+    mut pd: *const f64,
+) -> f64 {
     let mut adx: f64 = 0.;
     let mut bdx: f64 = 0.;
     let mut cdx: f64 = 0.;
@@ -9113,24 +9431,12 @@ pub unsafe extern "C" fn incircle(mut pa: *const f64,
     let mut det: f64 = 0.;
     let mut permanent: f64 = 0.;
     let mut errbound: f64 = 0.;
-    adx =
-        *pa.offset(0 as i32 as isize) -
-            *pd.offset(0 as i32 as isize);
-    bdx =
-        *pb.offset(0 as i32 as isize) -
-            *pd.offset(0 as i32 as isize);
-    cdx =
-        *pc.offset(0 as i32 as isize) -
-            *pd.offset(0 as i32 as isize);
-    ady =
-        *pa.offset(1 as i32 as isize) -
-            *pd.offset(1 as i32 as isize);
-    bdy =
-        *pb.offset(1 as i32 as isize) -
-            *pd.offset(1 as i32 as isize);
-    cdy =
-        *pc.offset(1 as i32 as isize) -
-            *pd.offset(1 as i32 as isize);
+    adx = *pa.offset(0 as i32 as isize) - *pd.offset(0 as i32 as isize);
+    bdx = *pb.offset(0 as i32 as isize) - *pd.offset(0 as i32 as isize);
+    cdx = *pc.offset(0 as i32 as isize) - *pd.offset(0 as i32 as isize);
+    ady = *pa.offset(1 as i32 as isize) - *pd.offset(1 as i32 as isize);
+    bdy = *pb.offset(1 as i32 as isize) - *pd.offset(1 as i32 as isize);
+    cdy = *pc.offset(1 as i32 as isize) - *pd.offset(1 as i32 as isize);
     bdxcdy = bdx * cdy;
     cdxbdy = cdx * bdy;
     alift = adx * adx + ady * ady;
@@ -9140,15 +9446,14 @@ pub unsafe extern "C" fn incircle(mut pa: *const f64,
     adxbdy = adx * bdy;
     bdxady = bdx * ady;
     clift = cdx * cdx + cdy * cdy;
-    det =
-        alift * (bdxcdy - cdxbdy) + blift * (cdxady - adxcdy) +
-            clift * (adxbdy - bdxady);
-    permanent =
-        (Absolute(bdxcdy) + Absolute(cdxbdy)) * alift +
-            (Absolute(cdxady) + Absolute(adxcdy)) * blift +
-            (Absolute(adxbdy) + Absolute(bdxady)) * clift;
+    det = alift * (bdxcdy - cdxbdy) + blift * (cdxady - adxcdy) + clift * (adxbdy - bdxady);
+    permanent = (Absolute(bdxcdy) + Absolute(cdxbdy)) * alift
+        + (Absolute(cdxady) + Absolute(adxcdy)) * blift
+        + (Absolute(adxbdy) + Absolute(bdxady)) * clift;
     errbound = iccerrboundA * permanent;
-    if det > errbound || -det > errbound { return det }
+    if det > errbound || -det > errbound {
+        return det;
+    }
     return incircleadapt(pa, pb, pc, pd, permanent);
 }
 /* ****************************************************************************/
@@ -9178,12 +9483,13 @@ pub unsafe extern "C" fn incircle(mut pa: *const f64,
 /*                                                                           */
 /* ****************************************************************************/
 #[no_mangle]
-pub unsafe extern "C" fn inspherefast(mut pa: *const f64,
-                                      mut pb: *const f64,
-                                      mut pc: *const f64,
-                                      mut pd: *const f64,
-                                      mut pe: *const f64)
- -> f64 {
+pub unsafe extern "C" fn inspherefast(
+    mut pa: *const f64,
+    mut pb: *const f64,
+    mut pc: *const f64,
+    mut pd: *const f64,
+    mut pe: *const f64,
+) -> f64 {
     let mut aex: f64 = 0.;
     let mut bex: f64 = 0.;
     let mut cex: f64 = 0.;
@@ -9210,42 +9516,18 @@ pub unsafe extern "C" fn inspherefast(mut pa: *const f64,
     let mut bcd: f64 = 0.;
     let mut cda: f64 = 0.;
     let mut dab: f64 = 0.;
-    aex =
-        *pa.offset(0 as i32 as isize) -
-            *pe.offset(0 as i32 as isize);
-    bex =
-        *pb.offset(0 as i32 as isize) -
-            *pe.offset(0 as i32 as isize);
-    cex =
-        *pc.offset(0 as i32 as isize) -
-            *pe.offset(0 as i32 as isize);
-    dex =
-        *pd.offset(0 as i32 as isize) -
-            *pe.offset(0 as i32 as isize);
-    aey =
-        *pa.offset(1 as i32 as isize) -
-            *pe.offset(1 as i32 as isize);
-    bey =
-        *pb.offset(1 as i32 as isize) -
-            *pe.offset(1 as i32 as isize);
-    cey =
-        *pc.offset(1 as i32 as isize) -
-            *pe.offset(1 as i32 as isize);
-    dey =
-        *pd.offset(1 as i32 as isize) -
-            *pe.offset(1 as i32 as isize);
-    aez =
-        *pa.offset(2 as i32 as isize) -
-            *pe.offset(2 as i32 as isize);
-    bez =
-        *pb.offset(2 as i32 as isize) -
-            *pe.offset(2 as i32 as isize);
-    cez =
-        *pc.offset(2 as i32 as isize) -
-            *pe.offset(2 as i32 as isize);
-    dez =
-        *pd.offset(2 as i32 as isize) -
-            *pe.offset(2 as i32 as isize);
+    aex = *pa.offset(0 as i32 as isize) - *pe.offset(0 as i32 as isize);
+    bex = *pb.offset(0 as i32 as isize) - *pe.offset(0 as i32 as isize);
+    cex = *pc.offset(0 as i32 as isize) - *pe.offset(0 as i32 as isize);
+    dex = *pd.offset(0 as i32 as isize) - *pe.offset(0 as i32 as isize);
+    aey = *pa.offset(1 as i32 as isize) - *pe.offset(1 as i32 as isize);
+    bey = *pb.offset(1 as i32 as isize) - *pe.offset(1 as i32 as isize);
+    cey = *pc.offset(1 as i32 as isize) - *pe.offset(1 as i32 as isize);
+    dey = *pd.offset(1 as i32 as isize) - *pe.offset(1 as i32 as isize);
+    aez = *pa.offset(2 as i32 as isize) - *pe.offset(2 as i32 as isize);
+    bez = *pb.offset(2 as i32 as isize) - *pe.offset(2 as i32 as isize);
+    cez = *pc.offset(2 as i32 as isize) - *pe.offset(2 as i32 as isize);
+    dez = *pd.offset(2 as i32 as isize) - *pe.offset(2 as i32 as isize);
     ab = aex * bey - bex * aey;
     bc = bex * cey - cex * bey;
     cd = cex * dey - dex * cey;
@@ -9263,12 +9545,13 @@ pub unsafe extern "C" fn inspherefast(mut pa: *const f64,
     return dlift * abc - clift * dab + (blift * cda - alift * bcd);
 }
 #[no_mangle]
-pub unsafe extern "C" fn insphereexact(mut pa: *const f64,
-                                       mut pb: *const f64,
-                                       mut pc: *const f64,
-                                       mut pd: *const f64,
-                                       mut pe: *const f64)
- -> f64 {
+pub unsafe extern "C" fn insphereexact(
+    mut pa: *const f64,
+    mut pb: *const f64,
+    mut pc: *const f64,
+    mut pd: *const f64,
+    mut pe: *const f64,
+) -> f64 {
     let mut axby1: f64 = 0.;
     let mut bxcy1: f64 = 0.;
     let mut cxdy1: f64 = 0.;
@@ -9402,9 +9685,7 @@ pub unsafe extern "C" fn insphereexact(mut pa: *const f64,
     let mut _i: f64 = 0.;
     let mut _j: f64 = 0.;
     let mut _0: f64 = 0.;
-    axby1 =
-        *pa.offset(0 as i32 as isize) *
-            *pb.offset(1 as i32 as isize);
+    axby1 = *pa.offset(0 as i32 as isize) * *pb.offset(1 as i32 as isize);
     c = splitter * *pa.offset(0 as i32 as isize);
     abig = c - *pa.offset(0 as i32 as isize);
     ahi = c - abig;
@@ -9417,9 +9698,7 @@ pub unsafe extern "C" fn insphereexact(mut pa: *const f64,
     err2 = err1 - alo * bhi;
     err3 = err2 - ahi * blo;
     axby0 = alo * blo - err3;
-    bxay1 =
-        *pb.offset(0 as i32 as isize) *
-            *pa.offset(1 as i32 as isize);
+    bxay1 = *pb.offset(0 as i32 as isize) * *pa.offset(1 as i32 as isize);
     c = splitter * *pb.offset(0 as i32 as isize);
     abig = c - *pb.offset(0 as i32 as isize);
     ahi = c - abig;
@@ -9456,9 +9735,7 @@ pub unsafe extern "C" fn insphereexact(mut pa: *const f64,
     bround = _i - bvirt;
     around = _j - avirt;
     ab[2 as i32 as usize] = around + bround;
-    bxcy1 =
-        *pb.offset(0 as i32 as isize) *
-            *pc.offset(1 as i32 as isize);
+    bxcy1 = *pb.offset(0 as i32 as isize) * *pc.offset(1 as i32 as isize);
     c = splitter * *pb.offset(0 as i32 as isize);
     abig = c - *pb.offset(0 as i32 as isize);
     ahi = c - abig;
@@ -9471,9 +9748,7 @@ pub unsafe extern "C" fn insphereexact(mut pa: *const f64,
     err2 = err1 - alo * bhi;
     err3 = err2 - ahi * blo;
     bxcy0 = alo * blo - err3;
-    cxby1 =
-        *pc.offset(0 as i32 as isize) *
-            *pb.offset(1 as i32 as isize);
+    cxby1 = *pc.offset(0 as i32 as isize) * *pb.offset(1 as i32 as isize);
     c = splitter * *pc.offset(0 as i32 as isize);
     abig = c - *pc.offset(0 as i32 as isize);
     ahi = c - abig;
@@ -9510,9 +9785,7 @@ pub unsafe extern "C" fn insphereexact(mut pa: *const f64,
     bround = _i - bvirt;
     around = _j - avirt;
     bc[2 as i32 as usize] = around + bround;
-    cxdy1 =
-        *pc.offset(0 as i32 as isize) *
-            *pd.offset(1 as i32 as isize);
+    cxdy1 = *pc.offset(0 as i32 as isize) * *pd.offset(1 as i32 as isize);
     c = splitter * *pc.offset(0 as i32 as isize);
     abig = c - *pc.offset(0 as i32 as isize);
     ahi = c - abig;
@@ -9525,9 +9798,7 @@ pub unsafe extern "C" fn insphereexact(mut pa: *const f64,
     err2 = err1 - alo * bhi;
     err3 = err2 - ahi * blo;
     cxdy0 = alo * blo - err3;
-    dxcy1 =
-        *pd.offset(0 as i32 as isize) *
-            *pc.offset(1 as i32 as isize);
+    dxcy1 = *pd.offset(0 as i32 as isize) * *pc.offset(1 as i32 as isize);
     c = splitter * *pd.offset(0 as i32 as isize);
     abig = c - *pd.offset(0 as i32 as isize);
     ahi = c - abig;
@@ -9564,9 +9835,7 @@ pub unsafe extern "C" fn insphereexact(mut pa: *const f64,
     bround = _i - bvirt;
     around = _j - avirt;
     cd[2 as i32 as usize] = around + bround;
-    dxey1 =
-        *pd.offset(0 as i32 as isize) *
-            *pe.offset(1 as i32 as isize);
+    dxey1 = *pd.offset(0 as i32 as isize) * *pe.offset(1 as i32 as isize);
     c = splitter * *pd.offset(0 as i32 as isize);
     abig = c - *pd.offset(0 as i32 as isize);
     ahi = c - abig;
@@ -9579,9 +9848,7 @@ pub unsafe extern "C" fn insphereexact(mut pa: *const f64,
     err2 = err1 - alo * bhi;
     err3 = err2 - ahi * blo;
     dxey0 = alo * blo - err3;
-    exdy1 =
-        *pe.offset(0 as i32 as isize) *
-            *pd.offset(1 as i32 as isize);
+    exdy1 = *pe.offset(0 as i32 as isize) * *pd.offset(1 as i32 as isize);
     c = splitter * *pe.offset(0 as i32 as isize);
     abig = c - *pe.offset(0 as i32 as isize);
     ahi = c - abig;
@@ -9618,9 +9885,7 @@ pub unsafe extern "C" fn insphereexact(mut pa: *const f64,
     bround = _i - bvirt;
     around = _j - avirt;
     de[2 as i32 as usize] = around + bround;
-    exay1 =
-        *pe.offset(0 as i32 as isize) *
-            *pa.offset(1 as i32 as isize);
+    exay1 = *pe.offset(0 as i32 as isize) * *pa.offset(1 as i32 as isize);
     c = splitter * *pe.offset(0 as i32 as isize);
     abig = c - *pe.offset(0 as i32 as isize);
     ahi = c - abig;
@@ -9633,9 +9898,7 @@ pub unsafe extern "C" fn insphereexact(mut pa: *const f64,
     err2 = err1 - alo * bhi;
     err3 = err2 - ahi * blo;
     exay0 = alo * blo - err3;
-    axey1 =
-        *pa.offset(0 as i32 as isize) *
-            *pe.offset(1 as i32 as isize);
+    axey1 = *pa.offset(0 as i32 as isize) * *pe.offset(1 as i32 as isize);
     c = splitter * *pa.offset(0 as i32 as isize);
     abig = c - *pa.offset(0 as i32 as isize);
     ahi = c - abig;
@@ -9672,9 +9935,7 @@ pub unsafe extern "C" fn insphereexact(mut pa: *const f64,
     bround = _i - bvirt;
     around = _j - avirt;
     ea[2 as i32 as usize] = around + bround;
-    axcy1 =
-        *pa.offset(0 as i32 as isize) *
-            *pc.offset(1 as i32 as isize);
+    axcy1 = *pa.offset(0 as i32 as isize) * *pc.offset(1 as i32 as isize);
     c = splitter * *pa.offset(0 as i32 as isize);
     abig = c - *pa.offset(0 as i32 as isize);
     ahi = c - abig;
@@ -9687,9 +9948,7 @@ pub unsafe extern "C" fn insphereexact(mut pa: *const f64,
     err2 = err1 - alo * bhi;
     err3 = err2 - ahi * blo;
     axcy0 = alo * blo - err3;
-    cxay1 =
-        *pc.offset(0 as i32 as isize) *
-            *pa.offset(1 as i32 as isize);
+    cxay1 = *pc.offset(0 as i32 as isize) * *pa.offset(1 as i32 as isize);
     c = splitter * *pc.offset(0 as i32 as isize);
     abig = c - *pc.offset(0 as i32 as isize);
     ahi = c - abig;
@@ -9726,9 +9985,7 @@ pub unsafe extern "C" fn insphereexact(mut pa: *const f64,
     bround = _i - bvirt;
     around = _j - avirt;
     ac[2 as i32 as usize] = around + bround;
-    bxdy1 =
-        *pb.offset(0 as i32 as isize) *
-            *pd.offset(1 as i32 as isize);
+    bxdy1 = *pb.offset(0 as i32 as isize) * *pd.offset(1 as i32 as isize);
     c = splitter * *pb.offset(0 as i32 as isize);
     abig = c - *pb.offset(0 as i32 as isize);
     ahi = c - abig;
@@ -9741,9 +9998,7 @@ pub unsafe extern "C" fn insphereexact(mut pa: *const f64,
     err2 = err1 - alo * bhi;
     err3 = err2 - ahi * blo;
     bxdy0 = alo * blo - err3;
-    dxby1 =
-        *pd.offset(0 as i32 as isize) *
-            *pb.offset(1 as i32 as isize);
+    dxby1 = *pd.offset(0 as i32 as isize) * *pb.offset(1 as i32 as isize);
     c = splitter * *pd.offset(0 as i32 as isize);
     abig = c - *pd.offset(0 as i32 as isize);
     ahi = c - abig;
@@ -9780,9 +10035,7 @@ pub unsafe extern "C" fn insphereexact(mut pa: *const f64,
     bround = _i - bvirt;
     around = _j - avirt;
     bd[2 as i32 as usize] = around + bround;
-    cxey1 =
-        *pc.offset(0 as i32 as isize) *
-            *pe.offset(1 as i32 as isize);
+    cxey1 = *pc.offset(0 as i32 as isize) * *pe.offset(1 as i32 as isize);
     c = splitter * *pc.offset(0 as i32 as isize);
     abig = c - *pc.offset(0 as i32 as isize);
     ahi = c - abig;
@@ -9795,9 +10048,7 @@ pub unsafe extern "C" fn insphereexact(mut pa: *const f64,
     err2 = err1 - alo * bhi;
     err3 = err2 - ahi * blo;
     cxey0 = alo * blo - err3;
-    excy1 =
-        *pe.offset(0 as i32 as isize) *
-            *pc.offset(1 as i32 as isize);
+    excy1 = *pe.offset(0 as i32 as isize) * *pc.offset(1 as i32 as isize);
     c = splitter * *pe.offset(0 as i32 as isize);
     abig = c - *pe.offset(0 as i32 as isize);
     ahi = c - abig;
@@ -9834,9 +10085,7 @@ pub unsafe extern "C" fn insphereexact(mut pa: *const f64,
     bround = _i - bvirt;
     around = _j - avirt;
     ce[2 as i32 as usize] = around + bround;
-    dxay1 =
-        *pd.offset(0 as i32 as isize) *
-            *pa.offset(1 as i32 as isize);
+    dxay1 = *pd.offset(0 as i32 as isize) * *pa.offset(1 as i32 as isize);
     c = splitter * *pd.offset(0 as i32 as isize);
     abig = c - *pd.offset(0 as i32 as isize);
     ahi = c - abig;
@@ -9849,9 +10098,7 @@ pub unsafe extern "C" fn insphereexact(mut pa: *const f64,
     err2 = err1 - alo * bhi;
     err3 = err2 - ahi * blo;
     dxay0 = alo * blo - err3;
-    axdy1 =
-        *pa.offset(0 as i32 as isize) *
-            *pd.offset(1 as i32 as isize);
+    axdy1 = *pa.offset(0 as i32 as isize) * *pd.offset(1 as i32 as isize);
     c = splitter * *pa.offset(0 as i32 as isize);
     abig = c - *pa.offset(0 as i32 as isize);
     ahi = c - abig;
@@ -9888,9 +10135,7 @@ pub unsafe extern "C" fn insphereexact(mut pa: *const f64,
     bround = _i - bvirt;
     around = _j - avirt;
     da[2 as i32 as usize] = around + bround;
-    exby1 =
-        *pe.offset(0 as i32 as isize) *
-            *pb.offset(1 as i32 as isize);
+    exby1 = *pe.offset(0 as i32 as isize) * *pb.offset(1 as i32 as isize);
     c = splitter * *pe.offset(0 as i32 as isize);
     abig = c - *pe.offset(0 as i32 as isize);
     ahi = c - abig;
@@ -9903,9 +10148,7 @@ pub unsafe extern "C" fn insphereexact(mut pa: *const f64,
     err2 = err1 - alo * bhi;
     err3 = err2 - ahi * blo;
     exby0 = alo * blo - err3;
-    bxey1 =
-        *pb.offset(0 as i32 as isize) *
-            *pe.offset(1 as i32 as isize);
+    bxey1 = *pb.offset(0 as i32 as isize) * *pe.offset(1 as i32 as isize);
     c = splitter * *pb.offset(0 as i32 as isize);
     abig = c - *pb.offset(0 as i32 as isize);
     ahi = c - abig;
@@ -9942,432 +10185,744 @@ pub unsafe extern "C" fn insphereexact(mut pa: *const f64,
     bround = _i - bvirt;
     around = _j - avirt;
     eb[2 as i32 as usize] = around + bround;
-    temp8alen =
-        scale_expansion_zeroelim(4 as i32, bc.as_mut_ptr(),
-                                 *pa.offset(2 as i32 as isize),
-                                 temp8a.as_mut_ptr());
-    temp8blen =
-        scale_expansion_zeroelim(4 as i32, ac.as_mut_ptr(),
-                                 -*pb.offset(2 as i32 as isize),
-                                 temp8b.as_mut_ptr());
-    temp16len =
-        fast_expansion_sum_zeroelim(temp8alen, temp8a.as_mut_ptr(), temp8blen,
-                                    temp8b.as_mut_ptr(), temp16.as_mut_ptr());
-    temp8alen =
-        scale_expansion_zeroelim(4 as i32, ab.as_mut_ptr(),
-                                 *pc.offset(2 as i32 as isize),
-                                 temp8a.as_mut_ptr());
-    abclen =
-        fast_expansion_sum_zeroelim(temp8alen, temp8a.as_mut_ptr(), temp16len,
-                                    temp16.as_mut_ptr(), abc.as_mut_ptr());
-    temp8alen =
-        scale_expansion_zeroelim(4 as i32, cd.as_mut_ptr(),
-                                 *pb.offset(2 as i32 as isize),
-                                 temp8a.as_mut_ptr());
-    temp8blen =
-        scale_expansion_zeroelim(4 as i32, bd.as_mut_ptr(),
-                                 -*pc.offset(2 as i32 as isize),
-                                 temp8b.as_mut_ptr());
-    temp16len =
-        fast_expansion_sum_zeroelim(temp8alen, temp8a.as_mut_ptr(), temp8blen,
-                                    temp8b.as_mut_ptr(), temp16.as_mut_ptr());
-    temp8alen =
-        scale_expansion_zeroelim(4 as i32, bc.as_mut_ptr(),
-                                 *pd.offset(2 as i32 as isize),
-                                 temp8a.as_mut_ptr());
-    bcdlen =
-        fast_expansion_sum_zeroelim(temp8alen, temp8a.as_mut_ptr(), temp16len,
-                                    temp16.as_mut_ptr(), bcd.as_mut_ptr());
-    temp8alen =
-        scale_expansion_zeroelim(4 as i32, de.as_mut_ptr(),
-                                 *pc.offset(2 as i32 as isize),
-                                 temp8a.as_mut_ptr());
-    temp8blen =
-        scale_expansion_zeroelim(4 as i32, ce.as_mut_ptr(),
-                                 -*pd.offset(2 as i32 as isize),
-                                 temp8b.as_mut_ptr());
-    temp16len =
-        fast_expansion_sum_zeroelim(temp8alen, temp8a.as_mut_ptr(), temp8blen,
-                                    temp8b.as_mut_ptr(), temp16.as_mut_ptr());
-    temp8alen =
-        scale_expansion_zeroelim(4 as i32, cd.as_mut_ptr(),
-                                 *pe.offset(2 as i32 as isize),
-                                 temp8a.as_mut_ptr());
-    cdelen =
-        fast_expansion_sum_zeroelim(temp8alen, temp8a.as_mut_ptr(), temp16len,
-                                    temp16.as_mut_ptr(), cde.as_mut_ptr());
-    temp8alen =
-        scale_expansion_zeroelim(4 as i32, ea.as_mut_ptr(),
-                                 *pd.offset(2 as i32 as isize),
-                                 temp8a.as_mut_ptr());
-    temp8blen =
-        scale_expansion_zeroelim(4 as i32, da.as_mut_ptr(),
-                                 -*pe.offset(2 as i32 as isize),
-                                 temp8b.as_mut_ptr());
-    temp16len =
-        fast_expansion_sum_zeroelim(temp8alen, temp8a.as_mut_ptr(), temp8blen,
-                                    temp8b.as_mut_ptr(), temp16.as_mut_ptr());
-    temp8alen =
-        scale_expansion_zeroelim(4 as i32, de.as_mut_ptr(),
-                                 *pa.offset(2 as i32 as isize),
-                                 temp8a.as_mut_ptr());
-    dealen =
-        fast_expansion_sum_zeroelim(temp8alen, temp8a.as_mut_ptr(), temp16len,
-                                    temp16.as_mut_ptr(), dea.as_mut_ptr());
-    temp8alen =
-        scale_expansion_zeroelim(4 as i32, ab.as_mut_ptr(),
-                                 *pe.offset(2 as i32 as isize),
-                                 temp8a.as_mut_ptr());
-    temp8blen =
-        scale_expansion_zeroelim(4 as i32, eb.as_mut_ptr(),
-                                 -*pa.offset(2 as i32 as isize),
-                                 temp8b.as_mut_ptr());
-    temp16len =
-        fast_expansion_sum_zeroelim(temp8alen, temp8a.as_mut_ptr(), temp8blen,
-                                    temp8b.as_mut_ptr(), temp16.as_mut_ptr());
-    temp8alen =
-        scale_expansion_zeroelim(4 as i32, ea.as_mut_ptr(),
-                                 *pb.offset(2 as i32 as isize),
-                                 temp8a.as_mut_ptr());
-    eablen =
-        fast_expansion_sum_zeroelim(temp8alen, temp8a.as_mut_ptr(), temp16len,
-                                    temp16.as_mut_ptr(), eab.as_mut_ptr());
-    temp8alen =
-        scale_expansion_zeroelim(4 as i32, bd.as_mut_ptr(),
-                                 *pa.offset(2 as i32 as isize),
-                                 temp8a.as_mut_ptr());
-    temp8blen =
-        scale_expansion_zeroelim(4 as i32, da.as_mut_ptr(),
-                                 *pb.offset(2 as i32 as isize),
-                                 temp8b.as_mut_ptr());
-    temp16len =
-        fast_expansion_sum_zeroelim(temp8alen, temp8a.as_mut_ptr(), temp8blen,
-                                    temp8b.as_mut_ptr(), temp16.as_mut_ptr());
-    temp8alen =
-        scale_expansion_zeroelim(4 as i32, ab.as_mut_ptr(),
-                                 *pd.offset(2 as i32 as isize),
-                                 temp8a.as_mut_ptr());
-    abdlen =
-        fast_expansion_sum_zeroelim(temp8alen, temp8a.as_mut_ptr(), temp16len,
-                                    temp16.as_mut_ptr(), abd.as_mut_ptr());
-    temp8alen =
-        scale_expansion_zeroelim(4 as i32, ce.as_mut_ptr(),
-                                 *pb.offset(2 as i32 as isize),
-                                 temp8a.as_mut_ptr());
-    temp8blen =
-        scale_expansion_zeroelim(4 as i32, eb.as_mut_ptr(),
-                                 *pc.offset(2 as i32 as isize),
-                                 temp8b.as_mut_ptr());
-    temp16len =
-        fast_expansion_sum_zeroelim(temp8alen, temp8a.as_mut_ptr(), temp8blen,
-                                    temp8b.as_mut_ptr(), temp16.as_mut_ptr());
-    temp8alen =
-        scale_expansion_zeroelim(4 as i32, bc.as_mut_ptr(),
-                                 *pe.offset(2 as i32 as isize),
-                                 temp8a.as_mut_ptr());
-    bcelen =
-        fast_expansion_sum_zeroelim(temp8alen, temp8a.as_mut_ptr(), temp16len,
-                                    temp16.as_mut_ptr(), bce.as_mut_ptr());
-    temp8alen =
-        scale_expansion_zeroelim(4 as i32, da.as_mut_ptr(),
-                                 *pc.offset(2 as i32 as isize),
-                                 temp8a.as_mut_ptr());
-    temp8blen =
-        scale_expansion_zeroelim(4 as i32, ac.as_mut_ptr(),
-                                 *pd.offset(2 as i32 as isize),
-                                 temp8b.as_mut_ptr());
-    temp16len =
-        fast_expansion_sum_zeroelim(temp8alen, temp8a.as_mut_ptr(), temp8blen,
-                                    temp8b.as_mut_ptr(), temp16.as_mut_ptr());
-    temp8alen =
-        scale_expansion_zeroelim(4 as i32, cd.as_mut_ptr(),
-                                 *pa.offset(2 as i32 as isize),
-                                 temp8a.as_mut_ptr());
-    cdalen =
-        fast_expansion_sum_zeroelim(temp8alen, temp8a.as_mut_ptr(), temp16len,
-                                    temp16.as_mut_ptr(), cda.as_mut_ptr());
-    temp8alen =
-        scale_expansion_zeroelim(4 as i32, eb.as_mut_ptr(),
-                                 *pd.offset(2 as i32 as isize),
-                                 temp8a.as_mut_ptr());
-    temp8blen =
-        scale_expansion_zeroelim(4 as i32, bd.as_mut_ptr(),
-                                 *pe.offset(2 as i32 as isize),
-                                 temp8b.as_mut_ptr());
-    temp16len =
-        fast_expansion_sum_zeroelim(temp8alen, temp8a.as_mut_ptr(), temp8blen,
-                                    temp8b.as_mut_ptr(), temp16.as_mut_ptr());
-    temp8alen =
-        scale_expansion_zeroelim(4 as i32, de.as_mut_ptr(),
-                                 *pb.offset(2 as i32 as isize),
-                                 temp8a.as_mut_ptr());
-    deblen =
-        fast_expansion_sum_zeroelim(temp8alen, temp8a.as_mut_ptr(), temp16len,
-                                    temp16.as_mut_ptr(), deb.as_mut_ptr());
-    temp8alen =
-        scale_expansion_zeroelim(4 as i32, ac.as_mut_ptr(),
-                                 *pe.offset(2 as i32 as isize),
-                                 temp8a.as_mut_ptr());
-    temp8blen =
-        scale_expansion_zeroelim(4 as i32, ce.as_mut_ptr(),
-                                 *pa.offset(2 as i32 as isize),
-                                 temp8b.as_mut_ptr());
-    temp16len =
-        fast_expansion_sum_zeroelim(temp8alen, temp8a.as_mut_ptr(), temp8blen,
-                                    temp8b.as_mut_ptr(), temp16.as_mut_ptr());
-    temp8alen =
-        scale_expansion_zeroelim(4 as i32, ea.as_mut_ptr(),
-                                 *pc.offset(2 as i32 as isize),
-                                 temp8a.as_mut_ptr());
-    eaclen =
-        fast_expansion_sum_zeroelim(temp8alen, temp8a.as_mut_ptr(), temp16len,
-                                    temp16.as_mut_ptr(), eac.as_mut_ptr());
-    temp48alen =
-        fast_expansion_sum_zeroelim(cdelen, cde.as_mut_ptr(), bcelen,
-                                    bce.as_mut_ptr(), temp48a.as_mut_ptr());
-    temp48blen =
-        fast_expansion_sum_zeroelim(deblen, deb.as_mut_ptr(), bcdlen,
-                                    bcd.as_mut_ptr(), temp48b.as_mut_ptr());
+    temp8alen = scale_expansion_zeroelim(
+        4 as i32,
+        bc.as_mut_ptr(),
+        *pa.offset(2 as i32 as isize),
+        temp8a.as_mut_ptr(),
+    );
+    temp8blen = scale_expansion_zeroelim(
+        4 as i32,
+        ac.as_mut_ptr(),
+        -*pb.offset(2 as i32 as isize),
+        temp8b.as_mut_ptr(),
+    );
+    temp16len = fast_expansion_sum_zeroelim(
+        temp8alen,
+        temp8a.as_mut_ptr(),
+        temp8blen,
+        temp8b.as_mut_ptr(),
+        temp16.as_mut_ptr(),
+    );
+    temp8alen = scale_expansion_zeroelim(
+        4 as i32,
+        ab.as_mut_ptr(),
+        *pc.offset(2 as i32 as isize),
+        temp8a.as_mut_ptr(),
+    );
+    abclen = fast_expansion_sum_zeroelim(
+        temp8alen,
+        temp8a.as_mut_ptr(),
+        temp16len,
+        temp16.as_mut_ptr(),
+        abc.as_mut_ptr(),
+    );
+    temp8alen = scale_expansion_zeroelim(
+        4 as i32,
+        cd.as_mut_ptr(),
+        *pb.offset(2 as i32 as isize),
+        temp8a.as_mut_ptr(),
+    );
+    temp8blen = scale_expansion_zeroelim(
+        4 as i32,
+        bd.as_mut_ptr(),
+        -*pc.offset(2 as i32 as isize),
+        temp8b.as_mut_ptr(),
+    );
+    temp16len = fast_expansion_sum_zeroelim(
+        temp8alen,
+        temp8a.as_mut_ptr(),
+        temp8blen,
+        temp8b.as_mut_ptr(),
+        temp16.as_mut_ptr(),
+    );
+    temp8alen = scale_expansion_zeroelim(
+        4 as i32,
+        bc.as_mut_ptr(),
+        *pd.offset(2 as i32 as isize),
+        temp8a.as_mut_ptr(),
+    );
+    bcdlen = fast_expansion_sum_zeroelim(
+        temp8alen,
+        temp8a.as_mut_ptr(),
+        temp16len,
+        temp16.as_mut_ptr(),
+        bcd.as_mut_ptr(),
+    );
+    temp8alen = scale_expansion_zeroelim(
+        4 as i32,
+        de.as_mut_ptr(),
+        *pc.offset(2 as i32 as isize),
+        temp8a.as_mut_ptr(),
+    );
+    temp8blen = scale_expansion_zeroelim(
+        4 as i32,
+        ce.as_mut_ptr(),
+        -*pd.offset(2 as i32 as isize),
+        temp8b.as_mut_ptr(),
+    );
+    temp16len = fast_expansion_sum_zeroelim(
+        temp8alen,
+        temp8a.as_mut_ptr(),
+        temp8blen,
+        temp8b.as_mut_ptr(),
+        temp16.as_mut_ptr(),
+    );
+    temp8alen = scale_expansion_zeroelim(
+        4 as i32,
+        cd.as_mut_ptr(),
+        *pe.offset(2 as i32 as isize),
+        temp8a.as_mut_ptr(),
+    );
+    cdelen = fast_expansion_sum_zeroelim(
+        temp8alen,
+        temp8a.as_mut_ptr(),
+        temp16len,
+        temp16.as_mut_ptr(),
+        cde.as_mut_ptr(),
+    );
+    temp8alen = scale_expansion_zeroelim(
+        4 as i32,
+        ea.as_mut_ptr(),
+        *pd.offset(2 as i32 as isize),
+        temp8a.as_mut_ptr(),
+    );
+    temp8blen = scale_expansion_zeroelim(
+        4 as i32,
+        da.as_mut_ptr(),
+        -*pe.offset(2 as i32 as isize),
+        temp8b.as_mut_ptr(),
+    );
+    temp16len = fast_expansion_sum_zeroelim(
+        temp8alen,
+        temp8a.as_mut_ptr(),
+        temp8blen,
+        temp8b.as_mut_ptr(),
+        temp16.as_mut_ptr(),
+    );
+    temp8alen = scale_expansion_zeroelim(
+        4 as i32,
+        de.as_mut_ptr(),
+        *pa.offset(2 as i32 as isize),
+        temp8a.as_mut_ptr(),
+    );
+    dealen = fast_expansion_sum_zeroelim(
+        temp8alen,
+        temp8a.as_mut_ptr(),
+        temp16len,
+        temp16.as_mut_ptr(),
+        dea.as_mut_ptr(),
+    );
+    temp8alen = scale_expansion_zeroelim(
+        4 as i32,
+        ab.as_mut_ptr(),
+        *pe.offset(2 as i32 as isize),
+        temp8a.as_mut_ptr(),
+    );
+    temp8blen = scale_expansion_zeroelim(
+        4 as i32,
+        eb.as_mut_ptr(),
+        -*pa.offset(2 as i32 as isize),
+        temp8b.as_mut_ptr(),
+    );
+    temp16len = fast_expansion_sum_zeroelim(
+        temp8alen,
+        temp8a.as_mut_ptr(),
+        temp8blen,
+        temp8b.as_mut_ptr(),
+        temp16.as_mut_ptr(),
+    );
+    temp8alen = scale_expansion_zeroelim(
+        4 as i32,
+        ea.as_mut_ptr(),
+        *pb.offset(2 as i32 as isize),
+        temp8a.as_mut_ptr(),
+    );
+    eablen = fast_expansion_sum_zeroelim(
+        temp8alen,
+        temp8a.as_mut_ptr(),
+        temp16len,
+        temp16.as_mut_ptr(),
+        eab.as_mut_ptr(),
+    );
+    temp8alen = scale_expansion_zeroelim(
+        4 as i32,
+        bd.as_mut_ptr(),
+        *pa.offset(2 as i32 as isize),
+        temp8a.as_mut_ptr(),
+    );
+    temp8blen = scale_expansion_zeroelim(
+        4 as i32,
+        da.as_mut_ptr(),
+        *pb.offset(2 as i32 as isize),
+        temp8b.as_mut_ptr(),
+    );
+    temp16len = fast_expansion_sum_zeroelim(
+        temp8alen,
+        temp8a.as_mut_ptr(),
+        temp8blen,
+        temp8b.as_mut_ptr(),
+        temp16.as_mut_ptr(),
+    );
+    temp8alen = scale_expansion_zeroelim(
+        4 as i32,
+        ab.as_mut_ptr(),
+        *pd.offset(2 as i32 as isize),
+        temp8a.as_mut_ptr(),
+    );
+    abdlen = fast_expansion_sum_zeroelim(
+        temp8alen,
+        temp8a.as_mut_ptr(),
+        temp16len,
+        temp16.as_mut_ptr(),
+        abd.as_mut_ptr(),
+    );
+    temp8alen = scale_expansion_zeroelim(
+        4 as i32,
+        ce.as_mut_ptr(),
+        *pb.offset(2 as i32 as isize),
+        temp8a.as_mut_ptr(),
+    );
+    temp8blen = scale_expansion_zeroelim(
+        4 as i32,
+        eb.as_mut_ptr(),
+        *pc.offset(2 as i32 as isize),
+        temp8b.as_mut_ptr(),
+    );
+    temp16len = fast_expansion_sum_zeroelim(
+        temp8alen,
+        temp8a.as_mut_ptr(),
+        temp8blen,
+        temp8b.as_mut_ptr(),
+        temp16.as_mut_ptr(),
+    );
+    temp8alen = scale_expansion_zeroelim(
+        4 as i32,
+        bc.as_mut_ptr(),
+        *pe.offset(2 as i32 as isize),
+        temp8a.as_mut_ptr(),
+    );
+    bcelen = fast_expansion_sum_zeroelim(
+        temp8alen,
+        temp8a.as_mut_ptr(),
+        temp16len,
+        temp16.as_mut_ptr(),
+        bce.as_mut_ptr(),
+    );
+    temp8alen = scale_expansion_zeroelim(
+        4 as i32,
+        da.as_mut_ptr(),
+        *pc.offset(2 as i32 as isize),
+        temp8a.as_mut_ptr(),
+    );
+    temp8blen = scale_expansion_zeroelim(
+        4 as i32,
+        ac.as_mut_ptr(),
+        *pd.offset(2 as i32 as isize),
+        temp8b.as_mut_ptr(),
+    );
+    temp16len = fast_expansion_sum_zeroelim(
+        temp8alen,
+        temp8a.as_mut_ptr(),
+        temp8blen,
+        temp8b.as_mut_ptr(),
+        temp16.as_mut_ptr(),
+    );
+    temp8alen = scale_expansion_zeroelim(
+        4 as i32,
+        cd.as_mut_ptr(),
+        *pa.offset(2 as i32 as isize),
+        temp8a.as_mut_ptr(),
+    );
+    cdalen = fast_expansion_sum_zeroelim(
+        temp8alen,
+        temp8a.as_mut_ptr(),
+        temp16len,
+        temp16.as_mut_ptr(),
+        cda.as_mut_ptr(),
+    );
+    temp8alen = scale_expansion_zeroelim(
+        4 as i32,
+        eb.as_mut_ptr(),
+        *pd.offset(2 as i32 as isize),
+        temp8a.as_mut_ptr(),
+    );
+    temp8blen = scale_expansion_zeroelim(
+        4 as i32,
+        bd.as_mut_ptr(),
+        *pe.offset(2 as i32 as isize),
+        temp8b.as_mut_ptr(),
+    );
+    temp16len = fast_expansion_sum_zeroelim(
+        temp8alen,
+        temp8a.as_mut_ptr(),
+        temp8blen,
+        temp8b.as_mut_ptr(),
+        temp16.as_mut_ptr(),
+    );
+    temp8alen = scale_expansion_zeroelim(
+        4 as i32,
+        de.as_mut_ptr(),
+        *pb.offset(2 as i32 as isize),
+        temp8a.as_mut_ptr(),
+    );
+    deblen = fast_expansion_sum_zeroelim(
+        temp8alen,
+        temp8a.as_mut_ptr(),
+        temp16len,
+        temp16.as_mut_ptr(),
+        deb.as_mut_ptr(),
+    );
+    temp8alen = scale_expansion_zeroelim(
+        4 as i32,
+        ac.as_mut_ptr(),
+        *pe.offset(2 as i32 as isize),
+        temp8a.as_mut_ptr(),
+    );
+    temp8blen = scale_expansion_zeroelim(
+        4 as i32,
+        ce.as_mut_ptr(),
+        *pa.offset(2 as i32 as isize),
+        temp8b.as_mut_ptr(),
+    );
+    temp16len = fast_expansion_sum_zeroelim(
+        temp8alen,
+        temp8a.as_mut_ptr(),
+        temp8blen,
+        temp8b.as_mut_ptr(),
+        temp16.as_mut_ptr(),
+    );
+    temp8alen = scale_expansion_zeroelim(
+        4 as i32,
+        ea.as_mut_ptr(),
+        *pc.offset(2 as i32 as isize),
+        temp8a.as_mut_ptr(),
+    );
+    eaclen = fast_expansion_sum_zeroelim(
+        temp8alen,
+        temp8a.as_mut_ptr(),
+        temp16len,
+        temp16.as_mut_ptr(),
+        eac.as_mut_ptr(),
+    );
+    temp48alen = fast_expansion_sum_zeroelim(
+        cdelen,
+        cde.as_mut_ptr(),
+        bcelen,
+        bce.as_mut_ptr(),
+        temp48a.as_mut_ptr(),
+    );
+    temp48blen = fast_expansion_sum_zeroelim(
+        deblen,
+        deb.as_mut_ptr(),
+        bcdlen,
+        bcd.as_mut_ptr(),
+        temp48b.as_mut_ptr(),
+    );
     i = 0 as i32;
     while i < temp48blen {
         temp48b[i as usize] = -temp48b[i as usize];
         i += 1
     }
-    bcdelen =
-        fast_expansion_sum_zeroelim(temp48alen, temp48a.as_mut_ptr(),
-                                    temp48blen, temp48b.as_mut_ptr(),
-                                    bcde.as_mut_ptr());
-    xlen =
-        scale_expansion_zeroelim(bcdelen, bcde.as_mut_ptr(),
-                                 *pa.offset(0 as i32 as isize),
-                                 temp192.as_mut_ptr());
-    xlen =
-        scale_expansion_zeroelim(xlen, temp192.as_mut_ptr(),
-                                 *pa.offset(0 as i32 as isize),
-                                 det384x.as_mut_ptr());
-    ylen =
-        scale_expansion_zeroelim(bcdelen, bcde.as_mut_ptr(),
-                                 *pa.offset(1 as i32 as isize),
-                                 temp192.as_mut_ptr());
-    ylen =
-        scale_expansion_zeroelim(ylen, temp192.as_mut_ptr(),
-                                 *pa.offset(1 as i32 as isize),
-                                 det384y.as_mut_ptr());
-    zlen =
-        scale_expansion_zeroelim(bcdelen, bcde.as_mut_ptr(),
-                                 *pa.offset(2 as i32 as isize),
-                                 temp192.as_mut_ptr());
-    zlen =
-        scale_expansion_zeroelim(zlen, temp192.as_mut_ptr(),
-                                 *pa.offset(2 as i32 as isize),
-                                 det384z.as_mut_ptr());
-    xylen =
-        fast_expansion_sum_zeroelim(xlen, det384x.as_mut_ptr(), ylen,
-                                    det384y.as_mut_ptr(), detxy.as_mut_ptr());
-    alen =
-        fast_expansion_sum_zeroelim(xylen, detxy.as_mut_ptr(), zlen,
-                                    det384z.as_mut_ptr(), adet.as_mut_ptr());
-    temp48alen =
-        fast_expansion_sum_zeroelim(dealen, dea.as_mut_ptr(), cdalen,
-                                    cda.as_mut_ptr(), temp48a.as_mut_ptr());
-    temp48blen =
-        fast_expansion_sum_zeroelim(eaclen, eac.as_mut_ptr(), cdelen,
-                                    cde.as_mut_ptr(), temp48b.as_mut_ptr());
+    bcdelen = fast_expansion_sum_zeroelim(
+        temp48alen,
+        temp48a.as_mut_ptr(),
+        temp48blen,
+        temp48b.as_mut_ptr(),
+        bcde.as_mut_ptr(),
+    );
+    xlen = scale_expansion_zeroelim(
+        bcdelen,
+        bcde.as_mut_ptr(),
+        *pa.offset(0 as i32 as isize),
+        temp192.as_mut_ptr(),
+    );
+    xlen = scale_expansion_zeroelim(
+        xlen,
+        temp192.as_mut_ptr(),
+        *pa.offset(0 as i32 as isize),
+        det384x.as_mut_ptr(),
+    );
+    ylen = scale_expansion_zeroelim(
+        bcdelen,
+        bcde.as_mut_ptr(),
+        *pa.offset(1 as i32 as isize),
+        temp192.as_mut_ptr(),
+    );
+    ylen = scale_expansion_zeroelim(
+        ylen,
+        temp192.as_mut_ptr(),
+        *pa.offset(1 as i32 as isize),
+        det384y.as_mut_ptr(),
+    );
+    zlen = scale_expansion_zeroelim(
+        bcdelen,
+        bcde.as_mut_ptr(),
+        *pa.offset(2 as i32 as isize),
+        temp192.as_mut_ptr(),
+    );
+    zlen = scale_expansion_zeroelim(
+        zlen,
+        temp192.as_mut_ptr(),
+        *pa.offset(2 as i32 as isize),
+        det384z.as_mut_ptr(),
+    );
+    xylen = fast_expansion_sum_zeroelim(
+        xlen,
+        det384x.as_mut_ptr(),
+        ylen,
+        det384y.as_mut_ptr(),
+        detxy.as_mut_ptr(),
+    );
+    alen = fast_expansion_sum_zeroelim(
+        xylen,
+        detxy.as_mut_ptr(),
+        zlen,
+        det384z.as_mut_ptr(),
+        adet.as_mut_ptr(),
+    );
+    temp48alen = fast_expansion_sum_zeroelim(
+        dealen,
+        dea.as_mut_ptr(),
+        cdalen,
+        cda.as_mut_ptr(),
+        temp48a.as_mut_ptr(),
+    );
+    temp48blen = fast_expansion_sum_zeroelim(
+        eaclen,
+        eac.as_mut_ptr(),
+        cdelen,
+        cde.as_mut_ptr(),
+        temp48b.as_mut_ptr(),
+    );
     i = 0 as i32;
     while i < temp48blen {
         temp48b[i as usize] = -temp48b[i as usize];
         i += 1
     }
-    cdealen =
-        fast_expansion_sum_zeroelim(temp48alen, temp48a.as_mut_ptr(),
-                                    temp48blen, temp48b.as_mut_ptr(),
-                                    cdea.as_mut_ptr());
-    xlen =
-        scale_expansion_zeroelim(cdealen, cdea.as_mut_ptr(),
-                                 *pb.offset(0 as i32 as isize),
-                                 temp192.as_mut_ptr());
-    xlen =
-        scale_expansion_zeroelim(xlen, temp192.as_mut_ptr(),
-                                 *pb.offset(0 as i32 as isize),
-                                 det384x.as_mut_ptr());
-    ylen =
-        scale_expansion_zeroelim(cdealen, cdea.as_mut_ptr(),
-                                 *pb.offset(1 as i32 as isize),
-                                 temp192.as_mut_ptr());
-    ylen =
-        scale_expansion_zeroelim(ylen, temp192.as_mut_ptr(),
-                                 *pb.offset(1 as i32 as isize),
-                                 det384y.as_mut_ptr());
-    zlen =
-        scale_expansion_zeroelim(cdealen, cdea.as_mut_ptr(),
-                                 *pb.offset(2 as i32 as isize),
-                                 temp192.as_mut_ptr());
-    zlen =
-        scale_expansion_zeroelim(zlen, temp192.as_mut_ptr(),
-                                 *pb.offset(2 as i32 as isize),
-                                 det384z.as_mut_ptr());
-    xylen =
-        fast_expansion_sum_zeroelim(xlen, det384x.as_mut_ptr(), ylen,
-                                    det384y.as_mut_ptr(), detxy.as_mut_ptr());
-    blen =
-        fast_expansion_sum_zeroelim(xylen, detxy.as_mut_ptr(), zlen,
-                                    det384z.as_mut_ptr(), bdet.as_mut_ptr());
-    temp48alen =
-        fast_expansion_sum_zeroelim(eablen, eab.as_mut_ptr(), deblen,
-                                    deb.as_mut_ptr(), temp48a.as_mut_ptr());
-    temp48blen =
-        fast_expansion_sum_zeroelim(abdlen, abd.as_mut_ptr(), dealen,
-                                    dea.as_mut_ptr(), temp48b.as_mut_ptr());
+    cdealen = fast_expansion_sum_zeroelim(
+        temp48alen,
+        temp48a.as_mut_ptr(),
+        temp48blen,
+        temp48b.as_mut_ptr(),
+        cdea.as_mut_ptr(),
+    );
+    xlen = scale_expansion_zeroelim(
+        cdealen,
+        cdea.as_mut_ptr(),
+        *pb.offset(0 as i32 as isize),
+        temp192.as_mut_ptr(),
+    );
+    xlen = scale_expansion_zeroelim(
+        xlen,
+        temp192.as_mut_ptr(),
+        *pb.offset(0 as i32 as isize),
+        det384x.as_mut_ptr(),
+    );
+    ylen = scale_expansion_zeroelim(
+        cdealen,
+        cdea.as_mut_ptr(),
+        *pb.offset(1 as i32 as isize),
+        temp192.as_mut_ptr(),
+    );
+    ylen = scale_expansion_zeroelim(
+        ylen,
+        temp192.as_mut_ptr(),
+        *pb.offset(1 as i32 as isize),
+        det384y.as_mut_ptr(),
+    );
+    zlen = scale_expansion_zeroelim(
+        cdealen,
+        cdea.as_mut_ptr(),
+        *pb.offset(2 as i32 as isize),
+        temp192.as_mut_ptr(),
+    );
+    zlen = scale_expansion_zeroelim(
+        zlen,
+        temp192.as_mut_ptr(),
+        *pb.offset(2 as i32 as isize),
+        det384z.as_mut_ptr(),
+    );
+    xylen = fast_expansion_sum_zeroelim(
+        xlen,
+        det384x.as_mut_ptr(),
+        ylen,
+        det384y.as_mut_ptr(),
+        detxy.as_mut_ptr(),
+    );
+    blen = fast_expansion_sum_zeroelim(
+        xylen,
+        detxy.as_mut_ptr(),
+        zlen,
+        det384z.as_mut_ptr(),
+        bdet.as_mut_ptr(),
+    );
+    temp48alen = fast_expansion_sum_zeroelim(
+        eablen,
+        eab.as_mut_ptr(),
+        deblen,
+        deb.as_mut_ptr(),
+        temp48a.as_mut_ptr(),
+    );
+    temp48blen = fast_expansion_sum_zeroelim(
+        abdlen,
+        abd.as_mut_ptr(),
+        dealen,
+        dea.as_mut_ptr(),
+        temp48b.as_mut_ptr(),
+    );
     i = 0 as i32;
     while i < temp48blen {
         temp48b[i as usize] = -temp48b[i as usize];
         i += 1
     }
-    deablen =
-        fast_expansion_sum_zeroelim(temp48alen, temp48a.as_mut_ptr(),
-                                    temp48blen, temp48b.as_mut_ptr(),
-                                    deab.as_mut_ptr());
-    xlen =
-        scale_expansion_zeroelim(deablen, deab.as_mut_ptr(),
-                                 *pc.offset(0 as i32 as isize),
-                                 temp192.as_mut_ptr());
-    xlen =
-        scale_expansion_zeroelim(xlen, temp192.as_mut_ptr(),
-                                 *pc.offset(0 as i32 as isize),
-                                 det384x.as_mut_ptr());
-    ylen =
-        scale_expansion_zeroelim(deablen, deab.as_mut_ptr(),
-                                 *pc.offset(1 as i32 as isize),
-                                 temp192.as_mut_ptr());
-    ylen =
-        scale_expansion_zeroelim(ylen, temp192.as_mut_ptr(),
-                                 *pc.offset(1 as i32 as isize),
-                                 det384y.as_mut_ptr());
-    zlen =
-        scale_expansion_zeroelim(deablen, deab.as_mut_ptr(),
-                                 *pc.offset(2 as i32 as isize),
-                                 temp192.as_mut_ptr());
-    zlen =
-        scale_expansion_zeroelim(zlen, temp192.as_mut_ptr(),
-                                 *pc.offset(2 as i32 as isize),
-                                 det384z.as_mut_ptr());
-    xylen =
-        fast_expansion_sum_zeroelim(xlen, det384x.as_mut_ptr(), ylen,
-                                    det384y.as_mut_ptr(), detxy.as_mut_ptr());
-    clen =
-        fast_expansion_sum_zeroelim(xylen, detxy.as_mut_ptr(), zlen,
-                                    det384z.as_mut_ptr(), cdet.as_mut_ptr());
-    temp48alen =
-        fast_expansion_sum_zeroelim(abclen, abc.as_mut_ptr(), eaclen,
-                                    eac.as_mut_ptr(), temp48a.as_mut_ptr());
-    temp48blen =
-        fast_expansion_sum_zeroelim(bcelen, bce.as_mut_ptr(), eablen,
-                                    eab.as_mut_ptr(), temp48b.as_mut_ptr());
+    deablen = fast_expansion_sum_zeroelim(
+        temp48alen,
+        temp48a.as_mut_ptr(),
+        temp48blen,
+        temp48b.as_mut_ptr(),
+        deab.as_mut_ptr(),
+    );
+    xlen = scale_expansion_zeroelim(
+        deablen,
+        deab.as_mut_ptr(),
+        *pc.offset(0 as i32 as isize),
+        temp192.as_mut_ptr(),
+    );
+    xlen = scale_expansion_zeroelim(
+        xlen,
+        temp192.as_mut_ptr(),
+        *pc.offset(0 as i32 as isize),
+        det384x.as_mut_ptr(),
+    );
+    ylen = scale_expansion_zeroelim(
+        deablen,
+        deab.as_mut_ptr(),
+        *pc.offset(1 as i32 as isize),
+        temp192.as_mut_ptr(),
+    );
+    ylen = scale_expansion_zeroelim(
+        ylen,
+        temp192.as_mut_ptr(),
+        *pc.offset(1 as i32 as isize),
+        det384y.as_mut_ptr(),
+    );
+    zlen = scale_expansion_zeroelim(
+        deablen,
+        deab.as_mut_ptr(),
+        *pc.offset(2 as i32 as isize),
+        temp192.as_mut_ptr(),
+    );
+    zlen = scale_expansion_zeroelim(
+        zlen,
+        temp192.as_mut_ptr(),
+        *pc.offset(2 as i32 as isize),
+        det384z.as_mut_ptr(),
+    );
+    xylen = fast_expansion_sum_zeroelim(
+        xlen,
+        det384x.as_mut_ptr(),
+        ylen,
+        det384y.as_mut_ptr(),
+        detxy.as_mut_ptr(),
+    );
+    clen = fast_expansion_sum_zeroelim(
+        xylen,
+        detxy.as_mut_ptr(),
+        zlen,
+        det384z.as_mut_ptr(),
+        cdet.as_mut_ptr(),
+    );
+    temp48alen = fast_expansion_sum_zeroelim(
+        abclen,
+        abc.as_mut_ptr(),
+        eaclen,
+        eac.as_mut_ptr(),
+        temp48a.as_mut_ptr(),
+    );
+    temp48blen = fast_expansion_sum_zeroelim(
+        bcelen,
+        bce.as_mut_ptr(),
+        eablen,
+        eab.as_mut_ptr(),
+        temp48b.as_mut_ptr(),
+    );
     i = 0 as i32;
     while i < temp48blen {
         temp48b[i as usize] = -temp48b[i as usize];
         i += 1
     }
-    eabclen =
-        fast_expansion_sum_zeroelim(temp48alen, temp48a.as_mut_ptr(),
-                                    temp48blen, temp48b.as_mut_ptr(),
-                                    eabc.as_mut_ptr());
-    xlen =
-        scale_expansion_zeroelim(eabclen, eabc.as_mut_ptr(),
-                                 *pd.offset(0 as i32 as isize),
-                                 temp192.as_mut_ptr());
-    xlen =
-        scale_expansion_zeroelim(xlen, temp192.as_mut_ptr(),
-                                 *pd.offset(0 as i32 as isize),
-                                 det384x.as_mut_ptr());
-    ylen =
-        scale_expansion_zeroelim(eabclen, eabc.as_mut_ptr(),
-                                 *pd.offset(1 as i32 as isize),
-                                 temp192.as_mut_ptr());
-    ylen =
-        scale_expansion_zeroelim(ylen, temp192.as_mut_ptr(),
-                                 *pd.offset(1 as i32 as isize),
-                                 det384y.as_mut_ptr());
-    zlen =
-        scale_expansion_zeroelim(eabclen, eabc.as_mut_ptr(),
-                                 *pd.offset(2 as i32 as isize),
-                                 temp192.as_mut_ptr());
-    zlen =
-        scale_expansion_zeroelim(zlen, temp192.as_mut_ptr(),
-                                 *pd.offset(2 as i32 as isize),
-                                 det384z.as_mut_ptr());
-    xylen =
-        fast_expansion_sum_zeroelim(xlen, det384x.as_mut_ptr(), ylen,
-                                    det384y.as_mut_ptr(), detxy.as_mut_ptr());
-    dlen =
-        fast_expansion_sum_zeroelim(xylen, detxy.as_mut_ptr(), zlen,
-                                    det384z.as_mut_ptr(), ddet.as_mut_ptr());
-    temp48alen =
-        fast_expansion_sum_zeroelim(bcdlen, bcd.as_mut_ptr(), abdlen,
-                                    abd.as_mut_ptr(), temp48a.as_mut_ptr());
-    temp48blen =
-        fast_expansion_sum_zeroelim(cdalen, cda.as_mut_ptr(), abclen,
-                                    abc.as_mut_ptr(), temp48b.as_mut_ptr());
+    eabclen = fast_expansion_sum_zeroelim(
+        temp48alen,
+        temp48a.as_mut_ptr(),
+        temp48blen,
+        temp48b.as_mut_ptr(),
+        eabc.as_mut_ptr(),
+    );
+    xlen = scale_expansion_zeroelim(
+        eabclen,
+        eabc.as_mut_ptr(),
+        *pd.offset(0 as i32 as isize),
+        temp192.as_mut_ptr(),
+    );
+    xlen = scale_expansion_zeroelim(
+        xlen,
+        temp192.as_mut_ptr(),
+        *pd.offset(0 as i32 as isize),
+        det384x.as_mut_ptr(),
+    );
+    ylen = scale_expansion_zeroelim(
+        eabclen,
+        eabc.as_mut_ptr(),
+        *pd.offset(1 as i32 as isize),
+        temp192.as_mut_ptr(),
+    );
+    ylen = scale_expansion_zeroelim(
+        ylen,
+        temp192.as_mut_ptr(),
+        *pd.offset(1 as i32 as isize),
+        det384y.as_mut_ptr(),
+    );
+    zlen = scale_expansion_zeroelim(
+        eabclen,
+        eabc.as_mut_ptr(),
+        *pd.offset(2 as i32 as isize),
+        temp192.as_mut_ptr(),
+    );
+    zlen = scale_expansion_zeroelim(
+        zlen,
+        temp192.as_mut_ptr(),
+        *pd.offset(2 as i32 as isize),
+        det384z.as_mut_ptr(),
+    );
+    xylen = fast_expansion_sum_zeroelim(
+        xlen,
+        det384x.as_mut_ptr(),
+        ylen,
+        det384y.as_mut_ptr(),
+        detxy.as_mut_ptr(),
+    );
+    dlen = fast_expansion_sum_zeroelim(
+        xylen,
+        detxy.as_mut_ptr(),
+        zlen,
+        det384z.as_mut_ptr(),
+        ddet.as_mut_ptr(),
+    );
+    temp48alen = fast_expansion_sum_zeroelim(
+        bcdlen,
+        bcd.as_mut_ptr(),
+        abdlen,
+        abd.as_mut_ptr(),
+        temp48a.as_mut_ptr(),
+    );
+    temp48blen = fast_expansion_sum_zeroelim(
+        cdalen,
+        cda.as_mut_ptr(),
+        abclen,
+        abc.as_mut_ptr(),
+        temp48b.as_mut_ptr(),
+    );
     i = 0 as i32;
     while i < temp48blen {
         temp48b[i as usize] = -temp48b[i as usize];
         i += 1
     }
-    abcdlen =
-        fast_expansion_sum_zeroelim(temp48alen, temp48a.as_mut_ptr(),
-                                    temp48blen, temp48b.as_mut_ptr(),
-                                    abcd.as_mut_ptr());
-    xlen =
-        scale_expansion_zeroelim(abcdlen, abcd.as_mut_ptr(),
-                                 *pe.offset(0 as i32 as isize),
-                                 temp192.as_mut_ptr());
-    xlen =
-        scale_expansion_zeroelim(xlen, temp192.as_mut_ptr(),
-                                 *pe.offset(0 as i32 as isize),
-                                 det384x.as_mut_ptr());
-    ylen =
-        scale_expansion_zeroelim(abcdlen, abcd.as_mut_ptr(),
-                                 *pe.offset(1 as i32 as isize),
-                                 temp192.as_mut_ptr());
-    ylen =
-        scale_expansion_zeroelim(ylen, temp192.as_mut_ptr(),
-                                 *pe.offset(1 as i32 as isize),
-                                 det384y.as_mut_ptr());
-    zlen =
-        scale_expansion_zeroelim(abcdlen, abcd.as_mut_ptr(),
-                                 *pe.offset(2 as i32 as isize),
-                                 temp192.as_mut_ptr());
-    zlen =
-        scale_expansion_zeroelim(zlen, temp192.as_mut_ptr(),
-                                 *pe.offset(2 as i32 as isize),
-                                 det384z.as_mut_ptr());
-    xylen =
-        fast_expansion_sum_zeroelim(xlen, det384x.as_mut_ptr(), ylen,
-                                    det384y.as_mut_ptr(), detxy.as_mut_ptr());
-    elen =
-        fast_expansion_sum_zeroelim(xylen, detxy.as_mut_ptr(), zlen,
-                                    det384z.as_mut_ptr(), edet.as_mut_ptr());
-    ablen =
-        fast_expansion_sum_zeroelim(alen, adet.as_mut_ptr(), blen,
-                                    bdet.as_mut_ptr(), abdet.as_mut_ptr());
-    cdlen =
-        fast_expansion_sum_zeroelim(clen, cdet.as_mut_ptr(), dlen,
-                                    ddet.as_mut_ptr(), cddet.as_mut_ptr());
-    cdelen =
-        fast_expansion_sum_zeroelim(cdlen, cddet.as_mut_ptr(), elen,
-                                    edet.as_mut_ptr(), cdedet.as_mut_ptr());
-    deterlen =
-        fast_expansion_sum_zeroelim(ablen, abdet.as_mut_ptr(), cdelen,
-                                    cdedet.as_mut_ptr(), deter.as_mut_ptr());
+    abcdlen = fast_expansion_sum_zeroelim(
+        temp48alen,
+        temp48a.as_mut_ptr(),
+        temp48blen,
+        temp48b.as_mut_ptr(),
+        abcd.as_mut_ptr(),
+    );
+    xlen = scale_expansion_zeroelim(
+        abcdlen,
+        abcd.as_mut_ptr(),
+        *pe.offset(0 as i32 as isize),
+        temp192.as_mut_ptr(),
+    );
+    xlen = scale_expansion_zeroelim(
+        xlen,
+        temp192.as_mut_ptr(),
+        *pe.offset(0 as i32 as isize),
+        det384x.as_mut_ptr(),
+    );
+    ylen = scale_expansion_zeroelim(
+        abcdlen,
+        abcd.as_mut_ptr(),
+        *pe.offset(1 as i32 as isize),
+        temp192.as_mut_ptr(),
+    );
+    ylen = scale_expansion_zeroelim(
+        ylen,
+        temp192.as_mut_ptr(),
+        *pe.offset(1 as i32 as isize),
+        det384y.as_mut_ptr(),
+    );
+    zlen = scale_expansion_zeroelim(
+        abcdlen,
+        abcd.as_mut_ptr(),
+        *pe.offset(2 as i32 as isize),
+        temp192.as_mut_ptr(),
+    );
+    zlen = scale_expansion_zeroelim(
+        zlen,
+        temp192.as_mut_ptr(),
+        *pe.offset(2 as i32 as isize),
+        det384z.as_mut_ptr(),
+    );
+    xylen = fast_expansion_sum_zeroelim(
+        xlen,
+        det384x.as_mut_ptr(),
+        ylen,
+        det384y.as_mut_ptr(),
+        detxy.as_mut_ptr(),
+    );
+    elen = fast_expansion_sum_zeroelim(
+        xylen,
+        detxy.as_mut_ptr(),
+        zlen,
+        det384z.as_mut_ptr(),
+        edet.as_mut_ptr(),
+    );
+    ablen = fast_expansion_sum_zeroelim(
+        alen,
+        adet.as_mut_ptr(),
+        blen,
+        bdet.as_mut_ptr(),
+        abdet.as_mut_ptr(),
+    );
+    cdlen = fast_expansion_sum_zeroelim(
+        clen,
+        cdet.as_mut_ptr(),
+        dlen,
+        ddet.as_mut_ptr(),
+        cddet.as_mut_ptr(),
+    );
+    cdelen = fast_expansion_sum_zeroelim(
+        cdlen,
+        cddet.as_mut_ptr(),
+        elen,
+        edet.as_mut_ptr(),
+        cdedet.as_mut_ptr(),
+    );
+    deterlen = fast_expansion_sum_zeroelim(
+        ablen,
+        abdet.as_mut_ptr(),
+        cdelen,
+        cdedet.as_mut_ptr(),
+        deter.as_mut_ptr(),
+    );
     return deter[(deterlen - 1 as i32) as usize];
 }
 #[no_mangle]
-pub unsafe extern "C" fn insphereslow(mut pa: *const f64,
-                                      mut pb: *const f64,
-                                      mut pc: *const f64,
-                                      mut pd: *const f64,
-                                      mut pe: *const f64)
- -> f64 {
+pub unsafe extern "C" fn insphereslow(
+    mut pa: *const f64,
+    mut pb: *const f64,
+    mut pc: *const f64,
+    mut pd: *const f64,
+    mut pe: *const f64,
+) -> f64 {
     let mut aex: f64 = 0.;
     let mut bex: f64 = 0.;
     let mut cex: f64 = 0.;
@@ -10525,97 +11080,73 @@ pub unsafe extern "C" fn insphereslow(mut pa: *const f64,
     let mut _0: f64 = 0.;
     let mut _1: f64 = 0.;
     let mut _2: f64 = 0.;
-    aex =
-        *pa.offset(0 as i32 as isize) -
-            *pe.offset(0 as i32 as isize);
+    aex = *pa.offset(0 as i32 as isize) - *pe.offset(0 as i32 as isize);
     bvirt = *pa.offset(0 as i32 as isize) - aex;
     avirt = aex + bvirt;
     bround = bvirt - *pe.offset(0 as i32 as isize);
     around = *pa.offset(0 as i32 as isize) - avirt;
     aextail = around + bround;
-    aey =
-        *pa.offset(1 as i32 as isize) -
-            *pe.offset(1 as i32 as isize);
+    aey = *pa.offset(1 as i32 as isize) - *pe.offset(1 as i32 as isize);
     bvirt = *pa.offset(1 as i32 as isize) - aey;
     avirt = aey + bvirt;
     bround = bvirt - *pe.offset(1 as i32 as isize);
     around = *pa.offset(1 as i32 as isize) - avirt;
     aeytail = around + bround;
-    aez =
-        *pa.offset(2 as i32 as isize) -
-            *pe.offset(2 as i32 as isize);
+    aez = *pa.offset(2 as i32 as isize) - *pe.offset(2 as i32 as isize);
     bvirt = *pa.offset(2 as i32 as isize) - aez;
     avirt = aez + bvirt;
     bround = bvirt - *pe.offset(2 as i32 as isize);
     around = *pa.offset(2 as i32 as isize) - avirt;
     aeztail = around + bround;
-    bex =
-        *pb.offset(0 as i32 as isize) -
-            *pe.offset(0 as i32 as isize);
+    bex = *pb.offset(0 as i32 as isize) - *pe.offset(0 as i32 as isize);
     bvirt = *pb.offset(0 as i32 as isize) - bex;
     avirt = bex + bvirt;
     bround = bvirt - *pe.offset(0 as i32 as isize);
     around = *pb.offset(0 as i32 as isize) - avirt;
     bextail = around + bround;
-    bey =
-        *pb.offset(1 as i32 as isize) -
-            *pe.offset(1 as i32 as isize);
+    bey = *pb.offset(1 as i32 as isize) - *pe.offset(1 as i32 as isize);
     bvirt = *pb.offset(1 as i32 as isize) - bey;
     avirt = bey + bvirt;
     bround = bvirt - *pe.offset(1 as i32 as isize);
     around = *pb.offset(1 as i32 as isize) - avirt;
     beytail = around + bround;
-    bez =
-        *pb.offset(2 as i32 as isize) -
-            *pe.offset(2 as i32 as isize);
+    bez = *pb.offset(2 as i32 as isize) - *pe.offset(2 as i32 as isize);
     bvirt = *pb.offset(2 as i32 as isize) - bez;
     avirt = bez + bvirt;
     bround = bvirt - *pe.offset(2 as i32 as isize);
     around = *pb.offset(2 as i32 as isize) - avirt;
     beztail = around + bround;
-    cex =
-        *pc.offset(0 as i32 as isize) -
-            *pe.offset(0 as i32 as isize);
+    cex = *pc.offset(0 as i32 as isize) - *pe.offset(0 as i32 as isize);
     bvirt = *pc.offset(0 as i32 as isize) - cex;
     avirt = cex + bvirt;
     bround = bvirt - *pe.offset(0 as i32 as isize);
     around = *pc.offset(0 as i32 as isize) - avirt;
     cextail = around + bround;
-    cey =
-        *pc.offset(1 as i32 as isize) -
-            *pe.offset(1 as i32 as isize);
+    cey = *pc.offset(1 as i32 as isize) - *pe.offset(1 as i32 as isize);
     bvirt = *pc.offset(1 as i32 as isize) - cey;
     avirt = cey + bvirt;
     bround = bvirt - *pe.offset(1 as i32 as isize);
     around = *pc.offset(1 as i32 as isize) - avirt;
     ceytail = around + bround;
-    cez =
-        *pc.offset(2 as i32 as isize) -
-            *pe.offset(2 as i32 as isize);
+    cez = *pc.offset(2 as i32 as isize) - *pe.offset(2 as i32 as isize);
     bvirt = *pc.offset(2 as i32 as isize) - cez;
     avirt = cez + bvirt;
     bround = bvirt - *pe.offset(2 as i32 as isize);
     around = *pc.offset(2 as i32 as isize) - avirt;
     ceztail = around + bround;
-    dex =
-        *pd.offset(0 as i32 as isize) -
-            *pe.offset(0 as i32 as isize);
+    dex = *pd.offset(0 as i32 as isize) - *pe.offset(0 as i32 as isize);
     bvirt = *pd.offset(0 as i32 as isize) - dex;
     avirt = dex + bvirt;
     bround = bvirt - *pe.offset(0 as i32 as isize);
     around = *pd.offset(0 as i32 as isize) - avirt;
     dextail = around + bround;
-    dey =
-        *pd.offset(1 as i32 as isize) -
-            *pe.offset(1 as i32 as isize);
+    dey = *pd.offset(1 as i32 as isize) - *pe.offset(1 as i32 as isize);
     bvirt = *pd.offset(1 as i32 as isize) - dey;
     avirt = dey + bvirt;
     bround = bvirt - *pe.offset(1 as i32 as isize);
     around = *pd.offset(1 as i32 as isize) - avirt;
     deytail = around + bround;
-    dez =
-        *pd.offset(2 as i32 as isize) -
-            *pe.offset(2 as i32 as isize);
+    dez = *pd.offset(2 as i32 as isize) - *pe.offset(2 as i32 as isize);
     bvirt = *pd.offset(2 as i32 as isize) - dez;
     avirt = dez + bvirt;
     bround = bvirt - *pe.offset(2 as i32 as isize);
@@ -10883,10 +11414,13 @@ pub unsafe extern "C" fn insphereslow(mut pa: *const f64,
     around = _m - avirt;
     bxay[6 as i32 as usize] = around + bround;
     bxay[7 as i32 as usize] = bxay7;
-    ablen =
-        fast_expansion_sum_zeroelim(8 as i32, axby.as_mut_ptr(),
-                                    8 as i32, bxay.as_mut_ptr(),
-                                    ab.as_mut_ptr());
+    ablen = fast_expansion_sum_zeroelim(
+        8 as i32,
+        axby.as_mut_ptr(),
+        8 as i32,
+        bxay.as_mut_ptr(),
+        ab.as_mut_ptr(),
+    );
     c = splitter * bextail;
     abig = c - bextail;
     a0hi = c - abig;
@@ -11149,10 +11683,13 @@ pub unsafe extern "C" fn insphereslow(mut pa: *const f64,
     around = _m - avirt;
     cxby[6 as i32 as usize] = around + bround;
     cxby[7 as i32 as usize] = cxby7;
-    bclen =
-        fast_expansion_sum_zeroelim(8 as i32, bxcy.as_mut_ptr(),
-                                    8 as i32, cxby.as_mut_ptr(),
-                                    bc.as_mut_ptr());
+    bclen = fast_expansion_sum_zeroelim(
+        8 as i32,
+        bxcy.as_mut_ptr(),
+        8 as i32,
+        cxby.as_mut_ptr(),
+        bc.as_mut_ptr(),
+    );
     c = splitter * cextail;
     abig = c - cextail;
     a0hi = c - abig;
@@ -11415,10 +11952,13 @@ pub unsafe extern "C" fn insphereslow(mut pa: *const f64,
     around = _m - avirt;
     dxcy[6 as i32 as usize] = around + bround;
     dxcy[7 as i32 as usize] = dxcy7;
-    cdlen =
-        fast_expansion_sum_zeroelim(8 as i32, cxdy.as_mut_ptr(),
-                                    8 as i32, dxcy.as_mut_ptr(),
-                                    cd.as_mut_ptr());
+    cdlen = fast_expansion_sum_zeroelim(
+        8 as i32,
+        cxdy.as_mut_ptr(),
+        8 as i32,
+        dxcy.as_mut_ptr(),
+        cd.as_mut_ptr(),
+    );
     c = splitter * dextail;
     abig = c - dextail;
     a0hi = c - abig;
@@ -11681,10 +12221,13 @@ pub unsafe extern "C" fn insphereslow(mut pa: *const f64,
     around = _m - avirt;
     axdy[6 as i32 as usize] = around + bround;
     axdy[7 as i32 as usize] = axdy7;
-    dalen =
-        fast_expansion_sum_zeroelim(8 as i32, dxay.as_mut_ptr(),
-                                    8 as i32, axdy.as_mut_ptr(),
-                                    da.as_mut_ptr());
+    dalen = fast_expansion_sum_zeroelim(
+        8 as i32,
+        dxay.as_mut_ptr(),
+        8 as i32,
+        axdy.as_mut_ptr(),
+        da.as_mut_ptr(),
+    );
     c = splitter * aextail;
     abig = c - aextail;
     a0hi = c - abig;
@@ -11947,10 +12490,13 @@ pub unsafe extern "C" fn insphereslow(mut pa: *const f64,
     around = _m - avirt;
     cxay[6 as i32 as usize] = around + bround;
     cxay[7 as i32 as usize] = cxay7;
-    aclen =
-        fast_expansion_sum_zeroelim(8 as i32, axcy.as_mut_ptr(),
-                                    8 as i32, cxay.as_mut_ptr(),
-                                    ac.as_mut_ptr());
+    aclen = fast_expansion_sum_zeroelim(
+        8 as i32,
+        axcy.as_mut_ptr(),
+        8 as i32,
+        cxay.as_mut_ptr(),
+        ac.as_mut_ptr(),
+    );
     c = splitter * bextail;
     abig = c - bextail;
     a0hi = c - abig;
@@ -12213,481 +12759,613 @@ pub unsafe extern "C" fn insphereslow(mut pa: *const f64,
     around = _m - avirt;
     dxby[6 as i32 as usize] = around + bround;
     dxby[7 as i32 as usize] = dxby7;
-    bdlen =
-        fast_expansion_sum_zeroelim(8 as i32, bxdy.as_mut_ptr(),
-                                    8 as i32, dxby.as_mut_ptr(),
-                                    bd.as_mut_ptr());
-    temp32alen =
-        scale_expansion_zeroelim(cdlen, cd.as_mut_ptr(), -bez,
-                                 temp32a.as_mut_ptr());
-    temp32blen =
-        scale_expansion_zeroelim(cdlen, cd.as_mut_ptr(), -beztail,
-                                 temp32b.as_mut_ptr());
-    temp64alen =
-        fast_expansion_sum_zeroelim(temp32alen, temp32a.as_mut_ptr(),
-                                    temp32blen, temp32b.as_mut_ptr(),
-                                    temp64a.as_mut_ptr());
-    temp32alen =
-        scale_expansion_zeroelim(bdlen, bd.as_mut_ptr(), cez,
-                                 temp32a.as_mut_ptr());
-    temp32blen =
-        scale_expansion_zeroelim(bdlen, bd.as_mut_ptr(), ceztail,
-                                 temp32b.as_mut_ptr());
-    temp64blen =
-        fast_expansion_sum_zeroelim(temp32alen, temp32a.as_mut_ptr(),
-                                    temp32blen, temp32b.as_mut_ptr(),
-                                    temp64b.as_mut_ptr());
-    temp32alen =
-        scale_expansion_zeroelim(bclen, bc.as_mut_ptr(), -dez,
-                                 temp32a.as_mut_ptr());
-    temp32blen =
-        scale_expansion_zeroelim(bclen, bc.as_mut_ptr(), -deztail,
-                                 temp32b.as_mut_ptr());
-    temp64clen =
-        fast_expansion_sum_zeroelim(temp32alen, temp32a.as_mut_ptr(),
-                                    temp32blen, temp32b.as_mut_ptr(),
-                                    temp64c.as_mut_ptr());
-    temp128len =
-        fast_expansion_sum_zeroelim(temp64alen, temp64a.as_mut_ptr(),
-                                    temp64blen, temp64b.as_mut_ptr(),
-                                    temp128.as_mut_ptr());
-    temp192len =
-        fast_expansion_sum_zeroelim(temp64clen, temp64c.as_mut_ptr(),
-                                    temp128len, temp128.as_mut_ptr(),
-                                    temp192.as_mut_ptr());
-    xlen =
-        scale_expansion_zeroelim(temp192len, temp192.as_mut_ptr(), aex,
-                                 detx.as_mut_ptr());
-    xxlen =
-        scale_expansion_zeroelim(xlen, detx.as_mut_ptr(), aex,
-                                 detxx.as_mut_ptr());
-    xtlen =
-        scale_expansion_zeroelim(temp192len, temp192.as_mut_ptr(), aextail,
-                                 detxt.as_mut_ptr());
-    xxtlen =
-        scale_expansion_zeroelim(xtlen, detxt.as_mut_ptr(), aex,
-                                 detxxt.as_mut_ptr());
+    bdlen = fast_expansion_sum_zeroelim(
+        8 as i32,
+        bxdy.as_mut_ptr(),
+        8 as i32,
+        dxby.as_mut_ptr(),
+        bd.as_mut_ptr(),
+    );
+    temp32alen = scale_expansion_zeroelim(cdlen, cd.as_mut_ptr(), -bez, temp32a.as_mut_ptr());
+    temp32blen = scale_expansion_zeroelim(cdlen, cd.as_mut_ptr(), -beztail, temp32b.as_mut_ptr());
+    temp64alen = fast_expansion_sum_zeroelim(
+        temp32alen,
+        temp32a.as_mut_ptr(),
+        temp32blen,
+        temp32b.as_mut_ptr(),
+        temp64a.as_mut_ptr(),
+    );
+    temp32alen = scale_expansion_zeroelim(bdlen, bd.as_mut_ptr(), cez, temp32a.as_mut_ptr());
+    temp32blen = scale_expansion_zeroelim(bdlen, bd.as_mut_ptr(), ceztail, temp32b.as_mut_ptr());
+    temp64blen = fast_expansion_sum_zeroelim(
+        temp32alen,
+        temp32a.as_mut_ptr(),
+        temp32blen,
+        temp32b.as_mut_ptr(),
+        temp64b.as_mut_ptr(),
+    );
+    temp32alen = scale_expansion_zeroelim(bclen, bc.as_mut_ptr(), -dez, temp32a.as_mut_ptr());
+    temp32blen = scale_expansion_zeroelim(bclen, bc.as_mut_ptr(), -deztail, temp32b.as_mut_ptr());
+    temp64clen = fast_expansion_sum_zeroelim(
+        temp32alen,
+        temp32a.as_mut_ptr(),
+        temp32blen,
+        temp32b.as_mut_ptr(),
+        temp64c.as_mut_ptr(),
+    );
+    temp128len = fast_expansion_sum_zeroelim(
+        temp64alen,
+        temp64a.as_mut_ptr(),
+        temp64blen,
+        temp64b.as_mut_ptr(),
+        temp128.as_mut_ptr(),
+    );
+    temp192len = fast_expansion_sum_zeroelim(
+        temp64clen,
+        temp64c.as_mut_ptr(),
+        temp128len,
+        temp128.as_mut_ptr(),
+        temp192.as_mut_ptr(),
+    );
+    xlen = scale_expansion_zeroelim(temp192len, temp192.as_mut_ptr(), aex, detx.as_mut_ptr());
+    xxlen = scale_expansion_zeroelim(xlen, detx.as_mut_ptr(), aex, detxx.as_mut_ptr());
+    xtlen = scale_expansion_zeroelim(
+        temp192len,
+        temp192.as_mut_ptr(),
+        aextail,
+        detxt.as_mut_ptr(),
+    );
+    xxtlen = scale_expansion_zeroelim(xtlen, detxt.as_mut_ptr(), aex, detxxt.as_mut_ptr());
     i = 0 as i32;
-    while i < xxtlen { detxxt[i as usize] *= 2.0f64; i += 1 }
-    xtxtlen =
-        scale_expansion_zeroelim(xtlen, detxt.as_mut_ptr(), aextail,
-                                 detxtxt.as_mut_ptr());
-    x1len =
-        fast_expansion_sum_zeroelim(xxlen, detxx.as_mut_ptr(), xxtlen,
-                                    detxxt.as_mut_ptr(), x1.as_mut_ptr());
-    x2len =
-        fast_expansion_sum_zeroelim(x1len, x1.as_mut_ptr(), xtxtlen,
-                                    detxtxt.as_mut_ptr(), x2.as_mut_ptr());
-    ylen =
-        scale_expansion_zeroelim(temp192len, temp192.as_mut_ptr(), aey,
-                                 dety.as_mut_ptr());
-    yylen =
-        scale_expansion_zeroelim(ylen, dety.as_mut_ptr(), aey,
-                                 detyy.as_mut_ptr());
-    ytlen =
-        scale_expansion_zeroelim(temp192len, temp192.as_mut_ptr(), aeytail,
-                                 detyt.as_mut_ptr());
-    yytlen =
-        scale_expansion_zeroelim(ytlen, detyt.as_mut_ptr(), aey,
-                                 detyyt.as_mut_ptr());
+    while i < xxtlen {
+        detxxt[i as usize] *= 2.0f64;
+        i += 1
+    }
+    xtxtlen = scale_expansion_zeroelim(xtlen, detxt.as_mut_ptr(), aextail, detxtxt.as_mut_ptr());
+    x1len = fast_expansion_sum_zeroelim(
+        xxlen,
+        detxx.as_mut_ptr(),
+        xxtlen,
+        detxxt.as_mut_ptr(),
+        x1.as_mut_ptr(),
+    );
+    x2len = fast_expansion_sum_zeroelim(
+        x1len,
+        x1.as_mut_ptr(),
+        xtxtlen,
+        detxtxt.as_mut_ptr(),
+        x2.as_mut_ptr(),
+    );
+    ylen = scale_expansion_zeroelim(temp192len, temp192.as_mut_ptr(), aey, dety.as_mut_ptr());
+    yylen = scale_expansion_zeroelim(ylen, dety.as_mut_ptr(), aey, detyy.as_mut_ptr());
+    ytlen = scale_expansion_zeroelim(
+        temp192len,
+        temp192.as_mut_ptr(),
+        aeytail,
+        detyt.as_mut_ptr(),
+    );
+    yytlen = scale_expansion_zeroelim(ytlen, detyt.as_mut_ptr(), aey, detyyt.as_mut_ptr());
     i = 0 as i32;
-    while i < yytlen { detyyt[i as usize] *= 2.0f64; i += 1 }
-    ytytlen =
-        scale_expansion_zeroelim(ytlen, detyt.as_mut_ptr(), aeytail,
-                                 detytyt.as_mut_ptr());
-    y1len =
-        fast_expansion_sum_zeroelim(yylen, detyy.as_mut_ptr(), yytlen,
-                                    detyyt.as_mut_ptr(), y1.as_mut_ptr());
-    y2len =
-        fast_expansion_sum_zeroelim(y1len, y1.as_mut_ptr(), ytytlen,
-                                    detytyt.as_mut_ptr(), y2.as_mut_ptr());
-    zlen =
-        scale_expansion_zeroelim(temp192len, temp192.as_mut_ptr(), aez,
-                                 detz.as_mut_ptr());
-    zzlen =
-        scale_expansion_zeroelim(zlen, detz.as_mut_ptr(), aez,
-                                 detzz.as_mut_ptr());
-    ztlen =
-        scale_expansion_zeroelim(temp192len, temp192.as_mut_ptr(), aeztail,
-                                 detzt.as_mut_ptr());
-    zztlen =
-        scale_expansion_zeroelim(ztlen, detzt.as_mut_ptr(), aez,
-                                 detzzt.as_mut_ptr());
+    while i < yytlen {
+        detyyt[i as usize] *= 2.0f64;
+        i += 1
+    }
+    ytytlen = scale_expansion_zeroelim(ytlen, detyt.as_mut_ptr(), aeytail, detytyt.as_mut_ptr());
+    y1len = fast_expansion_sum_zeroelim(
+        yylen,
+        detyy.as_mut_ptr(),
+        yytlen,
+        detyyt.as_mut_ptr(),
+        y1.as_mut_ptr(),
+    );
+    y2len = fast_expansion_sum_zeroelim(
+        y1len,
+        y1.as_mut_ptr(),
+        ytytlen,
+        detytyt.as_mut_ptr(),
+        y2.as_mut_ptr(),
+    );
+    zlen = scale_expansion_zeroelim(temp192len, temp192.as_mut_ptr(), aez, detz.as_mut_ptr());
+    zzlen = scale_expansion_zeroelim(zlen, detz.as_mut_ptr(), aez, detzz.as_mut_ptr());
+    ztlen = scale_expansion_zeroelim(
+        temp192len,
+        temp192.as_mut_ptr(),
+        aeztail,
+        detzt.as_mut_ptr(),
+    );
+    zztlen = scale_expansion_zeroelim(ztlen, detzt.as_mut_ptr(), aez, detzzt.as_mut_ptr());
     i = 0 as i32;
-    while i < zztlen { detzzt[i as usize] *= 2.0f64; i += 1 }
-    ztztlen =
-        scale_expansion_zeroelim(ztlen, detzt.as_mut_ptr(), aeztail,
-                                 detztzt.as_mut_ptr());
-    z1len =
-        fast_expansion_sum_zeroelim(zzlen, detzz.as_mut_ptr(), zztlen,
-                                    detzzt.as_mut_ptr(), z1.as_mut_ptr());
-    z2len =
-        fast_expansion_sum_zeroelim(z1len, z1.as_mut_ptr(), ztztlen,
-                                    detztzt.as_mut_ptr(), z2.as_mut_ptr());
-    xylen =
-        fast_expansion_sum_zeroelim(x2len, x2.as_mut_ptr(), y2len,
-                                    y2.as_mut_ptr(), detxy.as_mut_ptr());
-    alen =
-        fast_expansion_sum_zeroelim(z2len, z2.as_mut_ptr(), xylen,
-                                    detxy.as_mut_ptr(), adet.as_mut_ptr());
-    temp32alen =
-        scale_expansion_zeroelim(dalen, da.as_mut_ptr(), cez,
-                                 temp32a.as_mut_ptr());
-    temp32blen =
-        scale_expansion_zeroelim(dalen, da.as_mut_ptr(), ceztail,
-                                 temp32b.as_mut_ptr());
-    temp64alen =
-        fast_expansion_sum_zeroelim(temp32alen, temp32a.as_mut_ptr(),
-                                    temp32blen, temp32b.as_mut_ptr(),
-                                    temp64a.as_mut_ptr());
-    temp32alen =
-        scale_expansion_zeroelim(aclen, ac.as_mut_ptr(), dez,
-                                 temp32a.as_mut_ptr());
-    temp32blen =
-        scale_expansion_zeroelim(aclen, ac.as_mut_ptr(), deztail,
-                                 temp32b.as_mut_ptr());
-    temp64blen =
-        fast_expansion_sum_zeroelim(temp32alen, temp32a.as_mut_ptr(),
-                                    temp32blen, temp32b.as_mut_ptr(),
-                                    temp64b.as_mut_ptr());
-    temp32alen =
-        scale_expansion_zeroelim(cdlen, cd.as_mut_ptr(), aez,
-                                 temp32a.as_mut_ptr());
-    temp32blen =
-        scale_expansion_zeroelim(cdlen, cd.as_mut_ptr(), aeztail,
-                                 temp32b.as_mut_ptr());
-    temp64clen =
-        fast_expansion_sum_zeroelim(temp32alen, temp32a.as_mut_ptr(),
-                                    temp32blen, temp32b.as_mut_ptr(),
-                                    temp64c.as_mut_ptr());
-    temp128len =
-        fast_expansion_sum_zeroelim(temp64alen, temp64a.as_mut_ptr(),
-                                    temp64blen, temp64b.as_mut_ptr(),
-                                    temp128.as_mut_ptr());
-    temp192len =
-        fast_expansion_sum_zeroelim(temp64clen, temp64c.as_mut_ptr(),
-                                    temp128len, temp128.as_mut_ptr(),
-                                    temp192.as_mut_ptr());
-    xlen =
-        scale_expansion_zeroelim(temp192len, temp192.as_mut_ptr(), bex,
-                                 detx.as_mut_ptr());
-    xxlen =
-        scale_expansion_zeroelim(xlen, detx.as_mut_ptr(), bex,
-                                 detxx.as_mut_ptr());
-    xtlen =
-        scale_expansion_zeroelim(temp192len, temp192.as_mut_ptr(), bextail,
-                                 detxt.as_mut_ptr());
-    xxtlen =
-        scale_expansion_zeroelim(xtlen, detxt.as_mut_ptr(), bex,
-                                 detxxt.as_mut_ptr());
+    while i < zztlen {
+        detzzt[i as usize] *= 2.0f64;
+        i += 1
+    }
+    ztztlen = scale_expansion_zeroelim(ztlen, detzt.as_mut_ptr(), aeztail, detztzt.as_mut_ptr());
+    z1len = fast_expansion_sum_zeroelim(
+        zzlen,
+        detzz.as_mut_ptr(),
+        zztlen,
+        detzzt.as_mut_ptr(),
+        z1.as_mut_ptr(),
+    );
+    z2len = fast_expansion_sum_zeroelim(
+        z1len,
+        z1.as_mut_ptr(),
+        ztztlen,
+        detztzt.as_mut_ptr(),
+        z2.as_mut_ptr(),
+    );
+    xylen = fast_expansion_sum_zeroelim(
+        x2len,
+        x2.as_mut_ptr(),
+        y2len,
+        y2.as_mut_ptr(),
+        detxy.as_mut_ptr(),
+    );
+    alen = fast_expansion_sum_zeroelim(
+        z2len,
+        z2.as_mut_ptr(),
+        xylen,
+        detxy.as_mut_ptr(),
+        adet.as_mut_ptr(),
+    );
+    temp32alen = scale_expansion_zeroelim(dalen, da.as_mut_ptr(), cez, temp32a.as_mut_ptr());
+    temp32blen = scale_expansion_zeroelim(dalen, da.as_mut_ptr(), ceztail, temp32b.as_mut_ptr());
+    temp64alen = fast_expansion_sum_zeroelim(
+        temp32alen,
+        temp32a.as_mut_ptr(),
+        temp32blen,
+        temp32b.as_mut_ptr(),
+        temp64a.as_mut_ptr(),
+    );
+    temp32alen = scale_expansion_zeroelim(aclen, ac.as_mut_ptr(), dez, temp32a.as_mut_ptr());
+    temp32blen = scale_expansion_zeroelim(aclen, ac.as_mut_ptr(), deztail, temp32b.as_mut_ptr());
+    temp64blen = fast_expansion_sum_zeroelim(
+        temp32alen,
+        temp32a.as_mut_ptr(),
+        temp32blen,
+        temp32b.as_mut_ptr(),
+        temp64b.as_mut_ptr(),
+    );
+    temp32alen = scale_expansion_zeroelim(cdlen, cd.as_mut_ptr(), aez, temp32a.as_mut_ptr());
+    temp32blen = scale_expansion_zeroelim(cdlen, cd.as_mut_ptr(), aeztail, temp32b.as_mut_ptr());
+    temp64clen = fast_expansion_sum_zeroelim(
+        temp32alen,
+        temp32a.as_mut_ptr(),
+        temp32blen,
+        temp32b.as_mut_ptr(),
+        temp64c.as_mut_ptr(),
+    );
+    temp128len = fast_expansion_sum_zeroelim(
+        temp64alen,
+        temp64a.as_mut_ptr(),
+        temp64blen,
+        temp64b.as_mut_ptr(),
+        temp128.as_mut_ptr(),
+    );
+    temp192len = fast_expansion_sum_zeroelim(
+        temp64clen,
+        temp64c.as_mut_ptr(),
+        temp128len,
+        temp128.as_mut_ptr(),
+        temp192.as_mut_ptr(),
+    );
+    xlen = scale_expansion_zeroelim(temp192len, temp192.as_mut_ptr(), bex, detx.as_mut_ptr());
+    xxlen = scale_expansion_zeroelim(xlen, detx.as_mut_ptr(), bex, detxx.as_mut_ptr());
+    xtlen = scale_expansion_zeroelim(
+        temp192len,
+        temp192.as_mut_ptr(),
+        bextail,
+        detxt.as_mut_ptr(),
+    );
+    xxtlen = scale_expansion_zeroelim(xtlen, detxt.as_mut_ptr(), bex, detxxt.as_mut_ptr());
     i = 0 as i32;
-    while i < xxtlen { detxxt[i as usize] *= 2.0f64; i += 1 }
-    xtxtlen =
-        scale_expansion_zeroelim(xtlen, detxt.as_mut_ptr(), bextail,
-                                 detxtxt.as_mut_ptr());
-    x1len =
-        fast_expansion_sum_zeroelim(xxlen, detxx.as_mut_ptr(), xxtlen,
-                                    detxxt.as_mut_ptr(), x1.as_mut_ptr());
-    x2len =
-        fast_expansion_sum_zeroelim(x1len, x1.as_mut_ptr(), xtxtlen,
-                                    detxtxt.as_mut_ptr(), x2.as_mut_ptr());
-    ylen =
-        scale_expansion_zeroelim(temp192len, temp192.as_mut_ptr(), bey,
-                                 dety.as_mut_ptr());
-    yylen =
-        scale_expansion_zeroelim(ylen, dety.as_mut_ptr(), bey,
-                                 detyy.as_mut_ptr());
-    ytlen =
-        scale_expansion_zeroelim(temp192len, temp192.as_mut_ptr(), beytail,
-                                 detyt.as_mut_ptr());
-    yytlen =
-        scale_expansion_zeroelim(ytlen, detyt.as_mut_ptr(), bey,
-                                 detyyt.as_mut_ptr());
+    while i < xxtlen {
+        detxxt[i as usize] *= 2.0f64;
+        i += 1
+    }
+    xtxtlen = scale_expansion_zeroelim(xtlen, detxt.as_mut_ptr(), bextail, detxtxt.as_mut_ptr());
+    x1len = fast_expansion_sum_zeroelim(
+        xxlen,
+        detxx.as_mut_ptr(),
+        xxtlen,
+        detxxt.as_mut_ptr(),
+        x1.as_mut_ptr(),
+    );
+    x2len = fast_expansion_sum_zeroelim(
+        x1len,
+        x1.as_mut_ptr(),
+        xtxtlen,
+        detxtxt.as_mut_ptr(),
+        x2.as_mut_ptr(),
+    );
+    ylen = scale_expansion_zeroelim(temp192len, temp192.as_mut_ptr(), bey, dety.as_mut_ptr());
+    yylen = scale_expansion_zeroelim(ylen, dety.as_mut_ptr(), bey, detyy.as_mut_ptr());
+    ytlen = scale_expansion_zeroelim(
+        temp192len,
+        temp192.as_mut_ptr(),
+        beytail,
+        detyt.as_mut_ptr(),
+    );
+    yytlen = scale_expansion_zeroelim(ytlen, detyt.as_mut_ptr(), bey, detyyt.as_mut_ptr());
     i = 0 as i32;
-    while i < yytlen { detyyt[i as usize] *= 2.0f64; i += 1 }
-    ytytlen =
-        scale_expansion_zeroelim(ytlen, detyt.as_mut_ptr(), beytail,
-                                 detytyt.as_mut_ptr());
-    y1len =
-        fast_expansion_sum_zeroelim(yylen, detyy.as_mut_ptr(), yytlen,
-                                    detyyt.as_mut_ptr(), y1.as_mut_ptr());
-    y2len =
-        fast_expansion_sum_zeroelim(y1len, y1.as_mut_ptr(), ytytlen,
-                                    detytyt.as_mut_ptr(), y2.as_mut_ptr());
-    zlen =
-        scale_expansion_zeroelim(temp192len, temp192.as_mut_ptr(), bez,
-                                 detz.as_mut_ptr());
-    zzlen =
-        scale_expansion_zeroelim(zlen, detz.as_mut_ptr(), bez,
-                                 detzz.as_mut_ptr());
-    ztlen =
-        scale_expansion_zeroelim(temp192len, temp192.as_mut_ptr(), beztail,
-                                 detzt.as_mut_ptr());
-    zztlen =
-        scale_expansion_zeroelim(ztlen, detzt.as_mut_ptr(), bez,
-                                 detzzt.as_mut_ptr());
+    while i < yytlen {
+        detyyt[i as usize] *= 2.0f64;
+        i += 1
+    }
+    ytytlen = scale_expansion_zeroelim(ytlen, detyt.as_mut_ptr(), beytail, detytyt.as_mut_ptr());
+    y1len = fast_expansion_sum_zeroelim(
+        yylen,
+        detyy.as_mut_ptr(),
+        yytlen,
+        detyyt.as_mut_ptr(),
+        y1.as_mut_ptr(),
+    );
+    y2len = fast_expansion_sum_zeroelim(
+        y1len,
+        y1.as_mut_ptr(),
+        ytytlen,
+        detytyt.as_mut_ptr(),
+        y2.as_mut_ptr(),
+    );
+    zlen = scale_expansion_zeroelim(temp192len, temp192.as_mut_ptr(), bez, detz.as_mut_ptr());
+    zzlen = scale_expansion_zeroelim(zlen, detz.as_mut_ptr(), bez, detzz.as_mut_ptr());
+    ztlen = scale_expansion_zeroelim(
+        temp192len,
+        temp192.as_mut_ptr(),
+        beztail,
+        detzt.as_mut_ptr(),
+    );
+    zztlen = scale_expansion_zeroelim(ztlen, detzt.as_mut_ptr(), bez, detzzt.as_mut_ptr());
     i = 0 as i32;
-    while i < zztlen { detzzt[i as usize] *= 2.0f64; i += 1 }
-    ztztlen =
-        scale_expansion_zeroelim(ztlen, detzt.as_mut_ptr(), beztail,
-                                 detztzt.as_mut_ptr());
-    z1len =
-        fast_expansion_sum_zeroelim(zzlen, detzz.as_mut_ptr(), zztlen,
-                                    detzzt.as_mut_ptr(), z1.as_mut_ptr());
-    z2len =
-        fast_expansion_sum_zeroelim(z1len, z1.as_mut_ptr(), ztztlen,
-                                    detztzt.as_mut_ptr(), z2.as_mut_ptr());
-    xylen =
-        fast_expansion_sum_zeroelim(x2len, x2.as_mut_ptr(), y2len,
-                                    y2.as_mut_ptr(), detxy.as_mut_ptr());
-    blen =
-        fast_expansion_sum_zeroelim(z2len, z2.as_mut_ptr(), xylen,
-                                    detxy.as_mut_ptr(), bdet.as_mut_ptr());
-    temp32alen =
-        scale_expansion_zeroelim(ablen, ab.as_mut_ptr(), -dez,
-                                 temp32a.as_mut_ptr());
-    temp32blen =
-        scale_expansion_zeroelim(ablen, ab.as_mut_ptr(), -deztail,
-                                 temp32b.as_mut_ptr());
-    temp64alen =
-        fast_expansion_sum_zeroelim(temp32alen, temp32a.as_mut_ptr(),
-                                    temp32blen, temp32b.as_mut_ptr(),
-                                    temp64a.as_mut_ptr());
-    temp32alen =
-        scale_expansion_zeroelim(bdlen, bd.as_mut_ptr(), -aez,
-                                 temp32a.as_mut_ptr());
-    temp32blen =
-        scale_expansion_zeroelim(bdlen, bd.as_mut_ptr(), -aeztail,
-                                 temp32b.as_mut_ptr());
-    temp64blen =
-        fast_expansion_sum_zeroelim(temp32alen, temp32a.as_mut_ptr(),
-                                    temp32blen, temp32b.as_mut_ptr(),
-                                    temp64b.as_mut_ptr());
-    temp32alen =
-        scale_expansion_zeroelim(dalen, da.as_mut_ptr(), -bez,
-                                 temp32a.as_mut_ptr());
-    temp32blen =
-        scale_expansion_zeroelim(dalen, da.as_mut_ptr(), -beztail,
-                                 temp32b.as_mut_ptr());
-    temp64clen =
-        fast_expansion_sum_zeroelim(temp32alen, temp32a.as_mut_ptr(),
-                                    temp32blen, temp32b.as_mut_ptr(),
-                                    temp64c.as_mut_ptr());
-    temp128len =
-        fast_expansion_sum_zeroelim(temp64alen, temp64a.as_mut_ptr(),
-                                    temp64blen, temp64b.as_mut_ptr(),
-                                    temp128.as_mut_ptr());
-    temp192len =
-        fast_expansion_sum_zeroelim(temp64clen, temp64c.as_mut_ptr(),
-                                    temp128len, temp128.as_mut_ptr(),
-                                    temp192.as_mut_ptr());
-    xlen =
-        scale_expansion_zeroelim(temp192len, temp192.as_mut_ptr(), cex,
-                                 detx.as_mut_ptr());
-    xxlen =
-        scale_expansion_zeroelim(xlen, detx.as_mut_ptr(), cex,
-                                 detxx.as_mut_ptr());
-    xtlen =
-        scale_expansion_zeroelim(temp192len, temp192.as_mut_ptr(), cextail,
-                                 detxt.as_mut_ptr());
-    xxtlen =
-        scale_expansion_zeroelim(xtlen, detxt.as_mut_ptr(), cex,
-                                 detxxt.as_mut_ptr());
+    while i < zztlen {
+        detzzt[i as usize] *= 2.0f64;
+        i += 1
+    }
+    ztztlen = scale_expansion_zeroelim(ztlen, detzt.as_mut_ptr(), beztail, detztzt.as_mut_ptr());
+    z1len = fast_expansion_sum_zeroelim(
+        zzlen,
+        detzz.as_mut_ptr(),
+        zztlen,
+        detzzt.as_mut_ptr(),
+        z1.as_mut_ptr(),
+    );
+    z2len = fast_expansion_sum_zeroelim(
+        z1len,
+        z1.as_mut_ptr(),
+        ztztlen,
+        detztzt.as_mut_ptr(),
+        z2.as_mut_ptr(),
+    );
+    xylen = fast_expansion_sum_zeroelim(
+        x2len,
+        x2.as_mut_ptr(),
+        y2len,
+        y2.as_mut_ptr(),
+        detxy.as_mut_ptr(),
+    );
+    blen = fast_expansion_sum_zeroelim(
+        z2len,
+        z2.as_mut_ptr(),
+        xylen,
+        detxy.as_mut_ptr(),
+        bdet.as_mut_ptr(),
+    );
+    temp32alen = scale_expansion_zeroelim(ablen, ab.as_mut_ptr(), -dez, temp32a.as_mut_ptr());
+    temp32blen = scale_expansion_zeroelim(ablen, ab.as_mut_ptr(), -deztail, temp32b.as_mut_ptr());
+    temp64alen = fast_expansion_sum_zeroelim(
+        temp32alen,
+        temp32a.as_mut_ptr(),
+        temp32blen,
+        temp32b.as_mut_ptr(),
+        temp64a.as_mut_ptr(),
+    );
+    temp32alen = scale_expansion_zeroelim(bdlen, bd.as_mut_ptr(), -aez, temp32a.as_mut_ptr());
+    temp32blen = scale_expansion_zeroelim(bdlen, bd.as_mut_ptr(), -aeztail, temp32b.as_mut_ptr());
+    temp64blen = fast_expansion_sum_zeroelim(
+        temp32alen,
+        temp32a.as_mut_ptr(),
+        temp32blen,
+        temp32b.as_mut_ptr(),
+        temp64b.as_mut_ptr(),
+    );
+    temp32alen = scale_expansion_zeroelim(dalen, da.as_mut_ptr(), -bez, temp32a.as_mut_ptr());
+    temp32blen = scale_expansion_zeroelim(dalen, da.as_mut_ptr(), -beztail, temp32b.as_mut_ptr());
+    temp64clen = fast_expansion_sum_zeroelim(
+        temp32alen,
+        temp32a.as_mut_ptr(),
+        temp32blen,
+        temp32b.as_mut_ptr(),
+        temp64c.as_mut_ptr(),
+    );
+    temp128len = fast_expansion_sum_zeroelim(
+        temp64alen,
+        temp64a.as_mut_ptr(),
+        temp64blen,
+        temp64b.as_mut_ptr(),
+        temp128.as_mut_ptr(),
+    );
+    temp192len = fast_expansion_sum_zeroelim(
+        temp64clen,
+        temp64c.as_mut_ptr(),
+        temp128len,
+        temp128.as_mut_ptr(),
+        temp192.as_mut_ptr(),
+    );
+    xlen = scale_expansion_zeroelim(temp192len, temp192.as_mut_ptr(), cex, detx.as_mut_ptr());
+    xxlen = scale_expansion_zeroelim(xlen, detx.as_mut_ptr(), cex, detxx.as_mut_ptr());
+    xtlen = scale_expansion_zeroelim(
+        temp192len,
+        temp192.as_mut_ptr(),
+        cextail,
+        detxt.as_mut_ptr(),
+    );
+    xxtlen = scale_expansion_zeroelim(xtlen, detxt.as_mut_ptr(), cex, detxxt.as_mut_ptr());
     i = 0 as i32;
-    while i < xxtlen { detxxt[i as usize] *= 2.0f64; i += 1 }
-    xtxtlen =
-        scale_expansion_zeroelim(xtlen, detxt.as_mut_ptr(), cextail,
-                                 detxtxt.as_mut_ptr());
-    x1len =
-        fast_expansion_sum_zeroelim(xxlen, detxx.as_mut_ptr(), xxtlen,
-                                    detxxt.as_mut_ptr(), x1.as_mut_ptr());
-    x2len =
-        fast_expansion_sum_zeroelim(x1len, x1.as_mut_ptr(), xtxtlen,
-                                    detxtxt.as_mut_ptr(), x2.as_mut_ptr());
-    ylen =
-        scale_expansion_zeroelim(temp192len, temp192.as_mut_ptr(), cey,
-                                 dety.as_mut_ptr());
-    yylen =
-        scale_expansion_zeroelim(ylen, dety.as_mut_ptr(), cey,
-                                 detyy.as_mut_ptr());
-    ytlen =
-        scale_expansion_zeroelim(temp192len, temp192.as_mut_ptr(), ceytail,
-                                 detyt.as_mut_ptr());
-    yytlen =
-        scale_expansion_zeroelim(ytlen, detyt.as_mut_ptr(), cey,
-                                 detyyt.as_mut_ptr());
+    while i < xxtlen {
+        detxxt[i as usize] *= 2.0f64;
+        i += 1
+    }
+    xtxtlen = scale_expansion_zeroelim(xtlen, detxt.as_mut_ptr(), cextail, detxtxt.as_mut_ptr());
+    x1len = fast_expansion_sum_zeroelim(
+        xxlen,
+        detxx.as_mut_ptr(),
+        xxtlen,
+        detxxt.as_mut_ptr(),
+        x1.as_mut_ptr(),
+    );
+    x2len = fast_expansion_sum_zeroelim(
+        x1len,
+        x1.as_mut_ptr(),
+        xtxtlen,
+        detxtxt.as_mut_ptr(),
+        x2.as_mut_ptr(),
+    );
+    ylen = scale_expansion_zeroelim(temp192len, temp192.as_mut_ptr(), cey, dety.as_mut_ptr());
+    yylen = scale_expansion_zeroelim(ylen, dety.as_mut_ptr(), cey, detyy.as_mut_ptr());
+    ytlen = scale_expansion_zeroelim(
+        temp192len,
+        temp192.as_mut_ptr(),
+        ceytail,
+        detyt.as_mut_ptr(),
+    );
+    yytlen = scale_expansion_zeroelim(ytlen, detyt.as_mut_ptr(), cey, detyyt.as_mut_ptr());
     i = 0 as i32;
-    while i < yytlen { detyyt[i as usize] *= 2.0f64; i += 1 }
-    ytytlen =
-        scale_expansion_zeroelim(ytlen, detyt.as_mut_ptr(), ceytail,
-                                 detytyt.as_mut_ptr());
-    y1len =
-        fast_expansion_sum_zeroelim(yylen, detyy.as_mut_ptr(), yytlen,
-                                    detyyt.as_mut_ptr(), y1.as_mut_ptr());
-    y2len =
-        fast_expansion_sum_zeroelim(y1len, y1.as_mut_ptr(), ytytlen,
-                                    detytyt.as_mut_ptr(), y2.as_mut_ptr());
-    zlen =
-        scale_expansion_zeroelim(temp192len, temp192.as_mut_ptr(), cez,
-                                 detz.as_mut_ptr());
-    zzlen =
-        scale_expansion_zeroelim(zlen, detz.as_mut_ptr(), cez,
-                                 detzz.as_mut_ptr());
-    ztlen =
-        scale_expansion_zeroelim(temp192len, temp192.as_mut_ptr(), ceztail,
-                                 detzt.as_mut_ptr());
-    zztlen =
-        scale_expansion_zeroelim(ztlen, detzt.as_mut_ptr(), cez,
-                                 detzzt.as_mut_ptr());
+    while i < yytlen {
+        detyyt[i as usize] *= 2.0f64;
+        i += 1
+    }
+    ytytlen = scale_expansion_zeroelim(ytlen, detyt.as_mut_ptr(), ceytail, detytyt.as_mut_ptr());
+    y1len = fast_expansion_sum_zeroelim(
+        yylen,
+        detyy.as_mut_ptr(),
+        yytlen,
+        detyyt.as_mut_ptr(),
+        y1.as_mut_ptr(),
+    );
+    y2len = fast_expansion_sum_zeroelim(
+        y1len,
+        y1.as_mut_ptr(),
+        ytytlen,
+        detytyt.as_mut_ptr(),
+        y2.as_mut_ptr(),
+    );
+    zlen = scale_expansion_zeroelim(temp192len, temp192.as_mut_ptr(), cez, detz.as_mut_ptr());
+    zzlen = scale_expansion_zeroelim(zlen, detz.as_mut_ptr(), cez, detzz.as_mut_ptr());
+    ztlen = scale_expansion_zeroelim(
+        temp192len,
+        temp192.as_mut_ptr(),
+        ceztail,
+        detzt.as_mut_ptr(),
+    );
+    zztlen = scale_expansion_zeroelim(ztlen, detzt.as_mut_ptr(), cez, detzzt.as_mut_ptr());
     i = 0 as i32;
-    while i < zztlen { detzzt[i as usize] *= 2.0f64; i += 1 }
-    ztztlen =
-        scale_expansion_zeroelim(ztlen, detzt.as_mut_ptr(), ceztail,
-                                 detztzt.as_mut_ptr());
-    z1len =
-        fast_expansion_sum_zeroelim(zzlen, detzz.as_mut_ptr(), zztlen,
-                                    detzzt.as_mut_ptr(), z1.as_mut_ptr());
-    z2len =
-        fast_expansion_sum_zeroelim(z1len, z1.as_mut_ptr(), ztztlen,
-                                    detztzt.as_mut_ptr(), z2.as_mut_ptr());
-    xylen =
-        fast_expansion_sum_zeroelim(x2len, x2.as_mut_ptr(), y2len,
-                                    y2.as_mut_ptr(), detxy.as_mut_ptr());
-    clen =
-        fast_expansion_sum_zeroelim(z2len, z2.as_mut_ptr(), xylen,
-                                    detxy.as_mut_ptr(), cdet.as_mut_ptr());
-    temp32alen =
-        scale_expansion_zeroelim(bclen, bc.as_mut_ptr(), aez,
-                                 temp32a.as_mut_ptr());
-    temp32blen =
-        scale_expansion_zeroelim(bclen, bc.as_mut_ptr(), aeztail,
-                                 temp32b.as_mut_ptr());
-    temp64alen =
-        fast_expansion_sum_zeroelim(temp32alen, temp32a.as_mut_ptr(),
-                                    temp32blen, temp32b.as_mut_ptr(),
-                                    temp64a.as_mut_ptr());
-    temp32alen =
-        scale_expansion_zeroelim(aclen, ac.as_mut_ptr(), -bez,
-                                 temp32a.as_mut_ptr());
-    temp32blen =
-        scale_expansion_zeroelim(aclen, ac.as_mut_ptr(), -beztail,
-                                 temp32b.as_mut_ptr());
-    temp64blen =
-        fast_expansion_sum_zeroelim(temp32alen, temp32a.as_mut_ptr(),
-                                    temp32blen, temp32b.as_mut_ptr(),
-                                    temp64b.as_mut_ptr());
-    temp32alen =
-        scale_expansion_zeroelim(ablen, ab.as_mut_ptr(), cez,
-                                 temp32a.as_mut_ptr());
-    temp32blen =
-        scale_expansion_zeroelim(ablen, ab.as_mut_ptr(), ceztail,
-                                 temp32b.as_mut_ptr());
-    temp64clen =
-        fast_expansion_sum_zeroelim(temp32alen, temp32a.as_mut_ptr(),
-                                    temp32blen, temp32b.as_mut_ptr(),
-                                    temp64c.as_mut_ptr());
-    temp128len =
-        fast_expansion_sum_zeroelim(temp64alen, temp64a.as_mut_ptr(),
-                                    temp64blen, temp64b.as_mut_ptr(),
-                                    temp128.as_mut_ptr());
-    temp192len =
-        fast_expansion_sum_zeroelim(temp64clen, temp64c.as_mut_ptr(),
-                                    temp128len, temp128.as_mut_ptr(),
-                                    temp192.as_mut_ptr());
-    xlen =
-        scale_expansion_zeroelim(temp192len, temp192.as_mut_ptr(), dex,
-                                 detx.as_mut_ptr());
-    xxlen =
-        scale_expansion_zeroelim(xlen, detx.as_mut_ptr(), dex,
-                                 detxx.as_mut_ptr());
-    xtlen =
-        scale_expansion_zeroelim(temp192len, temp192.as_mut_ptr(), dextail,
-                                 detxt.as_mut_ptr());
-    xxtlen =
-        scale_expansion_zeroelim(xtlen, detxt.as_mut_ptr(), dex,
-                                 detxxt.as_mut_ptr());
+    while i < zztlen {
+        detzzt[i as usize] *= 2.0f64;
+        i += 1
+    }
+    ztztlen = scale_expansion_zeroelim(ztlen, detzt.as_mut_ptr(), ceztail, detztzt.as_mut_ptr());
+    z1len = fast_expansion_sum_zeroelim(
+        zzlen,
+        detzz.as_mut_ptr(),
+        zztlen,
+        detzzt.as_mut_ptr(),
+        z1.as_mut_ptr(),
+    );
+    z2len = fast_expansion_sum_zeroelim(
+        z1len,
+        z1.as_mut_ptr(),
+        ztztlen,
+        detztzt.as_mut_ptr(),
+        z2.as_mut_ptr(),
+    );
+    xylen = fast_expansion_sum_zeroelim(
+        x2len,
+        x2.as_mut_ptr(),
+        y2len,
+        y2.as_mut_ptr(),
+        detxy.as_mut_ptr(),
+    );
+    clen = fast_expansion_sum_zeroelim(
+        z2len,
+        z2.as_mut_ptr(),
+        xylen,
+        detxy.as_mut_ptr(),
+        cdet.as_mut_ptr(),
+    );
+    temp32alen = scale_expansion_zeroelim(bclen, bc.as_mut_ptr(), aez, temp32a.as_mut_ptr());
+    temp32blen = scale_expansion_zeroelim(bclen, bc.as_mut_ptr(), aeztail, temp32b.as_mut_ptr());
+    temp64alen = fast_expansion_sum_zeroelim(
+        temp32alen,
+        temp32a.as_mut_ptr(),
+        temp32blen,
+        temp32b.as_mut_ptr(),
+        temp64a.as_mut_ptr(),
+    );
+    temp32alen = scale_expansion_zeroelim(aclen, ac.as_mut_ptr(), -bez, temp32a.as_mut_ptr());
+    temp32blen = scale_expansion_zeroelim(aclen, ac.as_mut_ptr(), -beztail, temp32b.as_mut_ptr());
+    temp64blen = fast_expansion_sum_zeroelim(
+        temp32alen,
+        temp32a.as_mut_ptr(),
+        temp32blen,
+        temp32b.as_mut_ptr(),
+        temp64b.as_mut_ptr(),
+    );
+    temp32alen = scale_expansion_zeroelim(ablen, ab.as_mut_ptr(), cez, temp32a.as_mut_ptr());
+    temp32blen = scale_expansion_zeroelim(ablen, ab.as_mut_ptr(), ceztail, temp32b.as_mut_ptr());
+    temp64clen = fast_expansion_sum_zeroelim(
+        temp32alen,
+        temp32a.as_mut_ptr(),
+        temp32blen,
+        temp32b.as_mut_ptr(),
+        temp64c.as_mut_ptr(),
+    );
+    temp128len = fast_expansion_sum_zeroelim(
+        temp64alen,
+        temp64a.as_mut_ptr(),
+        temp64blen,
+        temp64b.as_mut_ptr(),
+        temp128.as_mut_ptr(),
+    );
+    temp192len = fast_expansion_sum_zeroelim(
+        temp64clen,
+        temp64c.as_mut_ptr(),
+        temp128len,
+        temp128.as_mut_ptr(),
+        temp192.as_mut_ptr(),
+    );
+    xlen = scale_expansion_zeroelim(temp192len, temp192.as_mut_ptr(), dex, detx.as_mut_ptr());
+    xxlen = scale_expansion_zeroelim(xlen, detx.as_mut_ptr(), dex, detxx.as_mut_ptr());
+    xtlen = scale_expansion_zeroelim(
+        temp192len,
+        temp192.as_mut_ptr(),
+        dextail,
+        detxt.as_mut_ptr(),
+    );
+    xxtlen = scale_expansion_zeroelim(xtlen, detxt.as_mut_ptr(), dex, detxxt.as_mut_ptr());
     i = 0 as i32;
-    while i < xxtlen { detxxt[i as usize] *= 2.0f64; i += 1 }
-    xtxtlen =
-        scale_expansion_zeroelim(xtlen, detxt.as_mut_ptr(), dextail,
-                                 detxtxt.as_mut_ptr());
-    x1len =
-        fast_expansion_sum_zeroelim(xxlen, detxx.as_mut_ptr(), xxtlen,
-                                    detxxt.as_mut_ptr(), x1.as_mut_ptr());
-    x2len =
-        fast_expansion_sum_zeroelim(x1len, x1.as_mut_ptr(), xtxtlen,
-                                    detxtxt.as_mut_ptr(), x2.as_mut_ptr());
-    ylen =
-        scale_expansion_zeroelim(temp192len, temp192.as_mut_ptr(), dey,
-                                 dety.as_mut_ptr());
-    yylen =
-        scale_expansion_zeroelim(ylen, dety.as_mut_ptr(), dey,
-                                 detyy.as_mut_ptr());
-    ytlen =
-        scale_expansion_zeroelim(temp192len, temp192.as_mut_ptr(), deytail,
-                                 detyt.as_mut_ptr());
-    yytlen =
-        scale_expansion_zeroelim(ytlen, detyt.as_mut_ptr(), dey,
-                                 detyyt.as_mut_ptr());
+    while i < xxtlen {
+        detxxt[i as usize] *= 2.0f64;
+        i += 1
+    }
+    xtxtlen = scale_expansion_zeroelim(xtlen, detxt.as_mut_ptr(), dextail, detxtxt.as_mut_ptr());
+    x1len = fast_expansion_sum_zeroelim(
+        xxlen,
+        detxx.as_mut_ptr(),
+        xxtlen,
+        detxxt.as_mut_ptr(),
+        x1.as_mut_ptr(),
+    );
+    x2len = fast_expansion_sum_zeroelim(
+        x1len,
+        x1.as_mut_ptr(),
+        xtxtlen,
+        detxtxt.as_mut_ptr(),
+        x2.as_mut_ptr(),
+    );
+    ylen = scale_expansion_zeroelim(temp192len, temp192.as_mut_ptr(), dey, dety.as_mut_ptr());
+    yylen = scale_expansion_zeroelim(ylen, dety.as_mut_ptr(), dey, detyy.as_mut_ptr());
+    ytlen = scale_expansion_zeroelim(
+        temp192len,
+        temp192.as_mut_ptr(),
+        deytail,
+        detyt.as_mut_ptr(),
+    );
+    yytlen = scale_expansion_zeroelim(ytlen, detyt.as_mut_ptr(), dey, detyyt.as_mut_ptr());
     i = 0 as i32;
-    while i < yytlen { detyyt[i as usize] *= 2.0f64; i += 1 }
-    ytytlen =
-        scale_expansion_zeroelim(ytlen, detyt.as_mut_ptr(), deytail,
-                                 detytyt.as_mut_ptr());
-    y1len =
-        fast_expansion_sum_zeroelim(yylen, detyy.as_mut_ptr(), yytlen,
-                                    detyyt.as_mut_ptr(), y1.as_mut_ptr());
-    y2len =
-        fast_expansion_sum_zeroelim(y1len, y1.as_mut_ptr(), ytytlen,
-                                    detytyt.as_mut_ptr(), y2.as_mut_ptr());
-    zlen =
-        scale_expansion_zeroelim(temp192len, temp192.as_mut_ptr(), dez,
-                                 detz.as_mut_ptr());
-    zzlen =
-        scale_expansion_zeroelim(zlen, detz.as_mut_ptr(), dez,
-                                 detzz.as_mut_ptr());
-    ztlen =
-        scale_expansion_zeroelim(temp192len, temp192.as_mut_ptr(), deztail,
-                                 detzt.as_mut_ptr());
-    zztlen =
-        scale_expansion_zeroelim(ztlen, detzt.as_mut_ptr(), dez,
-                                 detzzt.as_mut_ptr());
+    while i < yytlen {
+        detyyt[i as usize] *= 2.0f64;
+        i += 1
+    }
+    ytytlen = scale_expansion_zeroelim(ytlen, detyt.as_mut_ptr(), deytail, detytyt.as_mut_ptr());
+    y1len = fast_expansion_sum_zeroelim(
+        yylen,
+        detyy.as_mut_ptr(),
+        yytlen,
+        detyyt.as_mut_ptr(),
+        y1.as_mut_ptr(),
+    );
+    y2len = fast_expansion_sum_zeroelim(
+        y1len,
+        y1.as_mut_ptr(),
+        ytytlen,
+        detytyt.as_mut_ptr(),
+        y2.as_mut_ptr(),
+    );
+    zlen = scale_expansion_zeroelim(temp192len, temp192.as_mut_ptr(), dez, detz.as_mut_ptr());
+    zzlen = scale_expansion_zeroelim(zlen, detz.as_mut_ptr(), dez, detzz.as_mut_ptr());
+    ztlen = scale_expansion_zeroelim(
+        temp192len,
+        temp192.as_mut_ptr(),
+        deztail,
+        detzt.as_mut_ptr(),
+    );
+    zztlen = scale_expansion_zeroelim(ztlen, detzt.as_mut_ptr(), dez, detzzt.as_mut_ptr());
     i = 0 as i32;
-    while i < zztlen { detzzt[i as usize] *= 2.0f64; i += 1 }
-    ztztlen =
-        scale_expansion_zeroelim(ztlen, detzt.as_mut_ptr(), deztail,
-                                 detztzt.as_mut_ptr());
-    z1len =
-        fast_expansion_sum_zeroelim(zzlen, detzz.as_mut_ptr(), zztlen,
-                                    detzzt.as_mut_ptr(), z1.as_mut_ptr());
-    z2len =
-        fast_expansion_sum_zeroelim(z1len, z1.as_mut_ptr(), ztztlen,
-                                    detztzt.as_mut_ptr(), z2.as_mut_ptr());
-    xylen =
-        fast_expansion_sum_zeroelim(x2len, x2.as_mut_ptr(), y2len,
-                                    y2.as_mut_ptr(), detxy.as_mut_ptr());
-    dlen =
-        fast_expansion_sum_zeroelim(z2len, z2.as_mut_ptr(), xylen,
-                                    detxy.as_mut_ptr(), ddet.as_mut_ptr());
-    ablen =
-        fast_expansion_sum_zeroelim(alen, adet.as_mut_ptr(), blen,
-                                    bdet.as_mut_ptr(), abdet.as_mut_ptr());
-    cdlen =
-        fast_expansion_sum_zeroelim(clen, cdet.as_mut_ptr(), dlen,
-                                    ddet.as_mut_ptr(), cddet.as_mut_ptr());
-    deterlen =
-        fast_expansion_sum_zeroelim(ablen, abdet.as_mut_ptr(), cdlen,
-                                    cddet.as_mut_ptr(), deter.as_mut_ptr());
+    while i < zztlen {
+        detzzt[i as usize] *= 2.0f64;
+        i += 1
+    }
+    ztztlen = scale_expansion_zeroelim(ztlen, detzt.as_mut_ptr(), deztail, detztzt.as_mut_ptr());
+    z1len = fast_expansion_sum_zeroelim(
+        zzlen,
+        detzz.as_mut_ptr(),
+        zztlen,
+        detzzt.as_mut_ptr(),
+        z1.as_mut_ptr(),
+    );
+    z2len = fast_expansion_sum_zeroelim(
+        z1len,
+        z1.as_mut_ptr(),
+        ztztlen,
+        detztzt.as_mut_ptr(),
+        z2.as_mut_ptr(),
+    );
+    xylen = fast_expansion_sum_zeroelim(
+        x2len,
+        x2.as_mut_ptr(),
+        y2len,
+        y2.as_mut_ptr(),
+        detxy.as_mut_ptr(),
+    );
+    dlen = fast_expansion_sum_zeroelim(
+        z2len,
+        z2.as_mut_ptr(),
+        xylen,
+        detxy.as_mut_ptr(),
+        ddet.as_mut_ptr(),
+    );
+    ablen = fast_expansion_sum_zeroelim(
+        alen,
+        adet.as_mut_ptr(),
+        blen,
+        bdet.as_mut_ptr(),
+        abdet.as_mut_ptr(),
+    );
+    cdlen = fast_expansion_sum_zeroelim(
+        clen,
+        cdet.as_mut_ptr(),
+        dlen,
+        ddet.as_mut_ptr(),
+        cddet.as_mut_ptr(),
+    );
+    deterlen = fast_expansion_sum_zeroelim(
+        ablen,
+        abdet.as_mut_ptr(),
+        cdlen,
+        cddet.as_mut_ptr(),
+        deter.as_mut_ptr(),
+    );
     return deter[(deterlen - 1 as i32) as usize];
 }
 #[no_mangle]
-pub unsafe extern "C" fn insphereadapt(mut pa: *const f64,
-                                       mut pb: *const f64,
-                                       mut pc: *const f64,
-                                       mut pd: *const f64,
-                                       mut pe: *const f64,
-                                       mut permanent: f64)
- -> f64 {
+pub unsafe extern "C" fn insphereadapt(
+    mut pa: *const f64,
+    mut pb: *const f64,
+    mut pc: *const f64,
+    mut pd: *const f64,
+    mut pe: *const f64,
+    mut permanent: f64,
+) -> f64 {
     let mut aex: f64 = 0.;
     let mut bex: f64 = 0.;
     let mut cex: f64 = 0.;
@@ -12806,42 +13484,18 @@ pub unsafe extern "C" fn insphereadapt(mut pa: *const f64,
     let mut _i: f64 = 0.;
     let mut _j: f64 = 0.;
     let mut _0: f64 = 0.;
-    aex =
-        *pa.offset(0 as i32 as isize) -
-            *pe.offset(0 as i32 as isize);
-    bex =
-        *pb.offset(0 as i32 as isize) -
-            *pe.offset(0 as i32 as isize);
-    cex =
-        *pc.offset(0 as i32 as isize) -
-            *pe.offset(0 as i32 as isize);
-    dex =
-        *pd.offset(0 as i32 as isize) -
-            *pe.offset(0 as i32 as isize);
-    aey =
-        *pa.offset(1 as i32 as isize) -
-            *pe.offset(1 as i32 as isize);
-    bey =
-        *pb.offset(1 as i32 as isize) -
-            *pe.offset(1 as i32 as isize);
-    cey =
-        *pc.offset(1 as i32 as isize) -
-            *pe.offset(1 as i32 as isize);
-    dey =
-        *pd.offset(1 as i32 as isize) -
-            *pe.offset(1 as i32 as isize);
-    aez =
-        *pa.offset(2 as i32 as isize) -
-            *pe.offset(2 as i32 as isize);
-    bez =
-        *pb.offset(2 as i32 as isize) -
-            *pe.offset(2 as i32 as isize);
-    cez =
-        *pc.offset(2 as i32 as isize) -
-            *pe.offset(2 as i32 as isize);
-    dez =
-        *pd.offset(2 as i32 as isize) -
-            *pe.offset(2 as i32 as isize);
+    aex = *pa.offset(0 as i32 as isize) - *pe.offset(0 as i32 as isize);
+    bex = *pb.offset(0 as i32 as isize) - *pe.offset(0 as i32 as isize);
+    cex = *pc.offset(0 as i32 as isize) - *pe.offset(0 as i32 as isize);
+    dex = *pd.offset(0 as i32 as isize) - *pe.offset(0 as i32 as isize);
+    aey = *pa.offset(1 as i32 as isize) - *pe.offset(1 as i32 as isize);
+    bey = *pb.offset(1 as i32 as isize) - *pe.offset(1 as i32 as isize);
+    cey = *pc.offset(1 as i32 as isize) - *pe.offset(1 as i32 as isize);
+    dey = *pd.offset(1 as i32 as isize) - *pe.offset(1 as i32 as isize);
+    aez = *pa.offset(2 as i32 as isize) - *pe.offset(2 as i32 as isize);
+    bez = *pb.offset(2 as i32 as isize) - *pe.offset(2 as i32 as isize);
+    cez = *pc.offset(2 as i32 as isize) - *pe.offset(2 as i32 as isize);
+    dez = *pd.offset(2 as i32 as isize) - *pe.offset(2 as i32 as isize);
     aexbey1 = aex * bey;
     c = splitter * aex;
     abig = c - aex;
@@ -13148,174 +13802,180 @@ pub unsafe extern "C" fn insphereadapt(mut pa: *const f64,
     around = _j - avirt;
     bd[2 as i32 as usize] = around + bround;
     bd[3 as i32 as usize] = bd3;
-    temp8alen =
-        scale_expansion_zeroelim(4 as i32, cd.as_mut_ptr(), bez,
-                                 temp8a.as_mut_ptr());
-    temp8blen =
-        scale_expansion_zeroelim(4 as i32, bd.as_mut_ptr(), -cez,
-                                 temp8b.as_mut_ptr());
-    temp8clen =
-        scale_expansion_zeroelim(4 as i32, bc.as_mut_ptr(), dez,
-                                 temp8c.as_mut_ptr());
-    temp16len =
-        fast_expansion_sum_zeroelim(temp8alen, temp8a.as_mut_ptr(), temp8blen,
-                                    temp8b.as_mut_ptr(), temp16.as_mut_ptr());
-    temp24len =
-        fast_expansion_sum_zeroelim(temp8clen, temp8c.as_mut_ptr(), temp16len,
-                                    temp16.as_mut_ptr(), temp24.as_mut_ptr());
-    temp48len =
-        scale_expansion_zeroelim(temp24len, temp24.as_mut_ptr(), aex,
-                                 temp48.as_mut_ptr());
-    xlen =
-        scale_expansion_zeroelim(temp48len, temp48.as_mut_ptr(), -aex,
-                                 xdet.as_mut_ptr());
-    temp48len =
-        scale_expansion_zeroelim(temp24len, temp24.as_mut_ptr(), aey,
-                                 temp48.as_mut_ptr());
-    ylen =
-        scale_expansion_zeroelim(temp48len, temp48.as_mut_ptr(), -aey,
-                                 ydet.as_mut_ptr());
-    temp48len =
-        scale_expansion_zeroelim(temp24len, temp24.as_mut_ptr(), aez,
-                                 temp48.as_mut_ptr());
-    zlen =
-        scale_expansion_zeroelim(temp48len, temp48.as_mut_ptr(), -aez,
-                                 zdet.as_mut_ptr());
-    xylen =
-        fast_expansion_sum_zeroelim(xlen, xdet.as_mut_ptr(), ylen,
-                                    ydet.as_mut_ptr(), xydet.as_mut_ptr());
-    alen =
-        fast_expansion_sum_zeroelim(xylen, xydet.as_mut_ptr(), zlen,
-                                    zdet.as_mut_ptr(), adet.as_mut_ptr());
-    temp8alen =
-        scale_expansion_zeroelim(4 as i32, da.as_mut_ptr(), cez,
-                                 temp8a.as_mut_ptr());
-    temp8blen =
-        scale_expansion_zeroelim(4 as i32, ac.as_mut_ptr(), dez,
-                                 temp8b.as_mut_ptr());
-    temp8clen =
-        scale_expansion_zeroelim(4 as i32, cd.as_mut_ptr(), aez,
-                                 temp8c.as_mut_ptr());
-    temp16len =
-        fast_expansion_sum_zeroelim(temp8alen, temp8a.as_mut_ptr(), temp8blen,
-                                    temp8b.as_mut_ptr(), temp16.as_mut_ptr());
-    temp24len =
-        fast_expansion_sum_zeroelim(temp8clen, temp8c.as_mut_ptr(), temp16len,
-                                    temp16.as_mut_ptr(), temp24.as_mut_ptr());
-    temp48len =
-        scale_expansion_zeroelim(temp24len, temp24.as_mut_ptr(), bex,
-                                 temp48.as_mut_ptr());
-    xlen =
-        scale_expansion_zeroelim(temp48len, temp48.as_mut_ptr(), bex,
-                                 xdet.as_mut_ptr());
-    temp48len =
-        scale_expansion_zeroelim(temp24len, temp24.as_mut_ptr(), bey,
-                                 temp48.as_mut_ptr());
-    ylen =
-        scale_expansion_zeroelim(temp48len, temp48.as_mut_ptr(), bey,
-                                 ydet.as_mut_ptr());
-    temp48len =
-        scale_expansion_zeroelim(temp24len, temp24.as_mut_ptr(), bez,
-                                 temp48.as_mut_ptr());
-    zlen =
-        scale_expansion_zeroelim(temp48len, temp48.as_mut_ptr(), bez,
-                                 zdet.as_mut_ptr());
-    xylen =
-        fast_expansion_sum_zeroelim(xlen, xdet.as_mut_ptr(), ylen,
-                                    ydet.as_mut_ptr(), xydet.as_mut_ptr());
-    blen =
-        fast_expansion_sum_zeroelim(xylen, xydet.as_mut_ptr(), zlen,
-                                    zdet.as_mut_ptr(), bdet.as_mut_ptr());
-    temp8alen =
-        scale_expansion_zeroelim(4 as i32, ab.as_mut_ptr(), dez,
-                                 temp8a.as_mut_ptr());
-    temp8blen =
-        scale_expansion_zeroelim(4 as i32, bd.as_mut_ptr(), aez,
-                                 temp8b.as_mut_ptr());
-    temp8clen =
-        scale_expansion_zeroelim(4 as i32, da.as_mut_ptr(), bez,
-                                 temp8c.as_mut_ptr());
-    temp16len =
-        fast_expansion_sum_zeroelim(temp8alen, temp8a.as_mut_ptr(), temp8blen,
-                                    temp8b.as_mut_ptr(), temp16.as_mut_ptr());
-    temp24len =
-        fast_expansion_sum_zeroelim(temp8clen, temp8c.as_mut_ptr(), temp16len,
-                                    temp16.as_mut_ptr(), temp24.as_mut_ptr());
-    temp48len =
-        scale_expansion_zeroelim(temp24len, temp24.as_mut_ptr(), cex,
-                                 temp48.as_mut_ptr());
-    xlen =
-        scale_expansion_zeroelim(temp48len, temp48.as_mut_ptr(), -cex,
-                                 xdet.as_mut_ptr());
-    temp48len =
-        scale_expansion_zeroelim(temp24len, temp24.as_mut_ptr(), cey,
-                                 temp48.as_mut_ptr());
-    ylen =
-        scale_expansion_zeroelim(temp48len, temp48.as_mut_ptr(), -cey,
-                                 ydet.as_mut_ptr());
-    temp48len =
-        scale_expansion_zeroelim(temp24len, temp24.as_mut_ptr(), cez,
-                                 temp48.as_mut_ptr());
-    zlen =
-        scale_expansion_zeroelim(temp48len, temp48.as_mut_ptr(), -cez,
-                                 zdet.as_mut_ptr());
-    xylen =
-        fast_expansion_sum_zeroelim(xlen, xdet.as_mut_ptr(), ylen,
-                                    ydet.as_mut_ptr(), xydet.as_mut_ptr());
-    clen =
-        fast_expansion_sum_zeroelim(xylen, xydet.as_mut_ptr(), zlen,
-                                    zdet.as_mut_ptr(), cdet.as_mut_ptr());
-    temp8alen =
-        scale_expansion_zeroelim(4 as i32, bc.as_mut_ptr(), aez,
-                                 temp8a.as_mut_ptr());
-    temp8blen =
-        scale_expansion_zeroelim(4 as i32, ac.as_mut_ptr(), -bez,
-                                 temp8b.as_mut_ptr());
-    temp8clen =
-        scale_expansion_zeroelim(4 as i32, ab.as_mut_ptr(), cez,
-                                 temp8c.as_mut_ptr());
-    temp16len =
-        fast_expansion_sum_zeroelim(temp8alen, temp8a.as_mut_ptr(), temp8blen,
-                                    temp8b.as_mut_ptr(), temp16.as_mut_ptr());
-    temp24len =
-        fast_expansion_sum_zeroelim(temp8clen, temp8c.as_mut_ptr(), temp16len,
-                                    temp16.as_mut_ptr(), temp24.as_mut_ptr());
-    temp48len =
-        scale_expansion_zeroelim(temp24len, temp24.as_mut_ptr(), dex,
-                                 temp48.as_mut_ptr());
-    xlen =
-        scale_expansion_zeroelim(temp48len, temp48.as_mut_ptr(), dex,
-                                 xdet.as_mut_ptr());
-    temp48len =
-        scale_expansion_zeroelim(temp24len, temp24.as_mut_ptr(), dey,
-                                 temp48.as_mut_ptr());
-    ylen =
-        scale_expansion_zeroelim(temp48len, temp48.as_mut_ptr(), dey,
-                                 ydet.as_mut_ptr());
-    temp48len =
-        scale_expansion_zeroelim(temp24len, temp24.as_mut_ptr(), dez,
-                                 temp48.as_mut_ptr());
-    zlen =
-        scale_expansion_zeroelim(temp48len, temp48.as_mut_ptr(), dez,
-                                 zdet.as_mut_ptr());
-    xylen =
-        fast_expansion_sum_zeroelim(xlen, xdet.as_mut_ptr(), ylen,
-                                    ydet.as_mut_ptr(), xydet.as_mut_ptr());
-    dlen =
-        fast_expansion_sum_zeroelim(xylen, xydet.as_mut_ptr(), zlen,
-                                    zdet.as_mut_ptr(), ddet.as_mut_ptr());
-    ablen =
-        fast_expansion_sum_zeroelim(alen, adet.as_mut_ptr(), blen,
-                                    bdet.as_mut_ptr(), abdet.as_mut_ptr());
-    cdlen =
-        fast_expansion_sum_zeroelim(clen, cdet.as_mut_ptr(), dlen,
-                                    ddet.as_mut_ptr(), cddet.as_mut_ptr());
-    finlength =
-        fast_expansion_sum_zeroelim(ablen, abdet.as_mut_ptr(), cdlen,
-                                    cddet.as_mut_ptr(), fin1.as_mut_ptr());
+    temp8alen = scale_expansion_zeroelim(4 as i32, cd.as_mut_ptr(), bez, temp8a.as_mut_ptr());
+    temp8blen = scale_expansion_zeroelim(4 as i32, bd.as_mut_ptr(), -cez, temp8b.as_mut_ptr());
+    temp8clen = scale_expansion_zeroelim(4 as i32, bc.as_mut_ptr(), dez, temp8c.as_mut_ptr());
+    temp16len = fast_expansion_sum_zeroelim(
+        temp8alen,
+        temp8a.as_mut_ptr(),
+        temp8blen,
+        temp8b.as_mut_ptr(),
+        temp16.as_mut_ptr(),
+    );
+    temp24len = fast_expansion_sum_zeroelim(
+        temp8clen,
+        temp8c.as_mut_ptr(),
+        temp16len,
+        temp16.as_mut_ptr(),
+        temp24.as_mut_ptr(),
+    );
+    temp48len = scale_expansion_zeroelim(temp24len, temp24.as_mut_ptr(), aex, temp48.as_mut_ptr());
+    xlen = scale_expansion_zeroelim(temp48len, temp48.as_mut_ptr(), -aex, xdet.as_mut_ptr());
+    temp48len = scale_expansion_zeroelim(temp24len, temp24.as_mut_ptr(), aey, temp48.as_mut_ptr());
+    ylen = scale_expansion_zeroelim(temp48len, temp48.as_mut_ptr(), -aey, ydet.as_mut_ptr());
+    temp48len = scale_expansion_zeroelim(temp24len, temp24.as_mut_ptr(), aez, temp48.as_mut_ptr());
+    zlen = scale_expansion_zeroelim(temp48len, temp48.as_mut_ptr(), -aez, zdet.as_mut_ptr());
+    xylen = fast_expansion_sum_zeroelim(
+        xlen,
+        xdet.as_mut_ptr(),
+        ylen,
+        ydet.as_mut_ptr(),
+        xydet.as_mut_ptr(),
+    );
+    alen = fast_expansion_sum_zeroelim(
+        xylen,
+        xydet.as_mut_ptr(),
+        zlen,
+        zdet.as_mut_ptr(),
+        adet.as_mut_ptr(),
+    );
+    temp8alen = scale_expansion_zeroelim(4 as i32, da.as_mut_ptr(), cez, temp8a.as_mut_ptr());
+    temp8blen = scale_expansion_zeroelim(4 as i32, ac.as_mut_ptr(), dez, temp8b.as_mut_ptr());
+    temp8clen = scale_expansion_zeroelim(4 as i32, cd.as_mut_ptr(), aez, temp8c.as_mut_ptr());
+    temp16len = fast_expansion_sum_zeroelim(
+        temp8alen,
+        temp8a.as_mut_ptr(),
+        temp8blen,
+        temp8b.as_mut_ptr(),
+        temp16.as_mut_ptr(),
+    );
+    temp24len = fast_expansion_sum_zeroelim(
+        temp8clen,
+        temp8c.as_mut_ptr(),
+        temp16len,
+        temp16.as_mut_ptr(),
+        temp24.as_mut_ptr(),
+    );
+    temp48len = scale_expansion_zeroelim(temp24len, temp24.as_mut_ptr(), bex, temp48.as_mut_ptr());
+    xlen = scale_expansion_zeroelim(temp48len, temp48.as_mut_ptr(), bex, xdet.as_mut_ptr());
+    temp48len = scale_expansion_zeroelim(temp24len, temp24.as_mut_ptr(), bey, temp48.as_mut_ptr());
+    ylen = scale_expansion_zeroelim(temp48len, temp48.as_mut_ptr(), bey, ydet.as_mut_ptr());
+    temp48len = scale_expansion_zeroelim(temp24len, temp24.as_mut_ptr(), bez, temp48.as_mut_ptr());
+    zlen = scale_expansion_zeroelim(temp48len, temp48.as_mut_ptr(), bez, zdet.as_mut_ptr());
+    xylen = fast_expansion_sum_zeroelim(
+        xlen,
+        xdet.as_mut_ptr(),
+        ylen,
+        ydet.as_mut_ptr(),
+        xydet.as_mut_ptr(),
+    );
+    blen = fast_expansion_sum_zeroelim(
+        xylen,
+        xydet.as_mut_ptr(),
+        zlen,
+        zdet.as_mut_ptr(),
+        bdet.as_mut_ptr(),
+    );
+    temp8alen = scale_expansion_zeroelim(4 as i32, ab.as_mut_ptr(), dez, temp8a.as_mut_ptr());
+    temp8blen = scale_expansion_zeroelim(4 as i32, bd.as_mut_ptr(), aez, temp8b.as_mut_ptr());
+    temp8clen = scale_expansion_zeroelim(4 as i32, da.as_mut_ptr(), bez, temp8c.as_mut_ptr());
+    temp16len = fast_expansion_sum_zeroelim(
+        temp8alen,
+        temp8a.as_mut_ptr(),
+        temp8blen,
+        temp8b.as_mut_ptr(),
+        temp16.as_mut_ptr(),
+    );
+    temp24len = fast_expansion_sum_zeroelim(
+        temp8clen,
+        temp8c.as_mut_ptr(),
+        temp16len,
+        temp16.as_mut_ptr(),
+        temp24.as_mut_ptr(),
+    );
+    temp48len = scale_expansion_zeroelim(temp24len, temp24.as_mut_ptr(), cex, temp48.as_mut_ptr());
+    xlen = scale_expansion_zeroelim(temp48len, temp48.as_mut_ptr(), -cex, xdet.as_mut_ptr());
+    temp48len = scale_expansion_zeroelim(temp24len, temp24.as_mut_ptr(), cey, temp48.as_mut_ptr());
+    ylen = scale_expansion_zeroelim(temp48len, temp48.as_mut_ptr(), -cey, ydet.as_mut_ptr());
+    temp48len = scale_expansion_zeroelim(temp24len, temp24.as_mut_ptr(), cez, temp48.as_mut_ptr());
+    zlen = scale_expansion_zeroelim(temp48len, temp48.as_mut_ptr(), -cez, zdet.as_mut_ptr());
+    xylen = fast_expansion_sum_zeroelim(
+        xlen,
+        xdet.as_mut_ptr(),
+        ylen,
+        ydet.as_mut_ptr(),
+        xydet.as_mut_ptr(),
+    );
+    clen = fast_expansion_sum_zeroelim(
+        xylen,
+        xydet.as_mut_ptr(),
+        zlen,
+        zdet.as_mut_ptr(),
+        cdet.as_mut_ptr(),
+    );
+    temp8alen = scale_expansion_zeroelim(4 as i32, bc.as_mut_ptr(), aez, temp8a.as_mut_ptr());
+    temp8blen = scale_expansion_zeroelim(4 as i32, ac.as_mut_ptr(), -bez, temp8b.as_mut_ptr());
+    temp8clen = scale_expansion_zeroelim(4 as i32, ab.as_mut_ptr(), cez, temp8c.as_mut_ptr());
+    temp16len = fast_expansion_sum_zeroelim(
+        temp8alen,
+        temp8a.as_mut_ptr(),
+        temp8blen,
+        temp8b.as_mut_ptr(),
+        temp16.as_mut_ptr(),
+    );
+    temp24len = fast_expansion_sum_zeroelim(
+        temp8clen,
+        temp8c.as_mut_ptr(),
+        temp16len,
+        temp16.as_mut_ptr(),
+        temp24.as_mut_ptr(),
+    );
+    temp48len = scale_expansion_zeroelim(temp24len, temp24.as_mut_ptr(), dex, temp48.as_mut_ptr());
+    xlen = scale_expansion_zeroelim(temp48len, temp48.as_mut_ptr(), dex, xdet.as_mut_ptr());
+    temp48len = scale_expansion_zeroelim(temp24len, temp24.as_mut_ptr(), dey, temp48.as_mut_ptr());
+    ylen = scale_expansion_zeroelim(temp48len, temp48.as_mut_ptr(), dey, ydet.as_mut_ptr());
+    temp48len = scale_expansion_zeroelim(temp24len, temp24.as_mut_ptr(), dez, temp48.as_mut_ptr());
+    zlen = scale_expansion_zeroelim(temp48len, temp48.as_mut_ptr(), dez, zdet.as_mut_ptr());
+    xylen = fast_expansion_sum_zeroelim(
+        xlen,
+        xdet.as_mut_ptr(),
+        ylen,
+        ydet.as_mut_ptr(),
+        xydet.as_mut_ptr(),
+    );
+    dlen = fast_expansion_sum_zeroelim(
+        xylen,
+        xydet.as_mut_ptr(),
+        zlen,
+        zdet.as_mut_ptr(),
+        ddet.as_mut_ptr(),
+    );
+    ablen = fast_expansion_sum_zeroelim(
+        alen,
+        adet.as_mut_ptr(),
+        blen,
+        bdet.as_mut_ptr(),
+        abdet.as_mut_ptr(),
+    );
+    cdlen = fast_expansion_sum_zeroelim(
+        clen,
+        cdet.as_mut_ptr(),
+        dlen,
+        ddet.as_mut_ptr(),
+        cddet.as_mut_ptr(),
+    );
+    finlength = fast_expansion_sum_zeroelim(
+        ablen,
+        abdet.as_mut_ptr(),
+        cdlen,
+        cddet.as_mut_ptr(),
+        fin1.as_mut_ptr(),
+    );
     det = estimate(finlength, fin1.as_mut_ptr());
     errbound = isperrboundB * permanent;
-    if det >= errbound || -det >= errbound { return det }
+    if det >= errbound || -det >= errbound {
+        return det;
+    }
     bvirt = *pa.offset(0 as i32 as isize) - aex;
     avirt = aex + bvirt;
     bround = bvirt - *pe.offset(0 as i32 as isize);
@@ -13376,11 +14036,20 @@ pub unsafe extern "C" fn insphereadapt(mut pa: *const f64,
     bround = bvirt - *pe.offset(2 as i32 as isize);
     around = *pd.offset(2 as i32 as isize) - avirt;
     deztail = around + bround;
-    if aextail == 0.0f64 && aeytail == 0.0f64 && aeztail == 0.0f64 &&
-           bextail == 0.0f64 && beytail == 0.0f64 && beztail == 0.0f64 &&
-           cextail == 0.0f64 && ceytail == 0.0f64 && ceztail == 0.0f64 &&
-           dextail == 0.0f64 && deytail == 0.0f64 && deztail == 0.0f64 {
-        return det
+    if aextail == 0.0f64
+        && aeytail == 0.0f64
+        && aeztail == 0.0f64
+        && bextail == 0.0f64
+        && beytail == 0.0f64
+        && beztail == 0.0f64
+        && cextail == 0.0f64
+        && ceytail == 0.0f64
+        && ceztail == 0.0f64
+        && dextail == 0.0f64
+        && deytail == 0.0f64
+        && deztail == 0.0f64
+    {
+        return det;
     }
     errbound = isperrboundC * permanent + resulterrbound * Absolute(det);
     abeps = aex * beytail + bey * aextail - (aey * bextail + bex * aeytail);
@@ -13389,38 +14058,46 @@ pub unsafe extern "C" fn insphereadapt(mut pa: *const f64,
     daeps = dex * aeytail + aey * dextail - (dey * aextail + aex * deytail);
     aceps = aex * ceytail + cey * aextail - (aey * cextail + cex * aeytail);
     bdeps = bex * deytail + dey * bextail - (bey * dextail + dex * beytail);
-    det +=
-        (bex * bex + bey * bey + bez * bez) *
-            (cez * daeps + dez * aceps + aez * cdeps +
-                 (ceztail * da3 + deztail * ac3 + aeztail * cd3)) +
-            (dex * dex + dey * dey + dez * dez) *
-                (aez * bceps - bez * aceps + cez * abeps +
-                     (aeztail * bc3 - beztail * ac3 + ceztail * ab3)) -
-            ((aex * aex + aey * aey + aez * aez) *
-                 (bez * cdeps - cez * bdeps + dez * bceps +
-                      (beztail * cd3 - ceztail * bd3 + deztail * bc3)) +
-                 (cex * cex + cey * cey + cez * cez) *
-                     (dez * abeps + aez * bdeps + bez * daeps +
-                          (deztail * ab3 + aeztail * bd3 + beztail * da3))) +
-            2.0f64 *
-                ((bex * bextail + bey * beytail + bez * beztail) *
-                     (cez * da3 + dez * ac3 + aez * cd3) +
-                     (dex * dextail + dey * deytail + dez * deztail) *
-                         (aez * bc3 - bez * ac3 + cez * ab3) -
-                     ((aex * aextail + aey * aeytail + aez * aeztail) *
-                          (bez * cd3 - cez * bd3 + dez * bc3) +
-                          (cex * cextail + cey * ceytail + cez * ceztail) *
-                              (dez * ab3 + aez * bd3 + bez * da3)));
-    if det >= errbound || -det >= errbound { return det }
+    det += (bex * bex + bey * bey + bez * bez)
+        * (cez * daeps
+            + dez * aceps
+            + aez * cdeps
+            + (ceztail * da3 + deztail * ac3 + aeztail * cd3))
+        + (dex * dex + dey * dey + dez * dez)
+            * (aez * bceps - bez * aceps
+                + cez * abeps
+                + (aeztail * bc3 - beztail * ac3 + ceztail * ab3))
+        - ((aex * aex + aey * aey + aez * aez)
+            * (bez * cdeps - cez * bdeps
+                + dez * bceps
+                + (beztail * cd3 - ceztail * bd3 + deztail * bc3))
+            + (cex * cex + cey * cey + cez * cez)
+                * (dez * abeps
+                    + aez * bdeps
+                    + bez * daeps
+                    + (deztail * ab3 + aeztail * bd3 + beztail * da3)))
+        + 2.0f64
+            * ((bex * bextail + bey * beytail + bez * beztail)
+                * (cez * da3 + dez * ac3 + aez * cd3)
+                + (dex * dextail + dey * deytail + dez * deztail)
+                    * (aez * bc3 - bez * ac3 + cez * ab3)
+                - ((aex * aextail + aey * aeytail + aez * aeztail)
+                    * (bez * cd3 - cez * bd3 + dez * bc3)
+                    + (cex * cextail + cey * ceytail + cez * ceztail)
+                        * (dez * ab3 + aez * bd3 + bez * da3)));
+    if det >= errbound || -det >= errbound {
+        return det;
+    }
     return insphereexact(pa, pb, pc, pd, pe);
 }
 #[no_mangle]
-pub unsafe extern "C" fn insphere(mut pa: *const f64,
-                                  mut pb: *const f64,
-                                  mut pc: *const f64,
-                                  mut pd: *const f64,
-                                  mut pe: *const f64)
- -> f64 {
+pub unsafe extern "C" fn insphere(
+    mut pa: *const f64,
+    mut pb: *const f64,
+    mut pc: *const f64,
+    mut pd: *const f64,
+    mut pe: *const f64,
+) -> f64 {
     let mut aex: f64 = 0.;
     let mut bex: f64 = 0.;
     let mut cex: f64 = 0.;
@@ -13478,42 +14155,18 @@ pub unsafe extern "C" fn insphere(mut pa: *const f64,
     let mut det: f64 = 0.;
     let mut permanent: f64 = 0.;
     let mut errbound: f64 = 0.;
-    aex =
-        *pa.offset(0 as i32 as isize) -
-            *pe.offset(0 as i32 as isize);
-    bex =
-        *pb.offset(0 as i32 as isize) -
-            *pe.offset(0 as i32 as isize);
-    cex =
-        *pc.offset(0 as i32 as isize) -
-            *pe.offset(0 as i32 as isize);
-    dex =
-        *pd.offset(0 as i32 as isize) -
-            *pe.offset(0 as i32 as isize);
-    aey =
-        *pa.offset(1 as i32 as isize) -
-            *pe.offset(1 as i32 as isize);
-    bey =
-        *pb.offset(1 as i32 as isize) -
-            *pe.offset(1 as i32 as isize);
-    cey =
-        *pc.offset(1 as i32 as isize) -
-            *pe.offset(1 as i32 as isize);
-    dey =
-        *pd.offset(1 as i32 as isize) -
-            *pe.offset(1 as i32 as isize);
-    aez =
-        *pa.offset(2 as i32 as isize) -
-            *pe.offset(2 as i32 as isize);
-    bez =
-        *pb.offset(2 as i32 as isize) -
-            *pe.offset(2 as i32 as isize);
-    cez =
-        *pc.offset(2 as i32 as isize) -
-            *pe.offset(2 as i32 as isize);
-    dez =
-        *pd.offset(2 as i32 as isize) -
-            *pe.offset(2 as i32 as isize);
+    aex = *pa.offset(0 as i32 as isize) - *pe.offset(0 as i32 as isize);
+    bex = *pb.offset(0 as i32 as isize) - *pe.offset(0 as i32 as isize);
+    cex = *pc.offset(0 as i32 as isize) - *pe.offset(0 as i32 as isize);
+    dex = *pd.offset(0 as i32 as isize) - *pe.offset(0 as i32 as isize);
+    aey = *pa.offset(1 as i32 as isize) - *pe.offset(1 as i32 as isize);
+    bey = *pb.offset(1 as i32 as isize) - *pe.offset(1 as i32 as isize);
+    cey = *pc.offset(1 as i32 as isize) - *pe.offset(1 as i32 as isize);
+    dey = *pd.offset(1 as i32 as isize) - *pe.offset(1 as i32 as isize);
+    aez = *pa.offset(2 as i32 as isize) - *pe.offset(2 as i32 as isize);
+    bez = *pb.offset(2 as i32 as isize) - *pe.offset(2 as i32 as isize);
+    cez = *pc.offset(2 as i32 as isize) - *pe.offset(2 as i32 as isize);
+    dez = *pd.offset(2 as i32 as isize) - *pe.offset(2 as i32 as isize);
     aexbey = aex * bey;
     bexaey = bex * aey;
     ab = aexbey - bexaey;
@@ -13557,22 +14210,25 @@ pub unsafe extern "C" fn insphere(mut pa: *const f64,
     cexaeyplus = Absolute(cexaey);
     bexdeyplus = Absolute(bexdey);
     dexbeyplus = Absolute(dexbey);
-    permanent =
-        ((cexdeyplus + dexceyplus) * bezplus +
-             (dexbeyplus + bexdeyplus) * cezplus +
-             (bexceyplus + cexbeyplus) * dezplus) * alift +
-            ((dexaeyplus + aexdeyplus) * cezplus +
-                 (aexceyplus + cexaeyplus) * dezplus +
-                 (cexdeyplus + dexceyplus) * aezplus) * blift +
-            ((aexbeyplus + bexaeyplus) * dezplus +
-                 (bexdeyplus + dexbeyplus) * aezplus +
-                 (dexaeyplus + aexdeyplus) * bezplus) * clift +
-            ((bexceyplus + cexbeyplus) * aezplus +
-                 (cexaeyplus + aexceyplus) * bezplus +
-                 (aexbeyplus + bexaeyplus) * cezplus) * dlift;
+    permanent = ((cexdeyplus + dexceyplus) * bezplus
+        + (dexbeyplus + bexdeyplus) * cezplus
+        + (bexceyplus + cexbeyplus) * dezplus)
+        * alift
+        + ((dexaeyplus + aexdeyplus) * cezplus
+            + (aexceyplus + cexaeyplus) * dezplus
+            + (cexdeyplus + dexceyplus) * aezplus)
+            * blift
+        + ((aexbeyplus + bexaeyplus) * dezplus
+            + (bexdeyplus + dexbeyplus) * aezplus
+            + (dexaeyplus + aexdeyplus) * bezplus)
+            * clift
+        + ((bexceyplus + cexbeyplus) * aezplus
+            + (cexaeyplus + aexceyplus) * bezplus
+            + (aexbeyplus + bexaeyplus) * cezplus)
+            * dlift;
     errbound = isperrboundA * permanent;
-    if det > errbound || -det > errbound { return det }
+    if det > errbound || -det > errbound {
+        return det;
+    }
     return insphereadapt(pa, pb, pc, pd, pe, permanent);
 }
-
-

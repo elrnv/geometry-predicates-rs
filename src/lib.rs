@@ -1,17 +1,17 @@
 //! # geometry-predicates
-//! 
+//!
 //! A safe Rust port of ["Adaptive Precision Floating-Point Arithmetic and Fast Robust
-//! Predicates for Computational Geometry"](https://www.cs.cmu.edu/~quake/robust.html) 
-//! 
+//! Predicates for Computational Geometry"](https://www.cs.cmu.edu/~quake/robust.html)
+//!
 //! This crate provides a Rust solution to efficient exact geometry predicates
 //! used widely for computational geometry.
-//! 
+//!
 //! In addition, the building blocks of these predicates, namely the adaptive precision
 //! floating-point arithmetic primitives, are also exposed in `[predicates]` to allow for extensions
 //! to other predicates or exact geometric constructions.
-//! 
+//!
 //! ## Background
-//! 
+//!
 //! These predicates have been a staple in computational geometry for many years now
 //! and are widely used in industry.   In the context of geometry algorithms, it is
 //! often essential to determine the orientation of a point with respect to a line (or a
@@ -26,23 +26,23 @@
 //! ```ignore
 //! sgn(orient2d(a,c,b)) == sgn(orient2d(c,b,a))
 //! ```
-//! 
+//!
 //! Mathematically (using MATLAB-style notation), predicates like `orient2d` are
 //! defined as
 //! ```ignore
 //! orient2d([ax,ay], [bx,by], [cx,cy]) := det([ax ay 1; bx by 1; cx cy 1])
 //! ```
-//! 
+//!
 //! It's easy to see that these predicates solve the problem of
 //! computing the determinant of small matrices with the correct sign, regardless of how
 //! close the matrix is to being singular.
-//! 
+//!
 //! For instance to compute the determinant of a matrix `[a b; c d]` with the
 //! correct sign, we can invoke
 //! ```ignore
 //! orient2d([a,b], [c,d], [0,0])
 //! ```
-//! 
+//!
 //! For more details please refer to the [original
 //! webpage](https://www.cs.cmu.edu/~quake/robust.html) for these predicates.
 #![no_std]
@@ -55,16 +55,16 @@ mod transpiled;
 // There are other alternative robust implementations (but typically slower) of these predicates.
 // We use those to check the adaptive implementations.
 pub use predicates::{
+    incircle,
+    incircle_fast,
+    insphere,
+    insphere_fast,
     // Adaptive robust predicates.
     orient2d,
-    orient3d,
-    incircle,
-    insphere,
     // Fast inexact predicates.
     orient2d_fast,
+    orient3d,
     orient3d_fast,
-    incircle_fast,
-    insphere_fast,
 };
 
 #[cfg(test)]
@@ -74,14 +74,8 @@ mod tests {
     use super::*;
 
     use predicates::{
-        orient2d_exact,
-        orient2d_slow,
-        orient3d_exact,
-        orient3d_slow,
-        incircle_exact,
-        incircle_slow,
-        insphere_exact,
-        insphere_slow,
+        incircle_exact, incircle_slow, insphere_exact, insphere_slow, orient2d_exact,
+        orient2d_slow, orient3d_exact, orient3d_slow,
     };
 
     const SEED: &[usize] = &[1, 2, 3, 4];
@@ -105,7 +99,7 @@ mod tests {
     /// Generate a tolerance value with exponent no less than -142.
     fn tol(rng: &mut StdRng) -> f64 {
         let max_exp = (EXP_BOUNDS[0] + 1) as f64;
-        10.0_f64.powi((max_exp*rng.gen::<f64>()).round() as i32) * (rng.gen::<f64>() - 0.5)
+        10.0_f64.powi((max_exp * rng.gen::<f64>()).round() as i32) * (rng.gen::<f64>() - 0.5)
     }
 
     /*
@@ -120,14 +114,14 @@ mod tests {
         ($n:expr, $struct_name:ident) => {
             struct $struct_name<T> {
                 perm: [T; $n],
-                p: [usize; $n+1],
+                p: [usize; $n + 1],
                 index: usize,
             }
 
             impl<T> $struct_name<T> {
                 fn new(v: [T; $n]) -> Self {
-                    let mut p = [0; $n+1];
-                    for i in 0..$n+1 {
+                    let mut p = [0; $n + 1];
+                    for i in 0..$n + 1 {
                         p[i] = i;
                     }
                     $struct_name {
@@ -162,13 +156,12 @@ mod tests {
                     Some(perm.clone())
                 }
             }
-        }
+        };
     }
 
     quick_perm_impl!(3, QuickPerm3);
     quick_perm_impl!(4, QuickPerm4);
     quick_perm_impl!(5, QuickPerm5);
-
 
     /*
      * The tests below have specific purposes.
@@ -191,7 +184,9 @@ mod tests {
     #[cfg(feature = "transpiled")]
     #[test]
     fn orient2d_transpiled_regression_test() {
-        unsafe { transpiled::exactinit(); }
+        unsafe {
+            transpiled::exactinit();
+        }
         let mut rng: StdRng = SeedableRng::from_seed(SEED);
 
         let n = 99999;
@@ -201,8 +196,13 @@ mod tests {
             let c = [24.0, 24.0];
             let o2d = orient2d;
             let o2d_transpiled = transpiled::orient2d;
-            for p in QuickPerm3::new([a,b,c]) {
-                assert_eq!(o2d(p[0], p[1], p[2]), o2d_transpiled(p[0], p[1], p[2]), "{:?}", a);
+            for p in QuickPerm3::new([a, b, c]) {
+                assert_eq!(
+                    o2d(p[0], p[1], p[2]),
+                    o2d_transpiled(p[0], p[1], p[2]),
+                    "{:?}",
+                    a
+                );
             }
         }
     }
@@ -220,13 +220,13 @@ mod tests {
 
                 let main = o2d(pa, pb, pc);
                 if main == 0.0 {
-                    for [a,b,c] in QuickPerm3::new([pa, pb, pc]) {
+                    for [a, b, c] in QuickPerm3::new([pa, pb, pc]) {
                         assert_eq!(o2d(a, b, c), 0.0);
                     }
                 }
 
                 let pred = main > 0.0;
-                for (i, [a,b,c]) in QuickPerm3::new([pa,pb,pc]).enumerate() {
+                for (i, [a, b, c]) in QuickPerm3::new([pa, pb, pc]).enumerate() {
                     let t = o2d(a, b, c);
                     assert_eq!(pred, if i % 2 == 0 { t > 0.0 } else { t < 0.0 });
                 }
@@ -252,9 +252,19 @@ mod tests {
 
             // Test all permutations.
 
-            for [a,b,c] in QuickPerm3::new([pa,pb,pc]) {
-                assert_eq!(o2d(a, b, c).partial_cmp(&0.0), o2de(a, b, c).partial_cmp(&0.0), "{:?}", pa);
-                assert_eq!(o2d(a, b, c).partial_cmp(&0.0), o2ds(a, b, c).partial_cmp(&0.0), "{:?}", pa);
+            for [a, b, c] in QuickPerm3::new([pa, pb, pc]) {
+                assert_eq!(
+                    o2d(a, b, c).partial_cmp(&0.0),
+                    o2de(a, b, c).partial_cmp(&0.0),
+                    "{:?}",
+                    pa
+                );
+                assert_eq!(
+                    o2d(a, b, c).partial_cmp(&0.0),
+                    o2ds(a, b, c).partial_cmp(&0.0),
+                    "{:?}",
+                    pa
+                );
             }
         }
     }
@@ -294,7 +304,9 @@ mod tests {
     #[cfg(feature = "transpiled")]
     #[test]
     fn orient3d_transpiled_regression_test() {
-        unsafe { transpiled::exactinit(); }
+        unsafe {
+            transpiled::exactinit();
+        }
         let mut rng: StdRng = SeedableRng::from_seed(SEED);
 
         let n = 9999;
@@ -308,7 +320,7 @@ mod tests {
             let o3d_transpiled = transpiled::orient3d;
 
             // Test all permutations.
-            for [a,b,c,d] in QuickPerm4::new([pa,pb,pc,pd]) {
+            for [a, b, c, d] in QuickPerm4::new([pa, pb, pc, pd]) {
                 assert_eq!(o3d(a, c, d, b), o3d_transpiled(a, c, d, b), "{:?}", pa);
             }
         }
@@ -333,7 +345,7 @@ mod tests {
             // Test all permutations.
             // Actually these don't need to be exactly equal, they just need to compare equally to
             // 0.0. It just so happens that they are also equal.
-            for [a,b,c,d] in QuickPerm4::new([pa,pb,pc,pd]) {
+            for [a, b, c, d] in QuickPerm4::new([pa, pb, pc, pd]) {
                 assert_eq!(o3d(a, c, d, b), o3de(a, c, d, b), "{:?}", pa);
                 assert_eq!(o3d(a, c, d, b), o3ds(a, c, d, b), "{:?}", pa);
             }
@@ -348,11 +360,7 @@ mod tests {
 
         for o3d in &[orient3d, orient3d_exact, orient3d_slow] {
             for _ in 0..n {
-                let pa = [
-                    tol(&mut rng),
-                    tol(&mut rng),
-                    tol(&mut rng),
-                ];
+                let pa = [tol(&mut rng), tol(&mut rng), tol(&mut rng)];
                 let pb = [12.0, 12.0, 12.0];
                 let pc = [24.0, 24.0, 24.0];
                 let pd = [48.0, 48.0, 48.0];
@@ -362,15 +370,22 @@ mod tests {
                 let main = o3d(pa, pb, pc, pd);
 
                 if main == 0.0 {
-                    for [a,b,c,d] in QuickPerm4::new([pa,pb,pc,pd]) {
+                    for [a, b, c, d] in QuickPerm4::new([pa, pb, pc, pd]) {
                         assert_eq!(o3d(a, b, c, d), 0.0);
                     }
                 }
 
                 let pred = main > 0.0;
-                for (i, [a, b, c, d]) in QuickPerm4::new([pa,pb,pc,pd]).enumerate() {
+                for (i, [a, b, c, d]) in QuickPerm4::new([pa, pb, pc, pd]).enumerate() {
                     let t = o3d(a, b, c, d);
-                    assert_eq!(pred, if i % 2 == 0 { t > 0.0 } else { t < 0.0 }, "{} vs. {} at {:?}", t, -main, pa);
+                    assert_eq!(
+                        pred,
+                        if i % 2 == 0 { t > 0.0 } else { t < 0.0 },
+                        "{} vs. {} at {:?}",
+                        t,
+                        -main,
+                        pa
+                    );
                 }
             }
         }
@@ -445,15 +460,22 @@ mod tests {
                 let main = ic(pa, pb, pc, pd);
 
                 if main == 0.0 {
-                    for [a,b,c,d] in QuickPerm4::new([pa,pb,pc,pd]) {
+                    for [a, b, c, d] in QuickPerm4::new([pa, pb, pc, pd]) {
                         assert_eq!(ic(a, b, c, d), 0.0);
                     }
                 }
 
                 let pred = main > 0.0;
-                for (i, [a, b, c, d]) in QuickPerm4::new([pa,pb,pc,pd]).enumerate() {
+                for (i, [a, b, c, d]) in QuickPerm4::new([pa, pb, pc, pd]).enumerate() {
                     let t = ic(a, b, c, d);
-                    assert_eq!(pred, if i % 2 == 0 { t > 0.0 } else { t < 0.0 }, "{} vs. {} at {:?}", t, -main, pd);
+                    assert_eq!(
+                        pred,
+                        if i % 2 == 0 { t > 0.0 } else { t < 0.0 },
+                        "{} vs. {} at {:?}",
+                        t,
+                        -main,
+                        pd
+                    );
                 }
             }
         }
@@ -489,15 +511,22 @@ mod tests {
                 let main = is(pa, pb, pc, pd, pe);
 
                 if main == 0.0 {
-                    for [a,b,c,d,e] in QuickPerm5::new([pa,pb,pc,pd,pe]) {
+                    for [a, b, c, d, e] in QuickPerm5::new([pa, pb, pc, pd, pe]) {
                         assert_eq!(is(a, b, c, d, e), 0.0);
                     }
                 }
 
                 let pred = main > 0.0;
-                for (i, [a, b, c, d, e]) in QuickPerm5::new([pa,pb,pc,pd,pe]).enumerate() {
+                for (i, [a, b, c, d, e]) in QuickPerm5::new([pa, pb, pc, pd, pe]).enumerate() {
                     let t = is(a, b, c, d, e);
-                    assert_eq!(pred, if i % 2 == 0 { t > 0.0 } else { t < 0.0 }, "{} vs. {} at {:?}", t, -main, pe);
+                    assert_eq!(
+                        pred,
+                        if i % 2 == 0 { t > 0.0 } else { t < 0.0 },
+                        "{} vs. {} at {:?}",
+                        t,
+                        -main,
+                        pe
+                    );
                 }
             }
         }
