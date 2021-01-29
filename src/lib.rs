@@ -1,133 +1,27 @@
 #![no_std]
 mod predicates;
 
-/**
- * Adaptive exact 2D orientation test.  Robust.
- *
- * Return a positive value if the points `pa`, `pb`, and `pc` occur
- * in counterclockwise order; a negative value if they occur
- * in clockwise order; and zero if they are collinear.  The
- * result is also a rough approximation of twice the signed
- * area of the triangle defined by the three points.
- *
- * The result returned is the determinant of a matrix.
- * This determinant is computed adaptively, in the sense that exact
- * arithmetic is used only to the degree it is needed to ensure that the
- * returned value has the correct sign.  Hence, `orient2d()` is usually quite
- * fast, but will run more slowly when the input points are collinear or
- * nearly so.
- */
-#[inline]
-pub fn orient2d(pa: [f64; 2], pb: [f64; 2], pc: [f64; 2]) -> f64 {
-    unsafe { predicates::orient2d(pa.as_ptr(), pb.as_ptr(), pc.as_ptr()) }
-}
+#[cfg(feature = "transpiled")]
+mod transpiled;
 
-/**
- * Adaptive exact 3D orientation test. Robust.
- *
- * Return a positive value if the point `pd` lies below the
- * plane passing through `pa`, `pb`, and `pc`; "below" is defined so
- * that `pa`, `pb`, and `pc` appear in counterclockwise order when
- * viewed from above the plane.  Returns a negative value if
- * pd lies above the plane.  Returns zero if the points are
- * coplanar.  The result is also a rough approximation of six
- * times the signed volume of the tetrahedron defined by the
- * four points.
- *
- * The result returned is the determinant of a matrix.
- * This determinant is computed adaptively, in the sense that exact
- * arithmetic is used only to the degree it is needed to ensure that the
- * returned value has the correct sign.  Hence, orient3d() is usually quite
- * fast, but will run more slowly when the input points are coplanar or
- * nearly so.
- */
-#[inline]
-pub fn orient3d(pa: [f64; 3], pb: [f64; 3], pc: [f64; 3], pd: [f64; 3]) -> f64 {
-    unsafe { predicates::orient3d(pa.as_ptr(), pb.as_ptr(), pc.as_ptr(), pd.as_ptr()) }
-}
-
-/**
- * Adaptive exaact 2D incircle test. Robust.
- *
- * Return a positive value if the point `pd` lies inside the
- * circle passing through `pa`, `pb`, and `pc`; a negative value if
- * it lies outside; and zero if the four points are cocircular.
- * The points `pa`, `pb`, and `pc` must be in counterclockwise
- * order, or the sign of the result will be reversed.
- *
- * The result returned is the determinant of a matrix.
- * This determinant is computed adaptively, in the sense that exact
- * arithmetic is used only to the degree it is needed to ensure that the
- * returned value has the correct sign.  Hence, `incircle()` is usually quite
- * fast, but will run more slowly when the input points are cocircular or
- * nearly so.
- */
-#[inline]
-pub fn incircle(pa: [f64; 2], pb: [f64; 2], pc: [f64; 2], pd: [f64; 2]) -> f64 {
-    unsafe { predicates::incircle(pa.as_ptr(), pb.as_ptr(), pc.as_ptr(), pd.as_ptr()) }
-}
-
-/**
- * Adaptive exact 3D insphere test. Robust.
- *
- * Return a positive value if the point `pe` lies inside the
- * sphere passing through `pa`, `pb`, `pc`, and `pd`; a negative value
- * if it lies outside; and zero if the five points are
- * cospherical.  The points `pa`, `pb`, `pc`, and `pd` must be ordered
- * so that they have a positive orientation (as defined by
- * `orient3d()`), or the sign of the result will be reversed.
- *
- * The result returned is the determinant of a matrix.
- * this determinant is computed adaptively, in the sense that exact
- * arithmetic is used only to the degree it is needed to ensure that the
- * returned value has the correct sign.  Hence, `insphere()` is usually quite
- * fast, but will run more slowly when the input points are cospherical or
- * nearly so.
- */
-#[inline]
-pub fn insphere(pa: [f64; 3], pb: [f64; 3], pc: [f64; 3], pd: [f64; 3], pe: [f64; 3]) -> f64 {
-    unsafe {
-        predicates::insphere(
-            pa.as_ptr(),
-            pb.as_ptr(),
-            pc.as_ptr(),
-            pd.as_ptr(),
-            pe.as_ptr(),
-        )
-    }
-}
-
-/// Approximate 2D orientation test. Nonrobust version of `orient2d`.
-#[inline]
-pub fn orient2d_fast(pa: [f64; 2], pb: [f64; 2], pc: [f64; 2]) -> f64 {
-    unsafe { predicates::orient2dfast(pa.as_ptr(), pb.as_ptr(), pc.as_ptr()) }
-}
-
-/// Approximate 3D orientation test. Nonrobust version of `orient3d`.
-#[inline]
-pub fn orient3d_fast(pa: [f64; 3], pb: [f64; 3], pc: [f64; 3], pd: [f64; 3]) -> f64 {
-    unsafe { predicates::orient3dfast(pa.as_ptr(), pb.as_ptr(), pc.as_ptr(), pd.as_ptr()) }
-}
-
-/// Approximate 2D incircle test. Nonrobust version of `incircle`
-#[inline]
-pub fn incircle_fast(pa: [f64; 2], pb: [f64; 2], pc: [f64; 2], pd: [f64; 2]) -> f64 {
-    unsafe { predicates::incirclefast(pa.as_ptr(), pb.as_ptr(), pc.as_ptr(), pd.as_ptr()) }
-}
-
-/// Approximate 3D insphere test. Nonrobust version of `insphere`
-#[inline]
-pub fn insphere_fast(pa: [f64; 3], pb: [f64; 3], pc: [f64; 3], pd: [f64; 3], pe: [f64; 3]) -> f64 {
-    unsafe {
-        predicates::inspherefast(
-            pa.as_ptr(),
-            pb.as_ptr(),
-            pc.as_ptr(),
-            pd.as_ptr(),
-            pe.as_ptr(),
-        )
-    }
-}
+pub use predicates::{
+    orient2d,
+    orient2d_fast,
+    orient2d_exact,
+    orient2d_slow,
+    orient3d,
+    orient3d_fast,
+    orient3d_exact,
+    orient3d_slow,
+    incircle,
+    incircle_fast,
+    incircle_exact,
+    incircle_slow,
+    insphere,
+    insphere_fast,
+    insphere_exact,
+    insphere_slow,
+};
 
 #[cfg(test)]
 mod tests {
@@ -137,6 +31,20 @@ mod tests {
 
     const SEED: &[usize] = &[1, 2, 3, 4];
 
+    /* Note on robustness testing
+     * These predicates do NOT handle overflow or underflowo of the exponent.
+     * Quoting Shechuk's predicates paper directly:
+     *
+     * > The four predicates implemented [in this library] will not overflow nor underflow if their
+     * > inputs have exponents in the range [-142, 201] and IEEE 754 double precision arithmetic
+     * > is used.
+     * - Jonathan Shechuk 1997
+     *
+     * We will therefore be careful to test for inputs with exponents in that range and not beyond.
+     */
+
+    const EXP_BOUNDS: [i32; 2] = [-142, 201];
+
     #[test]
     fn orient2d_test() {
         let a = [0.0, 1.0];
@@ -145,15 +53,35 @@ mod tests {
         assert_eq!(orient2d(a, b, c), 0.0);
     }
 
+    #[cfg(feature = "transpiled")]
+    #[test]
+    fn orient2d_regression_test() {
+        unsafe { transpiled::exactinit(); }
+        let mut rng: StdRng = SeedableRng::from_seed(SEED);
+        let tol = 5.0e-14;
+
+        let n = 99999;
+        for _ in 0..n {
+            let a = [0.5 + tol * rng.gen::<f64>(), 0.5 + tol * rng.gen::<f64>()];
+            let b = [12.0, 12.0];
+            let c = [24.0, 24.0];
+            let o2d = orient2d;
+            let o2d_transpiled = transpiled::orient2d;
+            assert_eq!(o2d(a, b, c), o2d_transpiled(a, b, c), "{:?}", a);
+            assert_eq!(o2d(b, c, a), o2d_transpiled(b, c, a), "{:?}", a);
+            assert_eq!(o2d(c, a, b), o2d_transpiled(c, a, b), "{:?}", a);
+            assert_eq!(o2d(a, c, b), o2d_transpiled(a, c, b), "{:?}", a);
+            assert_eq!(o2d(c, b, a), o2d_transpiled(c, b, a), "{:?}", a);
+            assert_eq!(o2d(b, a, c), o2d_transpiled(b, a, c), "{:?}", a);
+        }
+    }
+
     #[test]
     fn orient2d_robustness_test() {
         let mut rng: StdRng = SeedableRng::from_seed(SEED);
         let tol = 5.0e-14;
 
-        #[cfg(miri)]
-        let n = 99;
-        #[cfg(not(miri))]
-        let n = 9999999;
+        let n = 99999;
         for _ in 0..n {
             let a = [0.5 + tol * rng.gen::<f64>(), 0.5 + tol * rng.gen::<f64>()];
             let b = [12.0, 12.0];
@@ -197,28 +125,199 @@ mod tests {
         assert_eq!(orient3d(a, b, c, d), 10.0);
     }
 
+    #[cfg(feature = "transpiled")]
     #[test]
-    fn orient3d_robustness_test() {
+    fn orient3d_transpiled_regression_test() {
+        unsafe { transpiled::exactinit(); }
         let mut rng: StdRng = SeedableRng::from_seed(SEED);
-        let tol = 5.0e-14;
+        let max_exp = (EXP_BOUNDS[0] + 1) as f64;
 
-        #[cfg(miri)]
-        let n = 99;
-        #[cfg(not(miri))]
-        let n = 99999;
+        // Generate a small non-negative number.
+        let mut tol = || ((max_exp*rng.gen::<f64>()).round()).exp() * (rng.gen::<f64>() - 0.5);
+
+        let n = 9999;
         for _ in 0..n {
-            let a = [
-                0.5 + tol * rng.gen::<f64>(),
-                0.5 + tol * rng.gen::<f64>(),
-                0.5 + tol * rng.gen::<f64>(),
-            ];
+            let a = [tol(), tol(), tol()];
             let b = [12.0, 12.0, 12.0];
             let c = [24.0, 24.0, 24.0];
             let d = [48.0, 48.0, 48.0];
-            assert_eq!(orient3d(a, b, c, d) > 0.0, orient3d(b, c, d, a) > 0.0);
-            assert_eq!(orient3d(b, c, d, a) > 0.0, orient3d(c, d, a, b) > 0.0);
-            assert_eq!(orient3d(b, a, c, d) < 0.0, orient3d(c, b, d, a) < 0.0);
-            assert_eq!(orient3d(b, d, c, a) < 0.0, orient3d(c, d, b, a) < 0.0);
+
+            let o3d = predicates::orient3d;
+            let o3d_transpiled = transpiled::orient3d;
+
+            assert_eq!(o3d(a, c, d, b), o3d_transpiled(a, c, d, b), "{:?}", a);
+            assert_eq!(o3d(a, d, b, c), o3d_transpiled(a, d, b, c), "{:?}", a);
+            assert_eq!(o3d(b, a, d, c), o3d_transpiled(b, a, d, c), "{:?}", a);
+            assert_eq!(o3d(b, c, a, d), o3d_transpiled(b, c, a, d), "{:?}", a);
+            assert_eq!(o3d(b, d, c, a), o3d_transpiled(b, d, c, a), "{:?}", a);
+            assert_eq!(o3d(c, a, b, d), o3d_transpiled(c, a, b, d), "{:?}", a);
+            assert_eq!(o3d(c, b, d, a), o3d_transpiled(c, b, d, a), "{:?}", a);
+            assert_eq!(o3d(c, d, a, b), o3d_transpiled(c, d, a, b), "{:?}", a);
+            assert_eq!(o3d(d, a, c, b), o3d_transpiled(d, a, c, b), "{:?}", a);
+            assert_eq!(o3d(d, b, a, c), o3d_transpiled(d, b, a, c), "{:?}", a);
+            assert_eq!(o3d(d, c, b, a), o3d_transpiled(d, c, b, a), "{:?}", a);
+            assert_eq!(o3d(a, b, d, c), o3d_transpiled(a, b, d, c), "{:?}", a);
+            assert_eq!(o3d(a, c, b, d), o3d_transpiled(a, c, b, d), "{:?}", a);
+            assert_eq!(o3d(a, d, c, b), o3d_transpiled(a, d, c, b), "{:?}", a);
+            assert_eq!(o3d(b, a, c, d), o3d_transpiled(b, a, c, d), "{:?}", a);
+            assert_eq!(o3d(b, c, d, a), o3d_transpiled(b, c, d, a), "{:?}", a);
+            assert_eq!(o3d(b, d, a, c), o3d_transpiled(b, d, a, c), "{:?}", a);
+            assert_eq!(o3d(c, a, d, b), o3d_transpiled(c, a, d, b), "{:?}", a);
+            assert_eq!(o3d(c, b, a, d), o3d_transpiled(c, b, a, d), "{:?}", a);
+            assert_eq!(o3d(c, d, b, a), o3d_transpiled(c, d, b, a), "{:?}", a);
+            assert_eq!(o3d(d, a, b, c), o3d_transpiled(d, a, b, c), "{:?}", a);
+            assert_eq!(o3d(d, b, c, a), o3d_transpiled(d, b, c, a), "{:?}", a);
+            assert_eq!(o3d(d, c, a, b), o3d_transpiled(d, c, a, b), "{:?}", a);
+        }
+    }
+
+    // The following test verifies equivalence of all of the robust orient3d variants.
+    #[test]
+    fn orient3d_regression_test() {
+        let mut rng: StdRng = SeedableRng::from_seed(SEED);
+
+        let max_exp = (EXP_BOUNDS[0] + 1) as f64;
+
+        // Generate a small non-negative number.
+        let mut tol = || 10.0_f64.powi((max_exp*rng.gen::<f64>()).round() as i32) * (rng.gen::<f64>() - 0.5);
+
+        let n = 9999;
+        for _ in 0..n {
+            let a = [tol(), tol(), tol()];
+            let b = [12.0, 12.0, 12.0];
+            let c = [24.0, 24.0, 24.0];
+            let d = [48.0, 48.0, 48.0];
+
+            let o3d = predicates::orient3d;
+            let o3de = predicates::orient3d_exact;
+            let o3ds = predicates::orient3d_slow;
+
+            assert_eq!(o3d(a, c, d, b), o3de(a, c, d, b), "{:?}", a);
+            assert_eq!(o3d(a, d, b, c), o3de(a, d, b, c), "{:?}", a);
+            assert_eq!(o3d(b, a, d, c), o3de(b, a, d, c), "{:?}", a);
+            assert_eq!(o3d(b, c, a, d), o3de(b, c, a, d), "{:?}", a);
+            assert_eq!(o3d(b, d, c, a), o3de(b, d, c, a), "{:?}", a);
+            assert_eq!(o3d(c, a, b, d), o3de(c, a, b, d), "{:?}", a);
+            assert_eq!(o3d(c, b, d, a), o3de(c, b, d, a), "{:?}", a);
+            assert_eq!(o3d(c, d, a, b), o3de(c, d, a, b), "{:?}", a);
+            assert_eq!(o3d(d, a, c, b), o3de(d, a, c, b), "{:?}", a);
+            assert_eq!(o3d(d, b, a, c), o3de(d, b, a, c), "{:?}", a);
+            assert_eq!(o3d(d, c, b, a), o3de(d, c, b, a), "{:?}", a);
+            assert_eq!(o3d(a, b, d, c), o3de(a, b, d, c), "{:?}", a);
+            assert_eq!(o3d(a, c, b, d), o3de(a, c, b, d), "{:?}", a);
+            assert_eq!(o3d(a, d, c, b), o3de(a, d, c, b), "{:?}", a);
+            assert_eq!(o3d(b, a, c, d), o3de(b, a, c, d), "{:?}", a);
+            assert_eq!(o3d(b, c, d, a), o3de(b, c, d, a), "{:?}", a);
+            assert_eq!(o3d(b, d, a, c), o3de(b, d, a, c), "{:?}", a);
+            assert_eq!(o3d(c, a, d, b), o3de(c, a, d, b), "{:?}", a);
+            assert_eq!(o3d(c, b, a, d), o3de(c, b, a, d), "{:?}", a);
+            assert_eq!(o3d(c, d, b, a), o3de(c, d, b, a), "{:?}", a);
+            assert_eq!(o3d(d, a, b, c), o3de(d, a, b, c), "{:?}", a);
+            assert_eq!(o3d(d, b, c, a), o3de(d, b, c, a), "{:?}", a);
+            assert_eq!(o3d(d, c, a, b), o3de(d, c, a, b), "{:?}", a);
+
+            assert_eq!(o3d(a, c, d, b), o3ds(a, c, d, b), "{:?}", a);
+            assert_eq!(o3d(a, d, b, c), o3ds(a, d, b, c), "{:?}", a);
+            assert_eq!(o3d(b, a, d, c), o3ds(b, a, d, c), "{:?}", a);
+            assert_eq!(o3d(b, c, a, d), o3ds(b, c, a, d), "{:?}", a);
+            assert_eq!(o3d(b, d, c, a), o3ds(b, d, c, a), "{:?}", a);
+            assert_eq!(o3d(c, a, b, d), o3ds(c, a, b, d), "{:?}", a);
+            assert_eq!(o3d(c, b, d, a), o3ds(c, b, d, a), "{:?}", a);
+            assert_eq!(o3d(c, d, a, b), o3ds(c, d, a, b), "{:?}", a);
+            assert_eq!(o3d(d, a, c, b), o3ds(d, a, c, b), "{:?}", a);
+            assert_eq!(o3d(d, b, a, c), o3ds(d, b, a, c), "{:?}", a);
+            assert_eq!(o3d(d, c, b, a), o3ds(d, c, b, a), "{:?}", a);
+            assert_eq!(o3d(a, b, d, c), o3ds(a, b, d, c), "{:?}", a);
+            assert_eq!(o3d(a, c, b, d), o3ds(a, c, b, d), "{:?}", a);
+            assert_eq!(o3d(a, d, c, b), o3ds(a, d, c, b), "{:?}", a);
+            assert_eq!(o3d(b, a, c, d), o3ds(b, a, c, d), "{:?}", a);
+            assert_eq!(o3d(b, c, d, a), o3ds(b, c, d, a), "{:?}", a);
+            assert_eq!(o3d(b, d, a, c), o3ds(b, d, a, c), "{:?}", a);
+            assert_eq!(o3d(c, a, d, b), o3ds(c, a, d, b), "{:?}", a);
+            assert_eq!(o3d(c, b, a, d), o3ds(c, b, a, d), "{:?}", a);
+            assert_eq!(o3d(c, d, b, a), o3ds(c, d, b, a), "{:?}", a);
+            assert_eq!(o3d(d, a, b, c), o3ds(d, a, b, c), "{:?}", a);
+            assert_eq!(o3d(d, b, c, a), o3ds(d, b, c, a), "{:?}", a);
+            assert_eq!(o3d(d, c, a, b), o3ds(d, c, a, b), "{:?}", a);
+        }
+    }
+
+    #[test]
+    fn orient3d_robustness_test() {
+        let mut rng: StdRng = SeedableRng::from_seed(SEED);
+        let max_exp = (EXP_BOUNDS[0] + 1) as f64;
+
+        // Generate a small non-negative number.
+        let mut tol = || ((max_exp*rng.gen::<f64>()).round()).exp() * (rng.gen::<f64>() - 0.5);
+
+        let n = 999;
+
+        for o3d in &[orient3d, orient3d_exact, orient3d_slow] {
+            for _ in 0..n {
+                let a = [
+                    tol(),
+                    tol(),
+                    tol(),
+                ];
+                let b = [12.0, 12.0, 12.0];
+                let c = [24.0, 24.0, 24.0];
+                let d = [48.0, 48.0, 48.0];
+
+                let main = o3d(a, b, c, d);
+
+                if a[0] == 0.0 && a[1] == 0.0 {
+                    assert_eq!(main, 0.0);
+                    assert_eq!(o3d(a, c, d, b), 0.0);
+                    assert_eq!(o3d(a, d, b, c), 0.0);
+                    assert_eq!(o3d(b, a, d, c), 0.0);
+                    assert_eq!(o3d(b, c, a, d), 0.0);
+                    assert_eq!(o3d(b, d, c, a), 0.0);
+                    assert_eq!(o3d(c, a, b, d), 0.0);
+                    assert_eq!(o3d(c, b, d, a), 0.0);
+                    assert_eq!(o3d(c, d, a, b), 0.0);
+                    assert_eq!(o3d(d, a, c, b), 0.0);
+                    assert_eq!(o3d(d, b, a, c), 0.0);
+                    assert_eq!(o3d(d, c, b, a), 0.0);
+                    assert_eq!(o3d(a, b, d, c), 0.0);
+                    assert_eq!(o3d(a, c, b, d), 0.0);
+                    assert_eq!(o3d(a, d, c, b), 0.0);
+                    assert_eq!(o3d(b, a, c, d), 0.0);
+                    assert_eq!(o3d(b, c, d, a), 0.0);
+                    assert_eq!(o3d(b, d, a, c), 0.0);
+                    assert_eq!(o3d(c, a, d, b), 0.0);
+                    assert_eq!(o3d(c, b, a, d), 0.0);
+                    assert_eq!(o3d(c, d, b, a), 0.0);
+                    assert_eq!(o3d(d, a, b, c), 0.0);
+                    assert_eq!(o3d(d, b, c, a), 0.0);
+                    assert_eq!(o3d(d, c, a, b), 0.0);
+                }
+
+                let pred = main > 0.0;
+                assert_eq!(pred, o3d(a, c, d, b) > 0.0, "{} vs. {} at {:?}", o3d(a, c, d, b), main, a);
+                assert_eq!(pred, o3d(a, d, b, c) > 0.0, "{} vs. {} at {:?}", o3d(a, d, b, c), main, a);
+                assert_eq!(pred, o3d(b, a, d, c) > 0.0, "{} vs. {} at {:?}", o3d(b, a, d, c), main, a);
+                assert_eq!(pred, o3d(b, c, a, d) > 0.0, "{} vs. {} at {:?}", o3d(b, c, a, d), main, a);
+                assert_eq!(pred, o3d(b, d, c, a) > 0.0, "{} vs. {} at {:?}", o3d(b, d, c, a), main, a);
+                assert_eq!(pred, o3d(c, a, b, d) > 0.0, "{} vs. {} at {:?}", o3d(c, a, b, d), main, a);
+                assert_eq!(pred, o3d(c, b, d, a) > 0.0, "{} vs. {} at {:?}", o3d(c, b, d, a), main, a);
+                assert_eq!(pred, o3d(c, d, a, b) > 0.0, "{} vs. {} at {:?}", o3d(c, d, a, b), main, a);
+                assert_eq!(pred, o3d(d, a, c, b) > 0.0, "{} vs. {} at {:?}", o3d(d, a, c, b), main, a);
+                assert_eq!(pred, o3d(d, b, a, c) > 0.0, "{} vs. {} at {:?}", o3d(d, b, a, c), main, a);
+                assert_eq!(pred, o3d(d, c, b, a) > 0.0, "{} vs. {} at {:?}", o3d(d, c, b, a), main, a);
+
+                assert_eq!(pred, o3d(a, b, d, c) < 0.0, "{} vs. {} at {:?}", o3d(a, b, d, c), -main, a);
+                assert_eq!(pred, o3d(a, c, b, d) < 0.0, "{} vs. {} at {:?}", o3d(a, c, b, d), -main, a);
+                assert_eq!(pred, o3d(a, d, c, b) < 0.0, "{} vs. {} at {:?}", o3d(a, d, c, b), -main, a);
+                assert_eq!(pred, o3d(b, a, c, d) < 0.0, "{} vs. {} at {:?}", o3d(b, a, c, d), -main, a);
+                assert_eq!(pred, o3d(b, c, d, a) < 0.0, "{} vs. {} at {:?}", o3d(b, c, d, a), -main, a);
+                assert_eq!(pred, o3d(b, d, a, c) < 0.0, "{} vs. {} at {:?}", o3d(b, d, a, c), -main, a);
+                assert_eq!(pred, o3d(c, a, d, b) < 0.0, "{} vs. {} at {:?}", o3d(c, a, d, b), -main, a);
+                assert_eq!(pred, o3d(c, b, a, d) < 0.0, "{} vs. {} at {:?}", o3d(c, b, a, d), -main, a);
+                assert_eq!(pred, o3d(c, d, b, a) < 0.0, "{} vs. {} at {:?}", o3d(c, d, b, a), -main, a);
+                assert_eq!(pred, o3d(d, a, b, c) < 0.0, "{} vs. {} at {:?}", o3d(d, a, b, c), -main, a);
+                assert_eq!(pred, o3d(d, b, c, a) < 0.0, "{} vs. {} at {:?}", o3d(d, b, c, a), -main, a);
+                assert_eq!(pred, o3d(d, c, a, b) < 0.0, "{} vs. {} at {:?}", o3d(d, c, a, b), -main, a);
+            }
         }
     }
 
@@ -245,14 +344,14 @@ mod tests {
         let d = [48.0, 48.0, 48.0];
         assert_eq!(
             orient3d_fast(a, b, c, d) > 0.0,
-            orient3d_fast(b, c, d, a) > 0.0
+            orient3d_fast(b, c, a, d) > 0.0
         );
         assert_eq!(
             orient3d_fast(b, a, c, d) < 0.0,
             orient3d_fast(c, b, d, a) < 0.0
         );
         // The following orientations are expected to be inconsistent
-        // (this is why we need exact predicateexact predicatess)
+        // (this is why we need exact predicates)
         assert_ne!(
             orient3d_fast(b, c, d, a) > 0.0,
             orient3d_fast(c, d, a, b) > 0.0
@@ -261,5 +360,92 @@ mod tests {
             orient3d_fast(b, d, c, a) < 0.0,
             orient3d_fast(c, d, b, a) < 0.0
         );
+    }
+
+    #[test]
+    fn incircle_test() {
+        let a = [0.0, 1.0];
+        let b = [1.0, 0.0];
+        let c = [1.0, 1.0];
+        let d = [0.0, 0.0];
+        assert_eq!(incircle(a, b, c, d), 0.0);
+        let d = [0.1, 0.1];
+        assert!(incircle(a, b, c, d) > 0.0);
+        let d = [-0.1, -0.1];
+        assert!(incircle(a, b, c, d) < 0.0);
+    }
+
+    #[test]
+    fn incircle_robustness_test() {
+        let mut rng: StdRng = SeedableRng::from_seed(SEED);
+        let max_exp = (EXP_BOUNDS[0] + 1) as f64;
+
+        // Generate a small non-negative number.
+        let mut tol = || ((max_exp*rng.gen::<f64>()).round()).exp() * (rng.gen::<f64>() - 0.5);
+
+        let n = 999;
+        for ic in &[incircle, incircle_exact, incircle_slow] {
+            for _ in 0..n {
+                let a = [0.0, 1.0];
+                let b = [1.0, 0.0];
+                let c = [1.0, 1.0];
+                let d = [tol(), tol()];
+
+                let main = ic(a, b, c, d);
+
+                if d[0] == 0.0 && d[1] == 0.0 {
+                    assert_eq!(main, 0.0);
+                    assert_eq!(ic(a, c, d, b), 0.0);
+                    assert_eq!(ic(a, d, b, c), 0.0);
+                    assert_eq!(ic(b, a, d, c), 0.0);
+                    assert_eq!(ic(b, c, a, d), 0.0);
+                    assert_eq!(ic(b, d, c, a), 0.0);
+                    assert_eq!(ic(c, a, b, d), 0.0);
+                    assert_eq!(ic(c, b, d, a), 0.0);
+                    assert_eq!(ic(c, d, a, b), 0.0);
+                    assert_eq!(ic(d, a, c, b), 0.0);
+                    assert_eq!(ic(d, b, a, c), 0.0);
+                    assert_eq!(ic(d, c, b, a), 0.0);
+                    assert_eq!(ic(a, b, d, c), 0.0);
+                    assert_eq!(ic(a, c, b, d), 0.0);
+                    assert_eq!(ic(a, d, c, b), 0.0);
+                    assert_eq!(ic(b, a, c, d), 0.0);
+                    assert_eq!(ic(b, c, d, a), 0.0);
+                    assert_eq!(ic(b, d, a, c), 0.0);
+                    assert_eq!(ic(c, a, d, b), 0.0);
+                    assert_eq!(ic(c, b, a, d), 0.0);
+                    assert_eq!(ic(c, d, b, a), 0.0);
+                    assert_eq!(ic(d, a, b, c), 0.0);
+                    assert_eq!(ic(d, b, c, a), 0.0);
+                    assert_eq!(ic(d, c, a, b), 0.0);
+                }
+
+                let pred = main > 0.0;
+                assert_eq!(pred, ic(a, c, d, b) > 0.0, "{} vs. {}: {:?}", ic(a, c, d, b), main, d);
+                assert_eq!(pred, ic(a, d, b, c) > 0.0, "{} vs. {}: {:?}", ic(a, d, b, c), main, d);
+                assert_eq!(pred, ic(b, a, d, c) > 0.0, "{} vs. {}: {:?}", ic(b, a, d, c), main, d);
+                assert_eq!(pred, ic(b, c, a, d) > 0.0, "{} vs. {}: {:?}", ic(b, c, a, d), main, d);
+                assert_eq!(pred, ic(b, d, c, a) > 0.0, "{} vs. {}: {:?}", ic(b, d, c, a), main, d);
+                assert_eq!(pred, ic(c, a, b, d) > 0.0, "{} vs. {}: {:?}", ic(c, a, b, d), main, d);
+                assert_eq!(pred, ic(c, b, d, a) > 0.0, "{} vs. {}: {:?}", ic(c, b, d, a), main, d);
+                assert_eq!(pred, ic(c, d, a, b) > 0.0, "{} vs. {}: {:?}", ic(c, d, a, b), main, d);
+                assert_eq!(pred, ic(d, a, c, b) > 0.0, "{} vs. {}: {:?}", ic(d, a, c, b), main, d);
+                assert_eq!(pred, ic(d, b, a, c) > 0.0, "{} vs. {}: {:?}", ic(d, b, a, c), main, d);
+                assert_eq!(pred, ic(d, c, b, a) > 0.0, "{} vs. {}: {:?}", ic(d, c, b, a), main, d);
+
+                assert_eq!(pred, ic(a, b, d, c) < 0.0, "{} vs. {}: {:?}", ic(a, b, d, c), -main, d);
+                assert_eq!(pred, ic(a, c, b, d) < 0.0, "{} vs. {}: {:?}", ic(a, c, b, d), -main, d);
+                assert_eq!(pred, ic(a, d, c, b) < 0.0, "{} vs. {}: {:?}", ic(a, d, c, b), -main, d);
+                assert_eq!(pred, ic(b, a, c, d) < 0.0, "{} vs. {}: {:?}", ic(b, a, c, d), -main, d);
+                assert_eq!(pred, ic(b, c, d, a) < 0.0, "{} vs. {}: {:?}", ic(b, c, d, a), -main, d);
+                assert_eq!(pred, ic(b, d, a, c) < 0.0, "{} vs. {}: {:?}", ic(b, d, a, c), -main, d);
+                assert_eq!(pred, ic(c, a, d, b) < 0.0, "{} vs. {}: {:?}", ic(c, a, d, b), -main, d);
+                assert_eq!(pred, ic(c, b, a, d) < 0.0, "{} vs. {}: {:?}", ic(c, b, a, d), -main, d);
+                assert_eq!(pred, ic(c, d, b, a) < 0.0, "{} vs. {}: {:?}", ic(c, d, b, a), -main, d);
+                assert_eq!(pred, ic(d, a, b, c) < 0.0, "{} vs. {}: {:?}", ic(d, a, b, c), -main, d);
+                assert_eq!(pred, ic(d, b, c, a) < 0.0, "{} vs. {}: {:?}", ic(d, b, c, a), -main, d);
+                assert_eq!(pred, ic(d, c, a, b) < 0.0, "{} vs. {}: {:?}", ic(d, c, a, b), -main, d);
+            }
+        }
     }
 }

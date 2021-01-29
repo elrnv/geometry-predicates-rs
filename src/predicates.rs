@@ -11,14 +11,15 @@
 
 // f64::abs is not available in core. See https://github.com/rust-lang/rust/issues/50145
 // This implementation is identical to abs on x86 but not on arm at the time of this writing.
-// So for now we only use it when no_std is not enabled.
 #[inline]
 pub fn Absolute(a: f64) -> f64 {
     f64::from_bits(a.to_bits() & 0x7FFF_FFFF_FFFF_FFFF)
 }
 
+#[derive(Debug)]
 struct PredicateParams {
-    splitter: f64, // = 2^ceiling(p / 2) + 1.  Used to split floats in half.
+    // Used to split floats in half.
+    splitter: f64, // = 2^ceiling(p / 2) + 1.
     /* A set of coefficients used to calculate maximum roundoff errors.          */
     resulterrbound: f64,
     ccwerrboundA: f64,
@@ -35,6 +36,7 @@ struct PredicateParams {
     isperrboundC: f64,
 }
 
+/*
 /* ***************************************************************************/
 /*  The following are constants used in exact arithmetic                     */
 /*                                                                           */
@@ -48,10 +50,11 @@ struct PredicateParams {
 /*  See exactinit() in predicates.c for the function used to generate these. */
 /*                                                                           */
 /* ***************************************************************************/
+// The SPLITTER and EPSILON were pregenerated using exact init on a machine with IEEE 754 floats.
 const EPSILON: f64 = 0.000_000_000_000_000_111_022_302_462_515_65;
+const SPLITTER: f64 = 134_217_729f64;
 
 const PARAMS: PredicateParams = PredicateParams {
-    splitter: 134_217_729f64,
     resulterrbound: (3.0 + 8.0 * EPSILON) * EPSILON,
     ccwerrboundA: (3.0 + 16.0 * EPSILON) * EPSILON,
     ccwerrboundB: (2.0 + 12.0 * EPSILON) * EPSILON,
@@ -66,6 +69,68 @@ const PARAMS: PredicateParams = PredicateParams {
     isperrboundB: (5.0f64 + 72.0f64 * EPSILON) * EPSILON,
     isperrboundC: (71.0f64 + 1408.0f64 * EPSILON) * EPSILON * EPSILON,
 };
+*/
+
+lazy_static::lazy_static! {
+    static ref PARAMS: PredicateParams = exactinit();
+}
+
+/* ****************************************************************************/
+/*                                                                           */
+/*  exactinit()   Initialize the variables used for exact arithmetic.        */
+/*                                                                           */
+/*  `epsilon' is the largest power of two such that 1.0 + epsilon = 1.0 in   */
+/*  floating-point arithmetic.  `epsilon' bounds the relative roundoff       */
+/*  error.  It is used for floating-point error analysis.                    */
+/*                                                                           */
+/*  `splitter' is used to split floating-point numbers into two half-        */
+/*  length significands for exact multiplication.                            */
+/*                                                                           */
+/*  I imagine that a highly optimizing compiler might be too smart for its   */
+/*  own good, and somehow cause this routine to fail, if it pretends that    */
+/*  floating-point arithmetic is too much like real arithmetic.              */
+/*                                                                           */
+/*  Don't change this routine unless you fully understand it.                */
+/*                                                                           */
+/* ****************************************************************************/
+fn exactinit() -> PredicateParams {
+    let mut half = 0.5_f64;
+    let mut check = 1.0_f64;
+    let mut lastcheck = 0.0_f64;
+    let mut every_other = 1_i32;
+    let mut epsilon = 1.0f64;
+    let mut splitter = 1.0f64;
+    loop {
+        /* Repeatedly divide `epsilon' by two until it is too small to add to    */
+        /*   one without causing roundoff.  (Also check if the sum is equal to   */
+        /*   the previous sum, for machines that round up instead of using exact */
+        /*   rounding.  Not that this library will work on such machines anyway. */
+        lastcheck = check;
+        epsilon *= half;
+        if every_other != 0 { splitter *= 2.0f64 }
+        every_other = (every_other == 0) as i32;
+        check = 1.0f64 + epsilon;
+        if !(check != 1.0f64 && check != lastcheck) { break ; }
+    }
+    splitter += 1.0f64;
+    PredicateParams {
+        splitter,
+        /* Error bounds for orientation and incircle tests. */
+        resulterrbound: (3.0f64 + 8.0f64 * epsilon) * epsilon,
+        ccwerrboundA: (3.0f64 + 16.0f64 * epsilon) * epsilon,
+        ccwerrboundB: (2.0f64 + 12.0f64 * epsilon) * epsilon,
+        ccwerrboundC: (9.0f64 + 64.0f64 * epsilon) * epsilon * epsilon,
+        o3derrboundA: (7.0f64 + 56.0f64 * epsilon) * epsilon,
+        o3derrboundB: (3.0f64 + 28.0f64 * epsilon) * epsilon,
+        o3derrboundC: (26.0f64 + 288.0f64 * epsilon) * epsilon * epsilon,
+        iccerrboundA: (10.0f64 + 96.0f64 * epsilon) * epsilon,
+        iccerrboundB: (4.0f64 + 48.0f64 * epsilon) * epsilon,
+        iccerrboundC: (44.0f64 + 576.0f64 * epsilon) * epsilon * epsilon,
+        isperrboundA: (16.0f64 + 224.0f64 * epsilon) * epsilon,
+        isperrboundB: (5.0f64 + 72.0f64 * epsilon) * epsilon,
+        isperrboundC: (71.0f64 + 1408.0f64 * epsilon) * epsilon * epsilon,
+    }
+}
 
 /* Many of the operations are broken up into two pieces, a main part that    */
 /*   performs an approximate operation, and a "tail" that computes the       */
@@ -73,15 +138,14 @@ const PARAMS: PredicateParams = PredicateParams {
 
 #[inline]
 pub fn Fast_Two_Sum_Tail(a: f64, b: f64, x: f64) -> f64 {
-    let bvirt = x - a;
+    let bvirt: f64 = x - a;
     b - bvirt
 }
 
 #[inline]
 pub fn Fast_Two_Sum(a: f64, b: f64) -> [f64; 2] {
-    let x = a + b;
-    let y = Fast_Two_Sum_Tail(a, b, x);
-    [x, y]
+    let x: f64 = a + b;
+    [Fast_Two_Sum_Tail(a, b, x), x]
 }
 
 #[inline]
@@ -91,425 +155,231 @@ pub fn Fast_Two_Diff_Tail(a: f64, b: f64, x: f64) -> f64 {
 }
 
 #[inline]
-pub unsafe fn Fast_Two_Diff(mut a: f64,
-                                       mut b: f64,
-                                       mut x: *mut f64,
-                                       mut y: *mut f64) {
-    *x = a - b;
-    *y = Fast_Two_Diff_Tail(a, b, *x);
+pub fn Fast_Two_Diff(a: f64, b: f64) -> [f64; 2] {
+    let x: f64 = a - b;
+    [Fast_Two_Diff_Tail(a, b, x), x]
 }
 
 #[inline]
-pub unsafe fn Two_Sum_Tail(mut a: f64,
-                                      mut b: f64,
-                                      mut x: f64)
- -> f64 {
-    let mut bvirt: f64 = x - a;
-    let mut avirt: f64 = x - bvirt;
-    let mut bround: f64 = b - bvirt;
-    let mut around: f64 = a - avirt;
-    return around + bround;
+pub fn Two_Sum_Tail(a: f64, b: f64, x: f64) -> f64 {
+    let bvirt: f64 = x - a;
+    let avirt: f64 = x - bvirt;
+    let bround: f64 = b - bvirt;
+    let around: f64 = a - avirt;
+    around + bround
 }
 
 #[inline]
-pub unsafe fn Two_Sum(mut a: f64, mut b: f64,
-                                 mut x: *mut f64,
-                                 mut y: *mut f64) {
-    *x = a + b;
-    *y = Two_Sum_Tail(a, b, *x);
+pub fn Two_Sum(a: f64, mut b: f64) -> [f64; 2] {
+    let x: f64 = a + b;
+    [Two_Sum_Tail(a, b, x), x]
 }
 
 #[inline]
-pub unsafe fn Two_Diff_Tail(mut a: f64,
-                                       mut b: f64,
-                                       mut x: f64)
- -> f64 {
-    let mut bvirt: f64 = a - x;
-    let mut avirt: f64 = x + bvirt;
-    let mut bround: f64 = bvirt - b;
-    let mut around: f64 = a - avirt;
-    return around + bround;
+pub fn Two_Diff_Tail(a: f64, b: f64, x: f64) -> f64 {
+    let bvirt: f64 = a - x;
+    let avirt: f64 = x + bvirt;
+    let bround: f64 = bvirt - b;
+    let around: f64 = a - avirt;
+    around + bround
 }
 
 #[inline]
-pub unsafe fn Two_Diff(mut a: f64,
-                                  mut b: f64,
-                                  mut x: *mut f64,
-                                  mut y: *mut f64) {
-    *x = a - b;
-    *y = Two_Diff_Tail(a, b, *x);
+pub fn Two_Diff(a: f64, b: f64) -> [f64; 2] {
+    let x: f64 = a - b;
+    [Two_Diff_Tail(a, b, x), x]
 }
 
 #[inline]
-pub unsafe fn Split(mut a: f64,
-                               mut ahi: *mut f64,
-                               mut alo: *mut f64) {
-    let mut c: f64 = PARAMS.splitter * a;
-    let mut abig: f64 = c - a;
-    *ahi = c - abig;
-    *alo = a - *ahi;
+pub fn Split(a: f64) -> [f64; 2] {
+    let c: f64 = PARAMS.splitter * a;
+    let abig: f64 = c - a;
+    let ahi = c - abig;
+    let alo = a - ahi;
+    [alo, ahi]
 }
 
 #[inline]
-pub unsafe fn Two_Product_Tail(mut a: f64,
-                                          mut b: f64,
-                                          mut x: f64)
- -> f64 {
-    let mut ahi: f64 = 0.;
-    let mut alo: f64 = 0.;
-    let mut bhi: f64 = 0.;
-    let mut blo: f64 = 0.;
-    Split(a, &mut ahi, &mut alo);
-    Split(b, &mut bhi, &mut blo);
-    let mut err1: f64 = x - ahi * bhi;
-    let mut err2: f64 = err1 - alo * bhi;
-    let mut err3: f64 = err2 - ahi * blo;
-    return alo * blo - err3;
+pub fn Two_Product_Tail(a: f64, b: f64, x: f64) -> f64 {
+    let [alo, ahi] = Split(a);
+    let [blo, bhi] = Split(b);
+    let err1: f64 = x - ahi * bhi;
+    let err2: f64 = err1 - alo * bhi;
+    let err3: f64 = err2 - ahi * blo;
+    alo * blo - err3
 }
 
 #[inline]
-pub unsafe fn Two_Product(mut a: f64,
-                                     mut b: f64,
-                                     mut x: *mut f64,
-                                     mut y: *mut f64) {
-    *x = a * b;
-    *y = Two_Product_Tail(a, b, *x);
+pub fn Two_Product(a: f64, b: f64) -> [f64; 2] {
+    let x = a * b;
+    [Two_Product_Tail(a, b, x), x]
 }
 /* Two_Product_Presplit() is Two_Product() where one of the inputs has       */
 /*   already been split.  Avoids redundant splitting.                        */
 
 #[inline]
-pub unsafe fn Two_Product_Presplit(mut a: f64,
-                                              mut b: f64,
-                                              mut bhi: f64,
-                                              mut blo: f64,
-                                              mut x: *mut f64,
-                                              mut y: *mut f64) {
-    *x = a * b;
-    let mut ahi: f64 = 0.;
-    let mut alo: f64 = 0.;
-    Split(a, &mut ahi, &mut alo);
-    let mut err1: f64 = *x - ahi * bhi;
-    let mut err2: f64 = err1 - alo * bhi;
-    let mut err3: f64 = err2 - ahi * blo;
-    *y = alo * blo - err3;
+pub fn Two_Product_Presplit(a: f64, b: f64, bhi: f64, blo: f64) -> [f64; 2] {
+    let x = a * b;
+    let [alo, ahi] = Split(a);
+    let err1: f64 = x - ahi * bhi;
+    let err2: f64 = err1 - alo * bhi;
+    let err3: f64 = err2 - ahi * blo;
+    [alo * blo - err3, x]
 }
 /* Two_Product_2Presplit() is Two_Product() where both of the inputs have    */
 /*   already been split.  Avoids redundant splitting.                        */
 
 #[inline]
-pub unsafe fn Two_Product_2Presplit(mut a: f64,
-                                               mut ahi: f64,
-                                               mut alo: f64,
-                                               mut b: f64,
-                                               mut bhi: f64,
-                                               mut blo: f64,
-                                               mut x: *mut f64,
-                                               mut y: *mut f64) {
-    *x = a * b;
-    let mut err1: f64 = *x - ahi * bhi;
-    let mut err2: f64 = err1 - alo * bhi;
-    let mut err3: f64 = err2 - ahi * blo;
-    *y = alo * blo - err3;
+pub fn Two_Product_2Presplit(a: f64, ahi: f64, alo: f64, b: f64, bhi: f64, blo: f64) -> [f64; 2] {
+    let x = a * b;
+    let err1: f64 = x - ahi * bhi;
+    let err2: f64 = err1 - alo * bhi;
+    let err3: f64 = err2 - ahi * blo;
+    [alo * blo - err3, x]
 }
 /* Square() can be done more quickly than Two_Product().                     */
 
 #[inline]
-pub unsafe fn Square_Tail(mut a: f64,
-                                     mut x: f64)
- -> f64 {
-    let mut ahi: f64 = 0.;
-    let mut alo: f64 = 0.;
-    Split(a, &mut ahi, &mut alo);
-    let mut err1: f64 = x - ahi * ahi;
-    let mut err3: f64 = err1 - (ahi + ahi) * alo;
-    return alo * alo - err3;
+pub fn Square_Tail(a: f64, x: f64) -> f64 {
+    let [alo, ahi] = Split(a);
+    let err1: f64 = x - ahi * ahi;
+    let err3: f64 = err1 - (ahi + ahi) * alo;
+    alo * alo - err3
 }
 
 #[inline]
-pub unsafe fn Square(mut a: f64,
-                                mut x: *mut f64,
-                                mut y: *mut f64) {
-    *x = a * a;
-    *y = Square_Tail(a, *x);
+pub fn Square(a: f64) -> [f64; 2] {
+    let x = a * a;
+    [Square_Tail(a, x), x]
 }
 /* Macros for summing expansions of various fixed lengths.  These are all    */
 /*   unrolled versions of Expansion_Sum().                                   */
 
 #[inline]
-pub unsafe fn Two_One_Sum(mut a1: f64,
-                                     mut a0: f64,
-                                     mut b: f64,
-                                     mut out: *mut f64) {
-    let mut _i: f64 = 0.; // _k, _6, _5, _4, _3, _2, _1, _0, x0);
-    Two_Sum(a0, b, &mut _i, &mut *out.offset(0 as i32 as isize));
-    Two_Sum(a1, _i, &mut *out.offset(2 as i32 as isize),
-            &mut *out.offset(1 as i32 as isize));
+pub fn Two_One_Sum(a1: f64, a0: f64, b: f64) -> [f64; 3] {
+    let [x0, _i] = Two_Sum(a0, b);
+    let [x1, x2] = Two_Sum(a1, _i);
+    [x0, x1, x2]
 }
 
 #[inline]
-pub unsafe fn Two_One_Diff(mut a1: f64,
-                                      mut a0: f64,
-                                      mut b: f64,
-                                      mut out: *mut f64) {
-    let mut _i: f64 = 0.;
-    Two_Diff(a0, b, &mut _i, &mut *out.offset(0 as i32 as isize));
-    Two_Sum(a1, _i, &mut *out.offset(2 as i32 as isize),
-            &mut *out.offset(1 as i32 as isize));
+pub fn Two_One_Diff(a1: f64, a0: f64, b: f64) -> [f64; 3] {
+    let [x0, _i] = Two_Diff(a0, b);
+    let [x1, x2] = Two_Sum(a1, _i);
+    [x2, x1, x0]
 }
 
 #[inline]
-pub unsafe fn Two_Two_Sum(mut a1: f64,
-                                     mut a0: f64,
-                                     mut b1: f64,
-                                     mut b0: f64,
-                                     mut out: *mut f64) {
-    let mut sum: [f64; 3] = [0.; 3];
-    Two_One_Sum(a1, a0, b0, sum.as_mut_ptr());
-    let mut _j: f64 = sum[2 as i32 as usize];
-    let mut _0: f64 = sum[1 as i32 as usize];
-    *out.offset(0 as i32 as isize) = sum[0 as i32 as usize];
-    Two_One_Sum(_j, _0, b1, out.offset(1 as i32 as isize));
+pub fn Two_Two_Sum(a1: f64, a0: f64, b1: f64, b0: f64) -> [f64; 4] {
+    let [x0, _0, _j] = Two_One_Sum(a1, a0, b0);
+    let [x1, x2, x3] = Two_One_Sum(_j, _0, b1);
+    [x0, x1, x2, x3]
 }
 
 #[inline]
-pub unsafe fn Two_Two_Diff(mut a1: f64,
-                                      mut a0: f64,
-                                      mut b1: f64,
-                                      mut b0: f64,
-                                      mut out: *mut f64) {
-    let mut diff: [f64; 3] = [0.; 3];
-    Two_One_Diff(a1, a0, b0, diff.as_mut_ptr());
-    let mut _j: f64 = diff[2 as i32 as usize];
-    let mut _0: f64 = diff[1 as i32 as usize];
-    *out.offset(0 as i32 as isize) = diff[0 as i32 as usize];
-    Two_One_Diff(_j, _0, b1, out.offset(1 as i32 as isize));
+pub fn Two_Two_Diff(a1: f64, a0: f64, b1: f64, b0: f64) -> [f64; 4] {
+    let [_j, _0, x0] = Two_One_Diff(a1, a0, b0);
+    let [x3, x2, x1] = Two_One_Diff(_j, _0, b1);
+    [x0, x1, x2, x3]
 }
 
 #[inline]
-pub unsafe fn Four_One_Sum(mut a3: f64,
-                                      mut a2: f64,
-                                      mut a1: f64,
-                                      mut a0: f64,
-                                      mut b: f64,
-                                      mut out: *mut f64) {
-    let mut sum: [f64; 3] = [0.; 3];
-    Two_One_Sum(a1, a0, b, sum.as_mut_ptr());
-    let mut _j: f64 = sum[2 as i32 as usize];
-    *out.offset(1 as i32 as isize) = sum[1 as i32 as usize];
-    *out.offset(0 as i32 as isize) = sum[0 as i32 as usize];
-    Two_One_Sum(a3, a2, _j, out.offset(2 as i32 as isize));
+pub fn Four_One_Sum(a3: f64, a2: f64, a1: f64, a0: f64, b: f64) -> [f64; 5] {
+    let [x0, x1, _j] = Two_One_Sum(a1, a0, b);
+    let [x2, x3, x4] = Two_One_Sum(a3, a2, _j);
+    [x0, x1, x2, x3, x4]
 }
 
 #[inline]
-pub unsafe fn Four_Two_Sum(mut a3: f64,
-                                      mut a2: f64,
-                                      mut a1: f64,
-                                      mut a0: f64,
-                                      mut b1: f64,
-                                      mut b0: f64,
-                                      mut out: *mut f64) {
-    let mut sum: [f64; 5] = [0.; 5];
-    Four_One_Sum(a3, a2, a1, a0, b0, sum.as_mut_ptr());
-    *out.offset(0 as i32 as isize) = sum[0 as i32 as usize];
-    Four_One_Sum(sum[4 as i32 as usize],
-                 sum[3 as i32 as usize],
-                 sum[2 as i32 as usize],
-                 sum[1 as i32 as usize], b1,
-                 out.offset(1 as i32 as isize));
+pub fn Four_Two_Sum(a3: f64, a2: f64, a1: f64, a0: f64, b1: f64, b0: f64) -> [f64; 6] {
+    let [x0, _0, _1, _2, _k] = Four_One_Sum(a3, a2, a1, a0, b0);
+    let [x1, x2, x3, x4, x5] = Four_One_Sum(_k, _2, _1, _0, b1);
+    [x0, x1, x2, x3, x4, x5]
 }
 
 #[inline]
-pub unsafe fn Four_Four_Sum(mut a3: f64,
-                                       mut a2: f64,
-                                       mut a1: f64,
-                                       mut a0: f64,
-                                       mut b4: f64,
-                                       mut b3: f64,
-                                       mut b1: f64,
-                                       mut b0: f64,
-                                       mut out: *mut f64) {
-    let mut sum: [f64; 6] = [0.; 6];
-    Four_Two_Sum(a3, a2, a1, a0, b1, b0, sum.as_mut_ptr());
-    *out.offset(1 as i32 as isize) = sum[1 as i32 as usize];
-    *out.offset(0 as i32 as isize) = sum[0 as i32 as usize];
-    Four_Two_Sum(sum[5 as i32 as usize],
-                 sum[4 as i32 as usize],
-                 sum[3 as i32 as usize],
-                 sum[2 as i32 as usize], b4, b3,
-                 out.offset(2 as i32 as isize));
+pub fn Four_Four_Sum(a3: f64, a2: f64, a1: f64, a0: f64, b4: f64, b3: f64, b1: f64, b0: f64) -> [f64; 8] {
+    let [x0, x1, _0, _1, _2, _l] = Four_Two_Sum(a3, a2, a1, a0, b1, b0);
+    let [x2, x3, x4, x5, x6, x7] = Four_Two_Sum(_l, _2, _1, _0, b4, b3);
+    [x7, x6, x5, x4, x3, x2, x1, x0]
 }
 
 #[inline]
-pub unsafe fn Eight_One_Sum(mut a7: f64,
-                                       mut a6: f64,
-                                       mut a5: f64,
-                                       mut a4: f64,
-                                       mut a3: f64,
-                                       mut a2: f64,
-                                       mut a1: f64,
-                                       mut a0: f64,
-                                       mut b: f64,
-                                       mut out: *mut f64) {
-    let mut sum: [f64; 5] = [0.; 5];
-    Four_One_Sum(a3, a2, a1, a0, b, sum.as_mut_ptr());
-    *out.offset(3 as i32 as isize) = sum[3 as i32 as usize];
-    *out.offset(2 as i32 as isize) = sum[2 as i32 as usize];
-    *out.offset(1 as i32 as isize) = sum[1 as i32 as usize];
-    *out.offset(0 as i32 as isize) = sum[0 as i32 as usize];
-    Four_One_Sum(a7, a6, a5, a4, sum[4 as i32 as usize],
-                 out.offset(4 as i32 as isize));
+pub fn Eight_One_Sum(a7: f64, a6: f64, a5: f64, a4: f64, a3: f64, a2: f64, a1: f64, a0: f64, b: f64) -> [f64; 9] {
+    let [x0, x1, x2, x3, _j] = Four_One_Sum(a3, a2, a1, a0, b);
+    let [x4, x5, x6, x7, x8] = Four_One_Sum(a7, a6, a5, a4, _j);
+    [x0, x1, x2, x3, x4, x5, x6, x7, x8]
 }
 
 #[inline]
-pub unsafe fn Eight_Two_Sum(mut a7: f64,
-                                       mut a6: f64,
-                                       mut a5: f64,
-                                       mut a4: f64,
-                                       mut a3: f64,
-                                       mut a2: f64,
-                                       mut a1: f64,
-                                       mut a0: f64,
-                                       mut b1: f64,
-                                       mut b0: f64,
-                                       mut out: *mut f64) {
-    let mut sum: [f64; 9] = [0.; 9];
-    Eight_One_Sum(a7, a6, a5, a4, a3, a2, a1, a0, b0, sum.as_mut_ptr());
-    *out.offset(0 as i32 as isize) = sum[0 as i32 as usize];
-    Eight_One_Sum(sum[8 as i32 as usize],
-                  sum[7 as i32 as usize],
-                  sum[6 as i32 as usize],
-                  sum[5 as i32 as usize],
-                  sum[4 as i32 as usize],
-                  sum[3 as i32 as usize],
-                  sum[2 as i32 as usize],
-                  sum[1 as i32 as usize], b1,
-                  out.offset(1 as i32 as isize));
+pub fn Eight_Two_Sum(a7: f64, a6: f64, a5: f64, a4: f64, a3: f64, a2: f64, a1: f64, a0: f64, b1: f64, b0: f64) -> [f64; 10] {
+    let [x0, _0, _1, _2, _3, _4, _5, _6, _k] = Eight_One_Sum(a7, a6, a5, a4, a3, a2, a1, a0, b0);
+    let [x1, x2, x3, x4, x5, x6, x7, x8, x9] = Eight_One_Sum(_k, _6, _5, _4, _3, _2, _1, _0, b1);
+    [x0, x1, x2, x3, x4, x5, x6, x7, x8, x9]
 }
 
 #[inline]
-pub unsafe fn Eight_Four_Sum(mut a7: f64,
-                                        mut a6: f64,
-                                        mut a5: f64,
-                                        mut a4: f64,
-                                        mut a3: f64,
-                                        mut a2: f64,
-                                        mut a1: f64,
-                                        mut a0: f64,
-                                        mut b4: f64,
-                                        mut b3: f64,
-                                        mut b1: f64,
-                                        mut b0: f64,
-                                        mut out: *mut f64) {
-    Eight_Two_Sum(a7, a6, a5, a4, a3, a2, a1, a0, b1, b0, out);
-    Eight_Two_Sum(*out.offset(9 as i32 as isize),
-                  *out.offset(8 as i32 as isize),
-                  *out.offset(7 as i32 as isize),
-                  *out.offset(6 as i32 as isize),
-                  *out.offset(5 as i32 as isize),
-                  *out.offset(4 as i32 as isize),
-                  *out.offset(3 as i32 as isize),
-                  *out.offset(2 as i32 as isize), b4, b3,
-                  out.offset(2 as i32 as isize));
+pub fn Eight_Four_Sum(a7: f64, a6: f64, a5: f64, a4: f64, a3: f64, a2: f64, a1: f64, a0: f64, b4: f64, b3: f64, b1: f64, b0: f64) -> [f64; 12] {
+    let [x0, x1, _0, _1, _2, _3, _4, _5, _6, _l] = Eight_Two_Sum(a7, a6, a5, a4, a3, a2, a1, a0, b1, b0);
+    let [x2, x3, x4, x5, x6, x7, x8, x9, x10, x11] = Eight_Two_Sum(_l, _6, _5, _4, _3, _2, _1, _0, b4, b3);
+    [x0, x1, x2, x3, x4, x5, x6, x7, x8, x9, x10, x11]
 }
-/* Macros for multiplying expansions of various fixed lengths.               */
+
+/* Macros for multiplying expansions of various fixed lengths. */
 
 #[inline]
-pub unsafe fn Two_One_Product(a1: f64, a0: f64, b: f64, out: *mut f64) {
-    let mut bhi: f64 = 0.;
-    let mut blo: f64 = 0.;
-    let mut _i: f64 = 0.;
-    let mut _j: f64 = 0.;
-    let mut _0: f64 = 0.;
-    let mut _k: f64 = 0.;
-    Split(b, &mut bhi, &mut blo);
-    Two_Product_Presplit(a0, b, bhi, blo, &mut _i,
-                         &mut *out.offset(0 as i32 as isize));
-    Two_Product_Presplit(a1, b, bhi, blo, &mut _j, &mut _0);
-    Two_Sum(_i, _0, &mut _k, &mut *out.offset(1 as i32 as isize));
-    let [x, y] = Fast_Two_Sum(_j, _k);
-    *out.offset(3 as i32 as isize) = x;
-    *out.offset(2 as i32 as isize) = y;
+pub fn Two_One_Product(a1: f64, a0: f64, b: f64) -> [f64; 4] {
+    let [blo, bhi] = Split(b);
+    let [x0, _i] = Two_Product_Presplit(a0, b, bhi, blo);
+    let [_0, _j] = Two_Product_Presplit(a1, b, bhi, blo);
+    let [x1, _k] = Two_Sum(_i, _0);
+    let [x2, x3] = Fast_Two_Sum(_j, _k);
+    [x0, x1, x2, x3]
 }
 
 #[inline]
-pub unsafe fn Four_One_Product(a3: f64,
-                                          a2: f64,
-                                          a1: f64,
-                                          a0: f64,
-                                          b: f64,
-                                          out: *mut f64) {
-    let mut bhi: f64 = 0.;
-    let mut blo: f64 = 0.;
-    let mut _i: f64 = 0.;
-    let mut _j: f64 = 0.;
-    let mut _0: f64 = 0.;
-    let mut _k: f64 = 0.;
-    Split(b, &mut bhi, &mut blo);
-    Two_Product_Presplit(a0, b, bhi, blo, &mut _i,
-                         &mut *out.offset(0 as i32 as isize));
-    Two_Product_Presplit(a1, b, bhi, blo, &mut _j, &mut _0);
-    Two_Sum(_i, _0, &mut _k, &mut *out.offset(1 as i32 as isize));
-    let [_i, y] = Fast_Two_Sum(_j, _k);
-    *out.offset(2 as i32 as isize) = y;
-    Two_Product_Presplit(a2, b, bhi, blo, &mut _j, &mut _0);
-    Two_Sum(_i, _0, &mut _k, &mut *out.offset(3 as i32 as isize));
-    let [_i, y] = Fast_Two_Sum(_j, _k);
-    *out.offset(4 as i32 as isize) = y;
-    Two_Product_Presplit(a3, b, bhi, blo, &mut _j, &mut _0);
-    Two_Sum(_i, _0, &mut _k, &mut *out.offset(5 as i32 as isize));
-    let [x,y] = Fast_Two_Sum(_j, _k);
-    *out.offset(7 as i32 as isize) = x;
-    *out.offset(6 as i32 as isize) = y;
+pub fn Four_One_Product(a3: f64, a2: f64, a1: f64, a0: f64, b: f64) -> [f64; 8] {
+    let [blo, bhi] = Split(b);
+    let [x0, _i] = Two_Product_Presplit(a0, b, bhi, blo);
+    let [_0, _j] = Two_Product_Presplit(a1, b, bhi, blo);
+    let [x1, _k] = Two_Sum(_i, _0);
+    let [x2, _i] = Fast_Two_Sum(_j, _k);
+    let [_0, _j] = Two_Product_Presplit(a2, b, bhi, blo);
+    let [x3, _k] = Two_Sum(_i, _0);
+    let [x4, _i] = Fast_Two_Sum(_j, _k);
+    let [_0, _j] = Two_Product_Presplit(a3, b, bhi, blo);
+    let [x5, _k] = Two_Sum(_i, _0);
+    let [x6, x7] = Fast_Two_Sum(_j, _k);
+    [x0, x1, x2, x3, x4, x5, x6, x7]
 }
 
 #[inline]
-pub unsafe fn Two_Two_Product(mut a1: f64,
-                                         mut a0: f64,
-                                         mut b1: f64,
-                                         mut b0: f64,
-                                         mut out: *mut f64) {
-    let mut a0hi: f64 = 0.;
-    let mut a0lo: f64 = 0.;
-    let mut a1hi: f64 = 0.;
-    let mut a1lo: f64 = 0.;
-    let mut bhi: f64 = 0.;
-    let mut blo: f64 = 0.;
-    Split(a0, &mut a0hi, &mut a0lo);
-    Split(b0, &mut bhi, &mut blo);
-    let mut _i: f64 = 0.;
-    let mut _j: f64 = 0.;
-    let mut _k: f64 = 0.;
-    let mut _l: f64 = 0.;
-    let mut _m: f64 = 0.;
-    let mut _n: f64 = 0.;
-    let mut _0: f64 = 0.;
-    let mut _1: f64 = 0.;
-    let mut _2: f64 = 0.;
-    Two_Product_2Presplit(a0, a0hi, a0lo, b0, bhi, blo, &mut _i,
-                          &mut *out.offset(0 as i32 as isize));
-    Split(a1, &mut a1hi, &mut a1lo);
-    Two_Product_2Presplit(a1, a1hi, a1lo, b0, bhi, blo, &mut _j, &mut _0);
-    Two_Sum(_i, _0, &mut _k, &mut _1);
-    let [mut _l, mut _2] = Fast_Two_Sum(_j, _k);
-    Split(b1, &mut bhi, &mut blo);
-    Two_Product_2Presplit(a0, a0hi, a0lo, b1, bhi, blo, &mut _i, &mut _0);
-    Two_Sum(_1, _0, &mut _k, &mut *out.offset(1 as i32 as isize));
-    Two_Sum(_2, _k, &mut _j, &mut _1);
-    Two_Sum(_l, _j, &mut _m, &mut _2);
-    Two_Product_2Presplit(a1, a1hi, a1lo, b1, bhi, blo, &mut _j, &mut _0);
-    Two_Sum(_i, _0, &mut _n, &mut _0);
-    Two_Sum(_1, _0, &mut _i, &mut *out.offset(2 as i32 as isize));
-    Two_Sum(_2, _i, &mut _k, &mut _1);
-    Two_Sum(_m, _k, &mut _l, &mut _2);
-    Two_Sum(_j, _n, &mut _k, &mut _0);
-    Two_Sum(_1, _0, &mut _j, &mut *out.offset(3 as i32 as isize));
-    Two_Sum(_2, _j, &mut _i, &mut _1);
-    Two_Sum(_l, _i, &mut _m, &mut _2);
-    Two_Sum(_1, _k, &mut _i, &mut *out.offset(4 as i32 as isize));
-    Two_Sum(_2, _i, &mut _k, &mut *out.offset(5 as i32 as isize));
-    Two_Sum(_m, _k, &mut *out.offset(7 as i32 as isize),
-            &mut *out.offset(6 as i32 as isize));
+pub fn Two_Two_Product(a1: f64, a0: f64, b1: f64, b0: f64) -> [f64; 8] {
+    let [a0lo, a0hi] = Split(a0);
+    let [blo, bhi] = Split(b0);
+    let [x0, _i] = Two_Product_2Presplit(a0, a0hi, a0lo, b0, bhi, blo);
+    let [a1lo, a1hi] = Split(a1);
+    let [_0, _j] = Two_Product_2Presplit(a1, a1hi, a1lo, b0, bhi, blo);
+    let [_1, _k] = Two_Sum(_i, _0);
+    let [_2, _l] = Fast_Two_Sum(_j, _k);
+    let [blo, bhi] = Split(b1);
+    let [_0, _i] = Two_Product_2Presplit(a0, a0hi, a0lo, b1, bhi, blo);
+    let [x1, _k] = Two_Sum(_1, _0);
+    let [_1, _j] = Two_Sum(_2, _k);
+    let [_2, _m] = Two_Sum(_l, _j);
+    let [_0, _j] = Two_Product_2Presplit(a1, a1hi, a1lo, b1, bhi, blo);
+    let [_0, _n] = Two_Sum(_i, _0);
+    let [x2, _i] = Two_Sum(_1, _0);
+    let [_1, _k] = Two_Sum(_2, _i);
+    let [_2, _l] = Two_Sum(_m, _k);
+    let [_0, _k] = Two_Sum(_j, _n);
+    let [x3, _j] = Two_Sum(_1, _0);
+    let [_1, _i] = Two_Sum(_2, _j);
+    let [_2, _m] = Two_Sum(_l, _i);
+    let [x4, _i] = Two_Sum(_1, _k);
+    let [x5, _k] = Two_Sum(_2, _i);
+    let [x6, x7] = Two_Sum(_m, _k);
+    [x0, x1, x2, x3, x4, x5, x6, x7]
 }
 
 /* An expansion of length two can be squared more quickly than finding the   */
@@ -517,24 +387,14 @@ pub unsafe fn Two_Two_Product(mut a1: f64,
 /*   guaranteed to have no more than six (rather than eight) components.     */
 
 #[inline]
-pub unsafe fn Two_Square(mut a1: f64,
-                                    mut a0: f64,
-                                    mut out: *mut f64) {
-    let mut _j: f64 = 0.;
-    Square(a0, &mut _j, &mut *out.offset(0 as i32 as isize));
-    let mut _0: f64 = a0 + a0;
-    let mut _k: f64 = 0.;
-    let mut _1: f64 = 0.;
-    let mut _2: f64 = 0.;
-    let mut _l: f64 = 0.;
-    Two_Product(a1, _0, &mut _k, &mut _1);
-    let mut sum: [f64; 3] = [0.; 3];
-    Two_One_Sum(_k, _1, _j, sum.as_mut_ptr());
-    _l = sum[2 as i32 as usize];
-    _2 = sum[1 as i32 as usize];
-    *out.offset(1 as i32 as isize) = sum[0 as i32 as usize];
-    Square(a1, &mut _j, &mut _1);
-    Two_Two_Sum(_j, _1, _l, _2, out.offset(2 as i32 as isize));
+pub fn Two_Square(a1: f64, a0: f64) -> [f64; 6] {
+    let [x0, _j] = Square(a0);
+    let _0: f64 = a0 + a0;
+    let [_1, _k] = Two_Product(a1, _0);
+    let [x1, _2, _l] = Two_One_Sum(_k, _1, _j);
+    let [_1, _j] = Square(a1);
+    let [x2, x3, x4, x5] = Two_Two_Sum(_j, _1, _l, _2);
+    [x0, x1, x2, x3, x4, x5]
 }
 
 /* ****************************************************************************/
@@ -550,29 +410,17 @@ pub unsafe fn Two_Square(mut a1: f64,
 /*                                                                           */
 /* ****************************************************************************/
 
-pub unsafe fn grow_expansion(mut elen: i32,
-                                        mut e: *const f64,
-                                        mut b: f64,
-                                        mut h: *mut f64)
- -> i32 {
-    let mut Q: f64 = 0.;
-    let mut Qnew: f64 = 0.;
-    let mut eindex: i32 = 0;
-    let mut enow: f64 = 0.;
-    let mut bvirt: f64 = 0.;
-    let mut avirt: f64 = 0.;
-    let mut bround: f64 = 0.;
-    let mut around: f64 = 0.;
-    Q = b;
-    eindex = 0 as i32;
-    while eindex < elen {
-        enow = *e.offset(eindex as isize);
-        Two_Sum(Q, enow, &mut Qnew, &mut *h.offset(eindex as isize));
+pub fn grow_expansion(e: &[f64], b: f64, h: &mut [f64]) -> usize {
+    let mut Q = b;
+    let mut eindex = 0;
+    while eindex < e.len() {
+        let [hnew, Qnew] = Two_Sum(Q, e[eindex]);
         Q = Qnew;
-        eindex += 1
+        h[eindex] = hnew;
+        eindex += 1;
     }
-    *h.offset(eindex as isize) = Q;
-    return eindex + 1 as i32;
+    h[eindex] = Q;
+    eindex + 1
 }
 /* ****************************************************************************/
 /*                                                                           */
@@ -588,41 +436,26 @@ pub unsafe fn grow_expansion(mut elen: i32,
 /*                                                                           */
 /* ****************************************************************************/
 
-pub unsafe fn grow_expansion_zeroelim(mut elen: i32,
-                                                 mut e: *const f64,
-                                                 mut b: f64,
-                                                 mut h: *mut f64)
- -> i32 {
-    let mut Q: f64 = 0.;
-    let mut hh: f64 = 0.;
-    let mut Qnew: f64 = 0.;
-    let mut eindex: i32 = 0;
-    let mut hindex: i32 = 0;
-    let mut enow: f64 = 0.;
-    let mut bvirt: f64 = 0.;
-    let mut avirt: f64 = 0.;
-    let mut bround: f64 = 0.;
-    let mut around: f64 = 0.;
-    hindex = 0 as i32;
-    Q = b;
-    eindex = 0 as i32;
-    while eindex < elen {
-        enow = *e.offset(eindex as isize);
-        Two_Sum(Q, enow, &mut Qnew, &mut hh);
+pub fn grow_expansion_zeroelim(e: &[f64], b: f64, h: &mut [f64]) -> usize {
+    let mut hindex = 0;
+    let mut Q = b;
+    let mut eindex = 0;
+    while eindex < e.len() {
+        let [hh, Qnew] = Two_Sum(Q, e[eindex]);
         Q = Qnew;
         if hh != 0.0f64 {
             let fresh0 = hindex;
             hindex = hindex + 1;
-            *h.offset(fresh0 as isize) = hh
+            h[fresh0] = hh;
         }
         eindex += 1
     }
-    if Q != 0.0f64 || hindex == 0 as i32 {
+    if Q != 0.0f64 || hindex == 0 {
         let fresh1 = hindex;
         hindex = hindex + 1;
-        *h.offset(fresh1 as isize) = Q
+        h[fresh1] = Q;
     }
-    return hindex;
+    hindex
 }
 /* ****************************************************************************/
 /*                                                                           */
@@ -636,7 +469,7 @@ pub unsafe fn grow_expansion_zeroelim(mut elen: i32,
 /*  strongly nonoverlapping property.                                        */
 /*                                                                           */
 /* ****************************************************************************/
-
+/*
 pub unsafe fn expansion_sum(mut elen: i32,
                                        mut e: *const f64,
                                        mut flen: i32,
@@ -653,7 +486,7 @@ pub unsafe fn expansion_sum(mut elen: i32,
     let mut avirt: f64 = 0.;
     let mut bround: f64 = 0.;
     let mut around: f64 = 0.;
-    Q = *f.offset(0 as i32 as isize);
+    Q = f[0];
     hindex = 0 as i32;
     while hindex < elen {
         hnow = *e.offset(hindex as isize);
@@ -679,6 +512,7 @@ pub unsafe fn expansion_sum(mut elen: i32,
     }
     return hlast + 1 as i32;
 }
+*/
 /* ****************************************************************************/
 /*                                                                           */
 /*  expansion_sum_zeroelim1()   Sum two expansions, eliminating zero         */
@@ -692,7 +526,7 @@ pub unsafe fn expansion_sum(mut elen: i32,
 /*  strongly nonoverlapping property.                                        */
 /*                                                                           */
 /* ****************************************************************************/
-
+/*
 pub unsafe fn expansion_sum_zeroelim1(mut elen: i32,
                                                  mut e: *const f64,
                                                  mut flen: i32,
@@ -710,7 +544,7 @@ pub unsafe fn expansion_sum_zeroelim1(mut elen: i32,
     let mut avirt: f64 = 0.;
     let mut bround: f64 = 0.;
     let mut around: f64 = 0.;
-    Q = *f.offset(0 as i32 as isize);
+    Q = f[0];
     hindex = 0 as i32;
     while hindex < elen {
         hnow = *e.offset(hindex as isize);
@@ -745,6 +579,7 @@ pub unsafe fn expansion_sum_zeroelim1(mut elen: i32,
         return 1 as i32
     } else { return hindex + 1 as i32 };
 }
+*/
 /* ****************************************************************************/
 /*                                                                           */
 /*  expansion_sum_zeroelim2()   Sum two expansions, eliminating zero         */
@@ -758,7 +593,7 @@ pub unsafe fn expansion_sum_zeroelim1(mut elen: i32,
 /*  strongly nonoverlapping property.                                        */
 /*                                                                           */
 /* ****************************************************************************/
-
+/*
 pub unsafe fn expansion_sum_zeroelim2(mut elen: i32,
                                                  mut e: *const f64,
                                                  mut flen: i32,
@@ -778,7 +613,7 @@ pub unsafe fn expansion_sum_zeroelim2(mut elen: i32,
     let mut bround: f64 = 0.;
     let mut around: f64 = 0.;
     hindex = 0 as i32;
-    Q = *f.offset(0 as i32 as isize);
+    Q = f[0];
     eindex = 0 as i32;
     while eindex < elen {
         enow = *e.offset(eindex as isize);
@@ -815,6 +650,7 @@ pub unsafe fn expansion_sum_zeroelim2(mut elen: i32,
     }
     return hlast + 1 as i32;
 }
+*/
 /* ****************************************************************************/
 /*                                                                           */
 /*  fast_expansion_sum()   Sum two expansions.                               */
@@ -827,7 +663,7 @@ pub unsafe fn expansion_sum_zeroelim2(mut elen: i32,
 /*  properties.                                                              */
 /*                                                                           */
 /* ****************************************************************************/
-
+/*
 pub unsafe fn fast_expansion_sum(mut elen: i32,
                                             mut e: *const f64,
                                             mut flen: i32,
@@ -845,8 +681,8 @@ pub unsafe fn fast_expansion_sum(mut elen: i32,
     let mut hindex: i32 = 0;
     let mut enow: f64 = 0.;
     let mut fnow: f64 = 0.;
-    enow = *e.offset(0 as i32 as isize);
-    fnow = *f.offset(0 as i32 as isize);
+    enow = e[0];
+    fnow = f[0];
     findex = 0 as i32;
     eindex = findex;
     if (fnow > enow) as i32 == (fnow > -enow) as i32 {
@@ -857,15 +693,15 @@ pub unsafe fn fast_expansion_sum(mut elen: i32,
     hindex = 0 as i32;
     if eindex < elen && findex < flen {
         if (fnow > enow) as i32 == (fnow > -enow) as i32 {
-            let [x, y] = Fast_Two_Sum(enow, Q);
+            let [y, x] = Fast_Two_Sum(enow, Q);
             Qnew = x;
-            *h.offset(0 as i32 as isize) = y;
+            h[0] = y;
             eindex += 1;
             enow = *e.offset(eindex as isize)
         } else {
-            let [x, y] = Fast_Two_Sum(fnow, Q);
+            let [y, x] = Fast_Two_Sum(fnow, Q);
             Qnew = x;
-            *h.offset(0 as i32 as isize) = y;
+            h[0] = y;
             findex += 1;
             fnow = *f.offset(findex as isize)
         }
@@ -902,6 +738,7 @@ pub unsafe fn fast_expansion_sum(mut elen: i32,
     *h.offset(hindex as isize) = Q;
     return hindex + 1 as i32;
 }
+*/
 /* ****************************************************************************/
 /*                                                                           */
 /*  fast_expansion_sum_zeroelim()   Sum two expansions, eliminating zero     */
@@ -916,103 +753,78 @@ pub unsafe fn fast_expansion_sum(mut elen: i32,
 /*                                                                           */
 /* ****************************************************************************/
 
-pub unsafe fn fast_expansion_sum_zeroelim(mut elen: i32,
-                                                     mut e:
-                                                         *const f64,
-                                                     mut flen: i32,
-                                                     mut f:
-                                                         *const f64,
-                                                     mut h:
-                                                         *mut f64)
- -> i32 {
-    let mut Q: f64 = 0.;
-    let mut Qnew: f64 = 0.;
-    let mut hh: f64 = 0.;
-    let mut bvirt: f64 = 0.;
-    let mut avirt: f64 = 0.;
-    let mut bround: f64 = 0.;
-    let mut around: f64 = 0.;
-    let mut eindex: i32 = 0;
-    let mut findex: i32 = 0;
-    let mut hindex: i32 = 0;
-    let mut enow: f64 = 0.;
-    let mut fnow: f64 = 0.;
-    enow = *e.offset(0 as i32 as isize);
-    fnow = *f.offset(0 as i32 as isize);
-    findex = 0 as i32;
-    eindex = findex;
-    if (fnow > enow) as i32 == (fnow > -enow) as i32 {
+#[inline]
+pub fn fast_expansion_sum_zeroelim(e: &[f64], f: &[f64], h: &mut [f64]) -> usize {
+    let mut Q;
+    let mut findex = 0;
+    let mut eindex = findex;
+
+    let enow = e[0];
+    let fnow = f[0];
+    if (fnow > enow) == (fnow > -enow) {
         Q = enow;
         eindex += 1;
-        enow = *e.offset(eindex as isize)
-    } else { Q = fnow; findex += 1; fnow = *f.offset(findex as isize) }
-    hindex = 0 as i32;
-    if eindex < elen && findex < flen {
-        if (fnow > enow) as i32 == (fnow > -enow) as i32 {
-            let [x, y] = Fast_Two_Sum(enow, Q);
-            Qnew = x;
-            hh = y;
+    } else {
+        Q = fnow;
+        findex += 1;
+    }
+
+    let mut hindex = 0;
+    if eindex < e.len() && findex < f.len() {
+        let enow = e[eindex];
+        let fnow = f[findex];
+        let [hh, Qnew] = if (fnow > enow) == (fnow > -enow) {
             eindex += 1;
-            enow = *e.offset(eindex as isize)
+            Fast_Two_Sum(enow, Q)
         } else {
-            let [x, y] = Fast_Two_Sum(fnow, Q);
-            Qnew = x;
-            hh = y;
             findex += 1;
-            fnow = *f.offset(findex as isize)
-        }
+            Fast_Two_Sum(fnow, Q)
+        };
         Q = Qnew;
         if hh != 0.0f64 {
-            let fresh4 = hindex;
-            hindex = hindex + 1;
-            *h.offset(fresh4 as isize) = hh
+            h[hindex] = hh;
+            hindex += 1;
         }
-        while eindex < elen && findex < flen {
-            if (fnow > enow) as i32 == (fnow > -enow) as i32 {
-                Two_Sum(Q, enow, &mut Qnew, &mut hh);
+        while eindex < e.len() && findex < f.len() {
+            let enow = e[eindex];
+            let fnow = f[findex];
+            let [hh, Qnew] = if (fnow > enow) == (fnow > -enow) {
                 eindex += 1;
-                enow = *e.offset(eindex as isize)
+                Two_Sum(Q, enow)
             } else {
-                Two_Sum(Q, fnow, &mut Qnew, &mut hh);
                 findex += 1;
-                fnow = *f.offset(findex as isize)
-            }
+                Two_Sum(Q, fnow)
+            };
             Q = Qnew;
             if hh != 0.0f64 {
-                let fresh5 = hindex;
-                hindex = hindex + 1;
-                *h.offset(fresh5 as isize) = hh
+                h[hindex] = hh;
+                hindex += 1;
             }
         }
     }
-    while eindex < elen {
-        Two_Sum(Q, enow, &mut Qnew, &mut hh);
+    while eindex < e.len() {
+        let [hh, Qnew] = Two_Sum(Q, e[eindex]);
         eindex += 1;
-        enow = *e.offset(eindex as isize);
         Q = Qnew;
         if hh != 0.0f64 {
-            let fresh6 = hindex;
-            hindex = hindex + 1;
-            *h.offset(fresh6 as isize) = hh
+            h[hindex] = hh;
+            hindex += 1;
         }
     }
-    while findex < flen {
-        Two_Sum(Q, fnow, &mut Qnew, &mut hh);
+    while findex < f.len() {
+        let [hh, Qnew] = Two_Sum(Q, f[findex]);
         findex += 1;
-        fnow = *f.offset(findex as isize);
         Q = Qnew;
         if hh != 0.0f64 {
-            let fresh7 = hindex;
-            hindex = hindex + 1;
-            *h.offset(fresh7 as isize) = hh
+            h[hindex] = hh;
+            hindex += 1;
         }
     }
-    if Q != 0.0f64 || hindex == 0 as i32 {
-        let fresh8 = hindex;
-        hindex = hindex + 1;
-        *h.offset(fresh8 as isize) = Q
+    if Q != 0.0f64 || hindex == 0 {
+        h[hindex] = Q;
+        hindex += 1;
     }
-    return hindex;
+    hindex
 }
 /* ****************************************************************************/
 /*                                                                           */
@@ -1024,7 +836,7 @@ pub unsafe fn fast_expansion_sum_zeroelim(mut elen: i32,
 /*  nonoverlapping, h will be also.)                                         */
 /*                                                                           */
 /* ****************************************************************************/
-
+/*
 pub unsafe fn linear_expansion_sum(mut elen: i32,
                                               mut e: *const f64,
                                               mut flen: i32,
@@ -1045,8 +857,8 @@ pub unsafe fn linear_expansion_sum(mut elen: i32,
     let mut enow: f64 = 0.;
     let mut fnow: f64 = 0.;
     let mut g0: f64 = 0.;
-    enow = *e.offset(0 as i32 as isize);
-    fnow = *f.offset(0 as i32 as isize);
+    enow = e[0];
+    fnow = f[0];
     findex = 0 as i32;
     eindex = findex;
     if (fnow > enow) as i32 == (fnow > -enow) as i32 {
@@ -1058,13 +870,13 @@ pub unsafe fn linear_expansion_sum(mut elen: i32,
            (findex >= flen ||
                 (fnow > enow) as i32 == (fnow > -enow) as i32)
        {
-        let [x, y] = Fast_Two_Sum(enow, g0);
+        let [y, x] = Fast_Two_Sum(enow, g0);
         Qnew = x;
         q = y;
         eindex += 1;
         enow = *e.offset(eindex as isize)
     } else {
-        let [x, y] = Fast_Two_Sum(fnow, g0);
+        let [y, x] = Fast_Two_Sum(fnow, g0);
         Qnew = x;
         q = y;
         findex += 1;
@@ -1077,13 +889,13 @@ pub unsafe fn linear_expansion_sum(mut elen: i32,
                (findex >= flen ||
                     (fnow > enow) as i32 ==
                         (fnow > -enow) as i32) {
-            let [x, y] = Fast_Two_Sum(enow, q);
+            let [y, x] = Fast_Two_Sum(enow, q);
             R = x;
             *h.offset(hindex as isize) = y;
             eindex += 1;
             enow = *e.offset(eindex as isize)
         } else {
-            let [x, y] = Fast_Two_Sum(fnow, q);
+            let [y, x] = Fast_Two_Sum(fnow, q);
             R = x;
             *h.offset(hindex as isize) = y;
             findex += 1;
@@ -1097,6 +909,7 @@ pub unsafe fn linear_expansion_sum(mut elen: i32,
     *h.offset((hindex + 1 as i32) as isize) = Q;
     return hindex + 2 as i32;
 }
+*/
 /* ****************************************************************************/
 /*                                                                           */
 /*  linear_expansion_sum_zeroelim()   Sum two expansions, eliminating zero   */
@@ -1109,6 +922,7 @@ pub unsafe fn linear_expansion_sum(mut elen: i32,
 /*                                                                           */
 /* ****************************************************************************/
 
+/*
 pub unsafe fn linear_expansion_sum_zeroelim(mut elen: i32,
                                                        mut e:
                                                            *const f64,
@@ -1134,8 +948,8 @@ pub unsafe fn linear_expansion_sum_zeroelim(mut elen: i32,
     let mut enow: f64 = 0.;
     let mut fnow: f64 = 0.;
     let mut g0: f64 = 0.;
-    enow = *e.offset(0 as i32 as isize);
-    fnow = *f.offset(0 as i32 as isize);
+    enow = e[0];
+    fnow = f[0];
     findex = 0 as i32;
     eindex = findex;
     hindex = 0 as i32;
@@ -1148,13 +962,13 @@ pub unsafe fn linear_expansion_sum_zeroelim(mut elen: i32,
            (findex >= flen ||
                 (fnow > enow) as i32 == (fnow > -enow) as i32)
        {
-        let [x, y] = Fast_Two_Sum(enow, g0);
+        let [y, x] = Fast_Two_Sum(enow, g0);
         Qnew = x;
         q = y;
         eindex += 1;
         enow = *e.offset(eindex as isize)
     } else {
-        let [x, y] = Fast_Two_Sum(fnow, g0);
+        let [y, x] = Fast_Two_Sum(fnow, g0);
         Qnew = x;
         q = y;
         findex += 1;
@@ -1167,13 +981,13 @@ pub unsafe fn linear_expansion_sum_zeroelim(mut elen: i32,
                (findex >= flen ||
                     (fnow > enow) as i32 ==
                         (fnow > -enow) as i32) {
-            let [x, y] = Fast_Two_Sum(enow, q);
+            let [y, x] = Fast_Two_Sum(enow, q);
             R = x;
             hh = y;
             eindex += 1;
             enow = *e.offset(eindex as isize)
         } else {
-            let [x, y] = Fast_Two_Sum(fnow, q);
+            let [y, x] = Fast_Two_Sum(fnow, q);
             R = x;
             hh = y;
             findex += 1;
@@ -1200,6 +1014,7 @@ pub unsafe fn linear_expansion_sum_zeroelim(mut elen: i32,
     }
     return hindex;
 }
+*/
 /* ****************************************************************************/
 /*                                                                           */
 /*  scale_expansion()   Multiply an expansion by a scalar.                   */
@@ -1212,7 +1027,7 @@ pub unsafe fn linear_expansion_sum_zeroelim(mut elen: i32,
 /*  will h.)                                                                 */
 /*                                                                           */
 /* ****************************************************************************/
-
+/*
 pub unsafe fn scale_expansion(mut elen: i32,
                                          mut e: *const f64,
                                          mut b: f64,
@@ -1239,8 +1054,8 @@ pub unsafe fn scale_expansion(mut elen: i32,
     let mut err2: f64 = 0.;
     let mut err3: f64 = 0.;
     Split(b, &mut bhi, &mut blo);
-    Two_Product_Presplit(*e.offset(0 as i32 as isize), b, bhi, blo,
-                         &mut Q, &mut *h.offset(0 as i32 as isize));
+    Two_Product_Presplit(e[0], b, bhi, blo,
+                         &mut Q, &mut h[0]);
     hindex = 1 as i32;
     eindex = 1 as i32;
     while eindex < elen {
@@ -1255,6 +1070,8 @@ pub unsafe fn scale_expansion(mut elen: i32,
     *h.offset(hindex as isize) = Q;
     return elen + elen;
 }
+*/
+
 /* ****************************************************************************/
 /*                                                                           */
 /*  scale_expansion_zeroelim()   Multiply an expansion by a scalar,          */
@@ -1270,69 +1087,36 @@ pub unsafe fn scale_expansion(mut elen: i32,
 /*                                                                           */
 /* ****************************************************************************/
 
-pub unsafe fn scale_expansion_zeroelim(mut elen: i32,
-                                                  mut e:
-                                                      *const f64,
-                                                  mut b: f64,
-                                                  mut h: *mut f64)
- -> i32 {
-    let mut Q: f64 = 0.;
-    let mut sum: f64 = 0.;
-    let mut hh: f64 = 0.;
-    let mut product1: f64 = 0.;
-    let mut product0: f64 = 0.;
-    let mut eindex: i32 = 0;
-    let mut hindex: i32 = 0;
-    let mut enow: f64 = 0.;
-    let mut bvirt: f64 = 0.;
-    let mut avirt: f64 = 0.;
-    let mut bround: f64 = 0.;
-    let mut around: f64 = 0.;
-    let mut c: f64 = 0.;
-    let mut abig: f64 = 0.;
-    let mut ahi: f64 = 0.;
-    let mut alo: f64 = 0.;
-    let mut bhi: f64 = 0.;
-    let mut blo: f64 = 0.;
-    let mut err1: f64 = 0.;
-    let mut err2: f64 = 0.;
-    let mut err3: f64 = 0.;
-    Split(b, &mut bhi, &mut blo);
-    Two_Product_Presplit(*e.offset(0 as i32 as isize), b, bhi, blo,
-                         &mut Q, &mut hh);
-    hindex = 0 as i32;
-    if hh != 0 as i32 as f64 {
-        let fresh12 = hindex;
-        hindex = hindex + 1;
-        *h.offset(fresh12 as isize) = hh
+pub fn scale_expansion_zeroelim(e: &[f64], b: f64, h: &mut [f64]) -> usize {
+    let [blo, bhi] = Split(b);
+    let [hh, mut Q] = Two_Product_Presplit(e[0], b, bhi, blo);
+
+    let mut hindex = 0;
+    if hh != 0.0f64 {
+        h[hindex] = hh;
+        hindex += 1;
     }
-    eindex = 1 as i32;
-    while eindex < elen {
-        enow = *e.offset(eindex as isize);
-        Two_Product_Presplit(enow, b, bhi, blo, &mut product1, &mut product0);
-        Two_Sum(Q, product0, &mut sum, &mut hh);
-        if hh != 0 as i32 as f64 {
-            let fresh13 = hindex;
-            hindex = hindex + 1;
-            *h.offset(fresh13 as isize) = hh
+    for &enow in e.iter().skip(1) {
+        let [product0, product1] = Two_Product_Presplit(enow, b, bhi, blo);
+        let [hh, sum] = Two_Sum(Q, product0);
+        if hh != 0.0f64 {
+            h[hindex] = hh;
+            hindex += 1;
         }
-        let [x, y] = Fast_Two_Sum(product1, sum);
-        Q = x;
-        hh = y;
-        if hh != 0 as i32 as f64 {
-            let fresh14 = hindex;
-            hindex = hindex + 1;
-            *h.offset(fresh14 as isize) = hh
+        let [hh, Qnew] = Fast_Two_Sum(product1, sum);
+        Q = Qnew;
+        if hh != 0.0f64 {
+            h[hindex] = hh;
+            hindex += 1;
         }
-        eindex += 1
     }
-    if Q != 0.0f64 || hindex == 0 as i32 {
-        let fresh15 = hindex;
-        hindex = hindex + 1;
-        *h.offset(fresh15 as isize) = Q
+    if Q != 0.0f64 || hindex == 0 {
+        h[hindex] = Q;
+        hindex += 1;
     }
-    return hindex;
+    hindex
 }
+
 /* ****************************************************************************/
 /*                                                                           */
 /*  compress()   Compress an expansion.                                      */
@@ -1344,7 +1128,7 @@ pub unsafe fn scale_expansion_zeroelim(mut elen: i32,
 /*  nonadjacent expansion.                                                   */
 /*                                                                           */
 /* ****************************************************************************/
-
+/*
 pub unsafe fn compress(mut elen: i32,
                                   mut e: *const f64,
                                   mut h: *mut f64) -> i32 {
@@ -1363,7 +1147,7 @@ pub unsafe fn compress(mut elen: i32,
     eindex = elen - 2 as i32;
     while eindex >= 0 as i32 {
         enow = *e.offset(eindex as isize);
-        let [x, y] = Fast_Two_Sum(Q, enow);
+        let [y, x] = Fast_Two_Sum(Q, enow);
         Qnew = x;
         q = y;
         if q != 0 as i32 as f64 {
@@ -1379,7 +1163,7 @@ pub unsafe fn compress(mut elen: i32,
     while hindex < elen {
         hnow = *h.offset(hindex as isize);
         let mut sum: [f64; 2] = [0.; 2];
-        let [x, y] = Fast_Two_Sum(hnow, Q);
+        let [y, x] = Fast_Two_Sum(hnow, Q);
         Qnew = x;
         q = y;
         if q != 0 as i32 as f64 {
@@ -1393,6 +1177,7 @@ pub unsafe fn compress(mut elen: i32,
     *h.offset(top as isize) = Q;
     return top + 1 as i32;
 }
+*/
 /* ****************************************************************************/
 /*                                                                           */
 /*  estimate()   Produce a one-word estimate of an expansion's value.        */
@@ -1401,21 +1186,16 @@ pub unsafe fn compress(mut elen: i32,
 /*                                                                           */
 /* ****************************************************************************/
 
-pub unsafe fn estimate(mut elen: i32,
-                                  mut e: *const f64)
- -> f64 {
-    let mut Q: f64 = 0.;
-    let mut eindex: i32 = 0;
-    Q = *e.offset(0 as i32 as isize);
-    eindex = 1 as i32;
-    while eindex < elen { Q += *e.offset(eindex as isize); eindex += 1 }
-    return Q;
+#[inline]
+pub fn estimate(e: &[f64]) -> f64 {
+    e.iter().sum()
 }
+
 /* ****************************************************************************/
 /*                                                                           */
-/*  orient2dfast()   Approximate 2D orientation test.  Nonrobust.            */
-/*  orient2dexact()   Exact 2D orientation test.  Robust.                    */
-/*  orient2dslow()   Another exact 2D orientation test.  Robust.             */
+/*  orient2d_fast()   Approximate 2D orientation test.  Nonrobust.            */
+/*  orient2d_exact()   Exact 2D orientation test.  Robust.                    */
+/*  orient2d_slow()   Another exact 2D orientation test.  Robust.             */
 /*  orient2d()   Adaptive exact 2D orientation test.  Robust.                */
 /*                                                                           */
 /*               Return a positive value if the points pa, pb, and pc occur  */
@@ -1437,312 +1217,137 @@ pub unsafe fn estimate(mut elen: i32,
 /*                                                                           */
 /* ****************************************************************************/
 
-pub unsafe fn orient2dfast(mut pa: *const f64,
-                                      mut pb: *const f64,
-                                      mut pc: *const f64)
- -> f64 {
-    let mut acx: f64 = 0.;
-    let mut bcx: f64 = 0.;
-    let mut acy: f64 = 0.;
-    let mut bcy: f64 = 0.;
-    acx =
-        *pa.offset(0 as i32 as isize) -
-            *pc.offset(0 as i32 as isize);
-    bcx =
-        *pb.offset(0 as i32 as isize) -
-            *pc.offset(0 as i32 as isize);
-    acy =
-        *pa.offset(1 as i32 as isize) -
-            *pc.offset(1 as i32 as isize);
-    bcy =
-        *pb.offset(1 as i32 as isize) -
-            *pc.offset(1 as i32 as isize);
-    return acx * bcy - acy * bcx;
+/// Approximate 2D orientation test. Non-robust version of `orient2d`.
+#[inline]
+pub fn orient2d_fast(pa: [f64; 2], pb: [f64; 2], pc: [f64; 2]) -> f64 {
+    let acx = pa[0] - pc[0];
+    let bcx = pb[0] - pc[0];
+    let acy = pa[1] - pc[1];
+    let bcy = pb[1] - pc[1];
+    acx * bcy - acy * bcx
 }
 
-pub unsafe fn orient2dexact(mut pa: *const f64,
-                                       mut pb: *const f64,
-                                       mut pc: *const f64)
- -> f64 {
-    let mut axby1: f64 = 0.;
-    let mut axcy1: f64 = 0.;
-    let mut bxcy1: f64 = 0.;
-    let mut bxay1: f64 = 0.;
-    let mut cxay1: f64 = 0.;
-    let mut cxby1: f64 = 0.;
-    let mut axby0: f64 = 0.;
-    let mut axcy0: f64 = 0.;
-    let mut bxcy0: f64 = 0.;
-    let mut bxay0: f64 = 0.;
-    let mut cxay0: f64 = 0.;
-    let mut cxby0: f64 = 0.;
-    let mut aterms: [f64; 4] = [0.; 4];
-    let mut bterms: [f64; 4] = [0.; 4];
-    let mut cterms: [f64; 4] = [0.; 4];
-    let mut aterms3: f64 = 0.;
-    let mut bterms3: f64 = 0.;
-    let mut cterms3: f64 = 0.;
-    let mut v: [f64; 8] = [0.; 8];
-    let mut w: [f64; 12] = [0.; 12];
-    let mut vlength: i32 = 0;
-    let mut wlength: i32 = 0;
-    let mut bvirt: f64 = 0.;
-    let mut avirt: f64 = 0.;
-    let mut bround: f64 = 0.;
-    let mut around: f64 = 0.;
-    let mut c: f64 = 0.;
-    let mut abig: f64 = 0.;
-    let mut ahi: f64 = 0.;
-    let mut alo: f64 = 0.;
-    let mut bhi: f64 = 0.;
-    let mut blo: f64 = 0.;
-    let mut err1: f64 = 0.;
-    let mut err2: f64 = 0.;
-    let mut err3: f64 = 0.;
-    let mut _i: f64 = 0.;
-    let mut _j: f64 = 0.;
-    let mut _0: f64 = 0.;
-    Two_Product(*pa.offset(0 as i32 as isize),
-                *pb.offset(1 as i32 as isize), &mut axby1,
-                &mut axby0);
-    Two_Product(*pa.offset(0 as i32 as isize),
-                *pc.offset(1 as i32 as isize), &mut axcy1,
-                &mut axcy0);
-    Two_Two_Diff(axby1, axby0, axcy1, axcy0, aterms.as_mut_ptr());
-    Two_Product(*pb.offset(0 as i32 as isize),
-                *pc.offset(1 as i32 as isize), &mut bxcy1,
-                &mut bxcy0);
-    Two_Product(*pb.offset(0 as i32 as isize),
-                *pa.offset(1 as i32 as isize), &mut bxay1,
-                &mut bxay0);
-    Two_Two_Diff(bxcy1, bxcy0, bxay1, bxay0, bterms.as_mut_ptr());
-    Two_Product(*pc.offset(0 as i32 as isize),
-                *pa.offset(1 as i32 as isize), &mut cxay1,
-                &mut cxay0);
-    Two_Product(*pc.offset(0 as i32 as isize),
-                *pb.offset(1 as i32 as isize), &mut cxby1,
-                &mut cxby0);
-    Two_Two_Diff(cxay1, cxay0, cxby1, cxby0, cterms.as_mut_ptr());
-    vlength =
-        fast_expansion_sum_zeroelim(4 as i32, aterms.as_mut_ptr(),
-                                    4 as i32, bterms.as_mut_ptr(),
-                                    v.as_mut_ptr());
-    wlength =
-        fast_expansion_sum_zeroelim(vlength, v.as_mut_ptr(), 4 as i32,
-                                    cterms.as_mut_ptr(), w.as_mut_ptr());
-    return w[(wlength - 1 as i32) as usize];
+#[inline]
+pub fn orient2d_exact(pa: [f64; 2], pb: [f64; 2], pc: [f64; 2]) -> f64 {
+    let [axby0, axby1] = Two_Product(pa[0], pb[1]);
+    let [axcy0, axcy1] = Two_Product(pa[0], pc[1]);
+    let aterms = Two_Two_Diff(axby1, axby0, axcy1, axcy0);
+    let [bxcy0, bxcy1] = Two_Product(pb[0], pc[1]);
+    let [bxay0, bxay1] = Two_Product(pb[0], pa[1]);
+    let bterms = Two_Two_Diff(bxcy1, bxcy0, bxay1, bxay0);
+    let [cxay0, cxay1] = Two_Product(pc[0], pa[1]);
+    let [cxby0, cxby1] = Two_Product(pc[0], pb[1]);
+    let cterms = Two_Two_Diff(cxay1, cxay0, cxby1, cxby0);
+    let mut v = [0.; 8];
+    let vlength = fast_expansion_sum_zeroelim(&aterms, &bterms, &mut v);
+    let mut w = [0.; 12];
+    let wlength = fast_expansion_sum_zeroelim(&v[..vlength], &cterms, &mut w);
+    w[wlength - 1]
 }
 
-pub unsafe fn orient2dslow(mut pa: *const f64,
-                                      mut pb: *const f64,
-                                      mut pc: *const f64)
- -> f64 {
-    let mut acx: f64 = 0.;
-    let mut acy: f64 = 0.;
-    let mut bcx: f64 = 0.;
-    let mut bcy: f64 = 0.;
-    let mut acxtail: f64 = 0.;
-    let mut acytail: f64 = 0.;
-    let mut bcxtail: f64 = 0.;
-    let mut bcytail: f64 = 0.;
-    let mut negate: f64 = 0.;
-    let mut negatetail: f64 = 0.;
-    let mut axby: [f64; 8] = [0.; 8];
-    let mut bxay: [f64; 8] = [0.; 8];
-    let mut deter: [f64; 16] = [0.; 16];
-    let mut deterlen: i32 = 0;
-    let mut bvirt: f64 = 0.;
-    let mut avirt: f64 = 0.;
-    let mut bround: f64 = 0.;
-    let mut around: f64 = 0.;
-    let mut c: f64 = 0.;
-    let mut abig: f64 = 0.;
-    let mut a0hi: f64 = 0.;
-    let mut a0lo: f64 = 0.;
-    let mut a1hi: f64 = 0.;
-    let mut a1lo: f64 = 0.;
-    let mut bhi: f64 = 0.;
-    let mut blo: f64 = 0.;
-    let mut err1: f64 = 0.;
-    let mut err2: f64 = 0.;
-    let mut err3: f64 = 0.;
-    let mut _i: f64 = 0.;
-    let mut _j: f64 = 0.;
-    let mut _k: f64 = 0.;
-    let mut _l: f64 = 0.;
-    let mut _m: f64 = 0.;
-    let mut _n: f64 = 0.;
-    let mut _0: f64 = 0.;
-    let mut _1: f64 = 0.;
-    let mut _2: f64 = 0.;
-    Two_Diff(*pa.offset(0 as i32 as isize),
-             *pc.offset(0 as i32 as isize), &mut acx, &mut acxtail);
-    Two_Diff(*pa.offset(1 as i32 as isize),
-             *pc.offset(1 as i32 as isize), &mut acy, &mut acytail);
-    Two_Diff(*pb.offset(0 as i32 as isize),
-             *pc.offset(0 as i32 as isize), &mut bcx, &mut bcxtail);
-    Two_Diff(*pb.offset(1 as i32 as isize),
-             *pc.offset(1 as i32 as isize), &mut bcy, &mut bcytail);
-    Two_Two_Product(acx, acxtail, bcy, bcytail, axby.as_mut_ptr());
-    negate = -acy;
-    negatetail = -acytail;
-    Two_Two_Product(bcx, bcxtail, negate, negatetail, bxay.as_mut_ptr());
-    deterlen =
-        fast_expansion_sum_zeroelim(8 as i32, axby.as_mut_ptr(),
-                                    8 as i32, bxay.as_mut_ptr(),
-                                    deter.as_mut_ptr());
-    return deter[(deterlen - 1 as i32) as usize];
+#[inline]
+pub fn orient2d_slow(pa: [f64; 2], pb: [f64; 2], pc: [f64; 2]) -> f64 {
+    let [acxtail, acx] = Two_Diff(pa[0], pc[0]);
+    let [acytail, acy] = Two_Diff(pa[1], pc[1]);
+    let [bcxtail, bcx] = Two_Diff(pb[0], pc[0]);
+    let [bcytail, bcy] = Two_Diff(pb[1], pc[1]);
+    let axby = Two_Two_Product(acx, acxtail, bcy, bcytail);
+    let negate = -acy;
+    let negatetail = -acytail;
+    let bxay = Two_Two_Product(bcx, bcxtail, negate, negatetail);
+    let mut deter = [0.; 16];
+    let deterlen = fast_expansion_sum_zeroelim(&axby, &bxay, &mut deter);
+    deter[deterlen - 1]
 }
 
-pub unsafe fn orient2dadapt(mut pa: *const f64,
-                                       mut pb: *const f64,
-                                       mut pc: *const f64,
-                                       mut detsum: f64)
- -> f64 {
-    let mut acx: f64 = 0.;
-    let mut acy: f64 = 0.;
-    let mut bcx: f64 = 0.;
-    let mut bcy: f64 = 0.;
-    let mut acxtail: f64 = 0.;
-    let mut acytail: f64 = 0.;
-    let mut bcxtail: f64 = 0.;
-    let mut bcytail: f64 = 0.;
-    let mut detleft: f64 = 0.;
-    let mut detright: f64 = 0.;
-    let mut detlefttail: f64 = 0.;
-    let mut detrighttail: f64 = 0.;
-    let mut det: f64 = 0.;
-    let mut errbound: f64 = 0.;
-    let mut B: [f64; 4] = [0.; 4];
-    let mut C1: [f64; 8] = [0.; 8];
-    let mut C2: [f64; 12] = [0.; 12];
-    let mut D: [f64; 16] = [0.; 16];
-    let mut B3: f64 = 0.;
-    let mut C1length: i32 = 0;
-    let mut C2length: i32 = 0;
-    let mut Dlength: i32 = 0;
-    let mut u: [f64; 4] = [0.; 4];
-    let mut u3: f64 = 0.;
-    let mut s1: f64 = 0.;
-    let mut t1: f64 = 0.;
-    let mut s0: f64 = 0.;
-    let mut t0: f64 = 0.;
-    let mut bvirt: f64 = 0.;
-    let mut avirt: f64 = 0.;
-    let mut bround: f64 = 0.;
-    let mut around: f64 = 0.;
-    let mut c: f64 = 0.;
-    let mut abig: f64 = 0.;
-    let mut ahi: f64 = 0.;
-    let mut alo: f64 = 0.;
-    let mut bhi: f64 = 0.;
-    let mut blo: f64 = 0.;
-    let mut err1: f64 = 0.;
-    let mut err2: f64 = 0.;
-    let mut err3: f64 = 0.;
-    let mut _i: f64 = 0.;
-    let mut _j: f64 = 0.;
-    let mut _0: f64 = 0.;
-    acx =
-        *pa.offset(0 as i32 as isize) -
-            *pc.offset(0 as i32 as isize);
-    bcx =
-        *pb.offset(0 as i32 as isize) -
-            *pc.offset(0 as i32 as isize);
-    acy =
-        *pa.offset(1 as i32 as isize) -
-            *pc.offset(1 as i32 as isize);
-    bcy =
-        *pb.offset(1 as i32 as isize) -
-            *pc.offset(1 as i32 as isize);
-    Two_Product(acx, bcy, &mut detleft, &mut detlefttail);
-    Two_Product(acy, bcx, &mut detright, &mut detrighttail);
-    Two_Two_Diff(detleft, detlefttail, detright, detrighttail,
-                 B.as_mut_ptr());
-    det = estimate(4 as i32, B.as_mut_ptr());
-    errbound = PARAMS.ccwerrboundB * detsum;
+#[inline]
+pub fn orient2dadapt(pa: [f64; 2], pb: [f64; 2], pc: [f64; 2], detsum: f64) -> f64 {
+    let acx = pa[0] - pc[0];
+    let bcx = pb[0] - pc[0];
+    let acy = pa[1] - pc[1];
+    let bcy = pb[1] - pc[1];
+    let [detlefttail, detleft] = Two_Product(acx, bcy);
+    let [detrighttail, detright] = Two_Product(acy, bcx);
+    let B = Two_Two_Diff(detleft, detlefttail, detright, detrighttail);
+    let mut det = estimate(&B);
+    let errbound = PARAMS.ccwerrboundB * detsum;
     if det >= errbound || -det >= errbound { return det }
-    acxtail =
-        Two_Diff_Tail(*pa.offset(0 as i32 as isize),
-                      *pc.offset(0 as i32 as isize), acx);
-    bcxtail =
-        Two_Diff_Tail(*pb.offset(0 as i32 as isize),
-                      *pc.offset(0 as i32 as isize), bcx);
-    acytail =
-        Two_Diff_Tail(*pa.offset(1 as i32 as isize),
-                      *pc.offset(1 as i32 as isize), acy);
-    bcytail =
-        Two_Diff_Tail(*pb.offset(1 as i32 as isize),
-                      *pc.offset(1 as i32 as isize), bcy);
-    if acxtail == 0.0f64 && acytail == 0.0f64 && bcxtail == 0.0f64 &&
-           bcytail == 0.0f64 {
-        return det
+    let acxtail = Two_Diff_Tail(pa[0], pc[0], acx);
+    let bcxtail = Two_Diff_Tail(pb[0], pc[0], bcx);
+    let acytail = Two_Diff_Tail(pa[1], pc[1], acy);
+    let bcytail = Two_Diff_Tail(pb[1], pc[1], bcy);
+    if acxtail == 0.0 && acytail == 0.0 && bcxtail == 0.0 && bcytail == 0.0 {
+        return det;
     }
-    errbound = PARAMS.ccwerrboundC * detsum + PARAMS.resulterrbound * Absolute(det);
+    let errbound = PARAMS.ccwerrboundC * detsum + PARAMS.resulterrbound * Absolute(det);
     det += acx * bcytail + bcy * acxtail - (acy * bcxtail + bcx * acytail);
     if det >= errbound || -det >= errbound { return det }
-    Two_Product(acxtail, bcy, &mut s1, &mut s0);
-    Two_Product(acytail, bcx, &mut t1, &mut t0);
-    Two_Two_Diff(s1, s0, t1, t0, u.as_mut_ptr());
-    C1length =
-        fast_expansion_sum_zeroelim(4 as i32, B.as_mut_ptr(),
-                                    4 as i32, u.as_mut_ptr(),
-                                    C1.as_mut_ptr());
-    Two_Product(acx, bcytail, &mut s1, &mut s0);
-    Two_Product(acy, bcxtail, &mut t1, &mut t0);
-    Two_Two_Diff(s1, s0, t1, t0, u.as_mut_ptr());
-    C2length =
-        fast_expansion_sum_zeroelim(C1length, C1.as_mut_ptr(),
-                                    4 as i32, u.as_mut_ptr(),
-                                    C2.as_mut_ptr());
-    Two_Product(acxtail, bcytail, &mut s1, &mut s0);
-    Two_Product(acytail, bcxtail, &mut t1, &mut t0);
-    Two_Two_Diff(s1, s0, t1, t0, u.as_mut_ptr());
-    Dlength =
-        fast_expansion_sum_zeroelim(C2length, C2.as_mut_ptr(),
-                                    4 as i32, u.as_mut_ptr(),
-                                    D.as_mut_ptr());
-    return D[(Dlength - 1 as i32) as usize];
+    let [s0, s1] = Two_Product(acxtail, bcy);
+    let [t0, t1] = Two_Product(acytail, bcx);
+    let u = Two_Two_Diff(s1, s0, t1, t0);
+    let mut C1: [f64; 8] = [0.; 8];
+    let C1length = fast_expansion_sum_zeroelim(&B, &u, &mut C1);
+    let [s0, s1] = Two_Product(acx, bcytail);
+    let [t0, t1] = Two_Product(acy, bcxtail);
+    let u = Two_Two_Diff(s1, s0, t1, t0);
+    let mut C2: [f64; 12] = [0.; 12];
+    let C2length = fast_expansion_sum_zeroelim(&C1[..C1length], &u, &mut C2);
+    let [s0, s1] = Two_Product(acxtail, bcytail);
+    let [t0, t1] = Two_Product(acytail, bcxtail);
+    let u = Two_Two_Diff(s1, s0, t1, t0);
+    let mut D: [f64; 16] = [0.; 16];
+    let Dlength = fast_expansion_sum_zeroelim(&C2[..C2length], &u, &mut D);
+    D[Dlength - 1]
 }
 
-pub unsafe fn orient2d(mut pa: *const f64,
-                                  mut pb: *const f64,
-                                  mut pc: *const f64)
- -> f64 {
-    let mut detleft: f64 = 0.;
-    let mut detright: f64 = 0.;
-    let mut det: f64 = 0.;
-    let mut detsum: f64 = 0.;
-    let mut errbound: f64 = 0.;
-    detleft =
-        (*pa.offset(0 as i32 as isize) -
-             *pc.offset(0 as i32 as isize)) *
-            (*pb.offset(1 as i32 as isize) -
-                 *pc.offset(1 as i32 as isize));
-    detright =
-        (*pa.offset(1 as i32 as isize) -
-             *pc.offset(1 as i32 as isize)) *
-            (*pb.offset(0 as i32 as isize) -
-                 *pc.offset(0 as i32 as isize));
-    det = detleft - detright;
-    if detleft > 0.0f64 {
-        if detright <= 0.0f64 {
-            return det
-        } else { detsum = detleft + detright }
-    } else if detleft < 0.0f64 {
-        if detright >= 0.0f64 {
-            return det
-        } else { detsum = -detleft - detright }
-    } else { return det }
-    errbound = PARAMS.ccwerrboundA * detsum;
-    if det >= errbound || -det >= errbound { return det }
-    return orient2dadapt(pa, pb, pc, detsum);
+/**
+ * Adaptive exact 2D orientation test.  Robust.
+ *
+ * Return a positive value if the points `pa`, `pb`, and `pc` occur
+ * in counterclockwise order; a negative value if they occur
+ * in clockwise order; and zero if they are collinear.  The
+ * result is also a rough approximation of twice the signed
+ * area of the triangle defined by the three points.
+ *
+ * The result returned is the determinant of a matrix.
+ * This determinant is computed adaptively, in the sense that exact
+ * arithmetic is used only to the degree it is needed to ensure that the
+ * returned value has the correct sign.  Hence, `orient2d()` is usually quite
+ * fast, but will run more slowly when the input points are collinear or
+ * nearly so.
+ */
+#[inline]
+pub fn orient2d(pa: [f64; 2], pb: [f64; 2], pc: [f64; 2]) -> f64 {
+    let detleft = (pa[0] - pc[0]) * (pb[1] - pc[1]);
+    let detright = (pa[1] - pc[1]) * (pb[0] - pc[0]);
+    let det = detleft - detright;
+    let detsum = if detleft > 0.0 {
+        if detright <= 0.0 {
+            return det;
+        } else {
+            detleft + detright
+        }
+    } else if detleft < 0.0 {
+        if detright >= 0.0 {
+            return det;
+        } else {
+            -detleft - detright
+        }
+    } else {
+        return det;
+    };
+    let errbound = PARAMS.ccwerrboundA * detsum;
+    if det >= errbound || -det >= errbound {
+        return det;
+    }
+    orient2dadapt(pa, pb, pc, detsum)
 }
+
 /* ****************************************************************************/
 /*                                                                           */
-/*  orient3dfast()   Approximate 3D orientation test.  Nonrobust.            */
-/*  orient3dexact()   Exact 3D orientation test.  Robust.                    */
-/*  orient3dslow()   Another exact 3D orientation test.  Robust.             */
+/*  orient3d_fast()   Approximate 3D orientation test.  Nonrobust.            */
+/*  orient3d_exact()   Exact 3D orientation test.  Robust.                    */
+/*  orient3d_slow()   Another exact 3D orientation test.  Robust.             */
 /*  orient3d()   Adaptive exact 3D orientation test.  Robust.                */
 /*                                                                           */
 /*               Return a positive value if the point pd lies below the      */
@@ -1767,622 +1372,179 @@ pub unsafe fn orient2d(mut pa: *const f64,
 /*                                                                           */
 /* ****************************************************************************/
 
-pub unsafe fn orient3dfast(mut pa: *const f64,
-                                      mut pb: *const f64,
-                                      mut pc: *const f64,
-                                      mut pd: *const f64)
- -> f64 {
-    let mut adx: f64 = 0.;
-    let mut bdx: f64 = 0.;
-    let mut cdx: f64 = 0.;
-    let mut ady: f64 = 0.;
-    let mut bdy: f64 = 0.;
-    let mut cdy: f64 = 0.;
-    let mut adz: f64 = 0.;
-    let mut bdz: f64 = 0.;
-    let mut cdz: f64 = 0.;
-    adx =
-        *pa.offset(0 as i32 as isize) -
-            *pd.offset(0 as i32 as isize);
-    bdx =
-        *pb.offset(0 as i32 as isize) -
-            *pd.offset(0 as i32 as isize);
-    cdx =
-        *pc.offset(0 as i32 as isize) -
-            *pd.offset(0 as i32 as isize);
-    ady =
-        *pa.offset(1 as i32 as isize) -
-            *pd.offset(1 as i32 as isize);
-    bdy =
-        *pb.offset(1 as i32 as isize) -
-            *pd.offset(1 as i32 as isize);
-    cdy =
-        *pc.offset(1 as i32 as isize) -
-            *pd.offset(1 as i32 as isize);
-    adz =
-        *pa.offset(2 as i32 as isize) -
-            *pd.offset(2 as i32 as isize);
-    bdz =
-        *pb.offset(2 as i32 as isize) -
-            *pd.offset(2 as i32 as isize);
-    cdz =
-        *pc.offset(2 as i32 as isize) -
-            *pd.offset(2 as i32 as isize);
-    return adx * (bdy * cdz - bdz * cdy) + bdx * (cdy * adz - cdz * ady) +
-               cdx * (ady * bdz - adz * bdy);
+/// Approximate 3D orientation test. Non-robust version of `orient3d`.
+#[inline]
+pub fn orient3d_fast(pa: [f64; 3], pb: [f64; 3], pc: [f64; 3], pd: [f64; 3]) -> f64 {
+    let adx = pa[0] - pd[0];
+    let bdx = pb[0] - pd[0];
+    let cdx = pc[0] - pd[0];
+    let ady = pa[1] - pd[1];
+    let bdy = pb[1] - pd[1];
+    let cdy = pc[1] - pd[1];
+    let adz = pa[2] - pd[2];
+    let bdz = pb[2] - pd[2];
+    let cdz = pc[2] - pd[2];
+    adx * (bdy * cdz - bdz * cdy) + bdx * (cdy * adz - cdz * ady) + cdx * (ady * bdz - adz * bdy)
 }
 
-pub unsafe fn orient3dexact(mut pa: *const f64,
-                                       mut pb: *const f64,
-                                       mut pc: *const f64,
-                                       mut pd: *const f64)
- -> f64 {
-    let mut axby1: f64 = 0.;
-    let mut bxcy1: f64 = 0.;
-    let mut cxdy1: f64 = 0.;
-    let mut dxay1: f64 = 0.;
-    let mut axcy1: f64 = 0.;
-    let mut bxdy1: f64 = 0.;
-    let mut bxay1: f64 = 0.;
-    let mut cxby1: f64 = 0.;
-    let mut dxcy1: f64 = 0.;
-    let mut axdy1: f64 = 0.;
-    let mut cxay1: f64 = 0.;
-    let mut dxby1: f64 = 0.;
-    let mut axby0: f64 = 0.;
-    let mut bxcy0: f64 = 0.;
-    let mut cxdy0: f64 = 0.;
-    let mut dxay0: f64 = 0.;
-    let mut axcy0: f64 = 0.;
-    let mut bxdy0: f64 = 0.;
-    let mut bxay0: f64 = 0.;
-    let mut cxby0: f64 = 0.;
-    let mut dxcy0: f64 = 0.;
-    let mut axdy0: f64 = 0.;
-    let mut cxay0: f64 = 0.;
-    let mut dxby0: f64 = 0.;
-    let mut ab: [f64; 4] = [0.; 4];
-    let mut bc: [f64; 4] = [0.; 4];
-    let mut cd: [f64; 4] = [0.; 4];
-    let mut da: [f64; 4] = [0.; 4];
-    let mut ac: [f64; 4] = [0.; 4];
-    let mut bd: [f64; 4] = [0.; 4];
-    let mut temp8: [f64; 8] = [0.; 8];
-    let mut templen: i32 = 0;
-    let mut abc: [f64; 12] = [0.; 12];
-    let mut bcd: [f64; 12] = [0.; 12];
-    let mut cda: [f64; 12] = [0.; 12];
-    let mut dab: [f64; 12] = [0.; 12];
-    let mut abclen: i32 = 0;
-    let mut bcdlen: i32 = 0;
-    let mut cdalen: i32 = 0;
-    let mut dablen: i32 = 0;
-    let mut adet: [f64; 24] = [0.; 24];
-    let mut bdet: [f64; 24] = [0.; 24];
-    let mut cdet: [f64; 24] = [0.; 24];
-    let mut ddet: [f64; 24] = [0.; 24];
-    let mut alen: i32 = 0;
-    let mut blen: i32 = 0;
-    let mut clen: i32 = 0;
-    let mut dlen: i32 = 0;
-    let mut abdet: [f64; 48] = [0.; 48];
-    let mut cddet: [f64; 48] = [0.; 48];
-    let mut ablen: i32 = 0;
-    let mut cdlen: i32 = 0;
-    let mut deter: [f64; 96] = [0.; 96];
-    let mut deterlen: i32 = 0;
-    let mut i: i32 = 0;
-    let mut bvirt: f64 = 0.;
-    let mut avirt: f64 = 0.;
-    let mut bround: f64 = 0.;
-    let mut around: f64 = 0.;
-    let mut c: f64 = 0.;
-    let mut abig: f64 = 0.;
-    let mut ahi: f64 = 0.;
-    let mut alo: f64 = 0.;
-    let mut bhi: f64 = 0.;
-    let mut blo: f64 = 0.;
-    let mut err1: f64 = 0.;
-    let mut err2: f64 = 0.;
-    let mut err3: f64 = 0.;
-    let mut _i: f64 = 0.;
-    let mut _j: f64 = 0.;
-    let mut _0: f64 = 0.;
-    Two_Product(*pa.offset(0 as i32 as isize),
-                *pb.offset(1 as i32 as isize), &mut axby1,
-                &mut axby0);
-    Two_Product(*pb.offset(0 as i32 as isize),
-                *pa.offset(1 as i32 as isize), &mut bxay1,
-                &mut bxay0);
-    Two_Two_Diff(axby1, axby0, bxay1, bxay0, ab.as_mut_ptr());
-    Two_Product(*pb.offset(0 as i32 as isize),
-                *pc.offset(1 as i32 as isize), &mut bxcy1,
-                &mut bxcy0);
-    Two_Product(*pc.offset(0 as i32 as isize),
-                *pb.offset(1 as i32 as isize), &mut cxby1,
-                &mut cxby0);
-    Two_Two_Diff(bxcy1, bxcy0, cxby1, cxby0, bc.as_mut_ptr());
-    Two_Product(*pc.offset(0 as i32 as isize),
-                *pd.offset(1 as i32 as isize), &mut cxdy1,
-                &mut cxdy0);
-    Two_Product(*pd.offset(0 as i32 as isize),
-                *pc.offset(1 as i32 as isize), &mut dxcy1,
-                &mut dxcy0);
-    Two_Two_Diff(cxdy1, cxdy0, dxcy1, dxcy0, cd.as_mut_ptr());
-    Two_Product(*pd.offset(0 as i32 as isize),
-                *pa.offset(1 as i32 as isize), &mut dxay1,
-                &mut dxay0);
-    Two_Product(*pa.offset(0 as i32 as isize),
-                *pd.offset(1 as i32 as isize), &mut axdy1,
-                &mut axdy0);
-    Two_Two_Diff(dxay1, dxay0, axdy1, axdy0, da.as_mut_ptr());
-    Two_Product(*pa.offset(0 as i32 as isize),
-                *pc.offset(1 as i32 as isize), &mut axcy1,
-                &mut axcy0);
-    Two_Product(*pc.offset(0 as i32 as isize),
-                *pa.offset(1 as i32 as isize), &mut cxay1,
-                &mut cxay0);
-    Two_Two_Diff(axcy1, axcy0, cxay1, cxay0, ac.as_mut_ptr());
-    Two_Product(*pb.offset(0 as i32 as isize),
-                *pd.offset(1 as i32 as isize), &mut bxdy1,
-                &mut bxdy0);
-    Two_Product(*pd.offset(0 as i32 as isize),
-                *pb.offset(1 as i32 as isize), &mut dxby1,
-                &mut dxby0);
-    Two_Two_Diff(bxdy1, bxdy0, dxby1, dxby0, bd.as_mut_ptr());
-    templen =
-        fast_expansion_sum_zeroelim(4 as i32, cd.as_mut_ptr(),
-                                    4 as i32, da.as_mut_ptr(),
-                                    temp8.as_mut_ptr());
-    cdalen =
-        fast_expansion_sum_zeroelim(templen, temp8.as_mut_ptr(),
-                                    4 as i32, ac.as_mut_ptr(),
-                                    cda.as_mut_ptr());
-    templen =
-        fast_expansion_sum_zeroelim(4 as i32, da.as_mut_ptr(),
-                                    4 as i32, ab.as_mut_ptr(),
-                                    temp8.as_mut_ptr());
-    dablen =
-        fast_expansion_sum_zeroelim(templen, temp8.as_mut_ptr(),
-                                    4 as i32, bd.as_mut_ptr(),
-                                    dab.as_mut_ptr());
-    i = 0 as i32;
-    while i < 4 as i32 {
-        bd[i as usize] = -bd[i as usize];
-        ac[i as usize] = -ac[i as usize];
-        i += 1
-    }
-    templen =
-        fast_expansion_sum_zeroelim(4 as i32, ab.as_mut_ptr(),
-                                    4 as i32, bc.as_mut_ptr(),
-                                    temp8.as_mut_ptr());
-    abclen =
-        fast_expansion_sum_zeroelim(templen, temp8.as_mut_ptr(),
-                                    4 as i32, ac.as_mut_ptr(),
-                                    abc.as_mut_ptr());
-    templen =
-        fast_expansion_sum_zeroelim(4 as i32, bc.as_mut_ptr(),
-                                    4 as i32, cd.as_mut_ptr(),
-                                    temp8.as_mut_ptr());
-    bcdlen =
-        fast_expansion_sum_zeroelim(templen, temp8.as_mut_ptr(),
-                                    4 as i32, bd.as_mut_ptr(),
-                                    bcd.as_mut_ptr());
-    alen =
-        scale_expansion_zeroelim(bcdlen, bcd.as_mut_ptr(),
-                                 *pa.offset(2 as i32 as isize),
-                                 adet.as_mut_ptr());
-    blen =
-        scale_expansion_zeroelim(cdalen, cda.as_mut_ptr(),
-                                 -*pb.offset(2 as i32 as isize),
-                                 bdet.as_mut_ptr());
-    clen =
-        scale_expansion_zeroelim(dablen, dab.as_mut_ptr(),
-                                 *pc.offset(2 as i32 as isize),
-                                 cdet.as_mut_ptr());
-    dlen =
-        scale_expansion_zeroelim(abclen, abc.as_mut_ptr(),
-                                 -*pd.offset(2 as i32 as isize),
-                                 ddet.as_mut_ptr());
-    ablen =
-        fast_expansion_sum_zeroelim(alen, adet.as_mut_ptr(), blen,
-                                    bdet.as_mut_ptr(), abdet.as_mut_ptr());
-    cdlen =
-        fast_expansion_sum_zeroelim(clen, cdet.as_mut_ptr(), dlen,
-                                    ddet.as_mut_ptr(), cddet.as_mut_ptr());
-    deterlen =
-        fast_expansion_sum_zeroelim(ablen, abdet.as_mut_ptr(), cdlen,
-                                    cddet.as_mut_ptr(), deter.as_mut_ptr());
-    return deter[(deterlen - 1 as i32) as usize];
+#[inline]
+pub fn orient3d_exact(pa: [f64; 3], pb: [f64; 3], pc: [f64; 3], pd: [f64; 3]) -> f64 {
+    let [axby0, axby1] = Two_Product(pa[0], pb[1]);
+    let [bxay0, bxay1] = Two_Product(pb[0], pa[1]);
+    let ab = Two_Two_Diff(axby1, axby0, bxay1, bxay0);
+    let [bxcy0, bxcy1] = Two_Product(pb[0], pc[1]);
+    let [cxby0, cxby1] = Two_Product(pc[0], pb[1]);
+    let bc = Two_Two_Diff(bxcy1, bxcy0, cxby1, cxby0);
+    let [cxdy0, cxdy1] = Two_Product(pc[0], pd[1]);
+    let [dxcy0, dxcy1] = Two_Product(pd[0], pc[1]);
+    let cd = Two_Two_Diff(cxdy1, cxdy0, dxcy1, dxcy0);
+    let [dxay0, dxay1] = Two_Product(pd[0], pa[1]);
+    let [axdy0, axdy1] = Two_Product(pa[0], pd[1]);
+    let da = Two_Two_Diff(dxay1, dxay0, axdy1, axdy0);
+    let [axcy0, axcy1] = Two_Product(pa[0], pc[1]);
+    let [cxay0, cxay1] = Two_Product(pc[0], pa[1]);
+    let mut ac = Two_Two_Diff(axcy1, axcy0, cxay1, cxay0);
+    let [bxdy0, bxdy1] = Two_Product(pb[0], pd[1]);
+    let [dxby0, dxby1] = Two_Product(pd[0], pb[1]);
+    let mut bd = Two_Two_Diff(bxdy1, bxdy0, dxby1, dxby0);
+
+    let mut temp8 = [0.; 8];
+    let mut abc = [0.; 12];
+    let mut bcd = [0.; 12];
+    let mut cda = [0.; 12];
+    let mut dab = [0.; 12];
+    let mut adet = [0.; 24];
+    let mut bdet = [0.; 24];
+    let mut cdet = [0.; 24];
+    let mut ddet = [0.; 24];
+    let mut abdet = [0.; 48];
+    let mut cddet = [0.; 48];
+    let mut deter = [0.; 96];
+
+    let templen = fast_expansion_sum_zeroelim(&cd, &da, &mut temp8);
+    let cdalen = fast_expansion_sum_zeroelim(&temp8[..templen], &ac, &mut cda);
+    let templen = fast_expansion_sum_zeroelim(&da, &ab, &mut temp8);
+    let dablen = fast_expansion_sum_zeroelim(&temp8[..templen], &bd, &mut dab);
+    bd.iter_mut().for_each(|x| *x = -*x);
+    ac.iter_mut().for_each(|x| *x = -*x);
+    let templen = fast_expansion_sum_zeroelim(&ab, &bc, &mut temp8);
+    let abclen = fast_expansion_sum_zeroelim(&temp8[..templen], &ac, &mut abc);
+    let templen = fast_expansion_sum_zeroelim(&bc, &cd, &mut temp8);
+    let bcdlen = fast_expansion_sum_zeroelim(&temp8[..templen], &bd, &mut bcd);
+    let alen = scale_expansion_zeroelim(&bcd[..bcdlen], pa[2], &mut adet);
+    let blen = scale_expansion_zeroelim(&cda[..cdalen], -pb[2], &mut bdet);
+    let clen = scale_expansion_zeroelim(&dab[..dablen], pc[2], &mut cdet);
+    let dlen = scale_expansion_zeroelim(&abc[..abclen], -pd[2], &mut ddet);
+    let ablen = fast_expansion_sum_zeroelim(&adet[..alen], &bdet[..blen], &mut abdet);
+    let cdlen = fast_expansion_sum_zeroelim(&cdet[..clen], &ddet[..dlen], &mut cddet);
+    let deterlen = fast_expansion_sum_zeroelim(&abdet[..ablen], &cddet[..cdlen], &mut deter);
+    deter[deterlen - 1]
 }
 
-pub unsafe fn orient3dslow(mut pa: *const f64,
-                                      mut pb: *const f64,
-                                      mut pc: *const f64,
-                                      mut pd: *const f64)
- -> f64 {
-    let mut adx: f64 = 0.;
-    let mut ady: f64 = 0.;
-    let mut adz: f64 = 0.;
-    let mut bdx: f64 = 0.;
-    let mut bdy: f64 = 0.;
-    let mut bdz: f64 = 0.;
-    let mut cdx: f64 = 0.;
-    let mut cdy: f64 = 0.;
-    let mut cdz: f64 = 0.;
-    let mut adxtail: f64 = 0.;
-    let mut adytail: f64 = 0.;
-    let mut adztail: f64 = 0.;
-    let mut bdxtail: f64 = 0.;
-    let mut bdytail: f64 = 0.;
-    let mut bdztail: f64 = 0.;
-    let mut cdxtail: f64 = 0.;
-    let mut cdytail: f64 = 0.;
-    let mut cdztail: f64 = 0.;
-    let mut negate: f64 = 0.;
-    let mut negatetail: f64 = 0.;
-    let mut axby7: f64 = 0.;
-    let mut bxcy7: f64 = 0.;
-    let mut axcy7: f64 = 0.;
-    let mut bxay7: f64 = 0.;
-    let mut cxby7: f64 = 0.;
-    let mut cxay7: f64 = 0.;
-    let mut axby: [f64; 8] = [0.; 8];
-    let mut bxcy: [f64; 8] = [0.; 8];
-    let mut axcy: [f64; 8] = [0.; 8];
-    let mut bxay: [f64; 8] = [0.; 8];
-    let mut cxby: [f64; 8] = [0.; 8];
-    let mut cxay: [f64; 8] = [0.; 8];
+#[inline]
+pub fn orient3d_slow(pa: [f64; 3], pb: [f64; 3], pc: [f64; 3], pd: [f64; 3]) -> f64 {
     let mut temp16: [f64; 16] = [0.; 16];
     let mut temp32: [f64; 32] = [0.; 32];
     let mut temp32t: [f64; 32] = [0.; 32];
-    let mut temp16len: i32 = 0;
-    let mut temp32len: i32 = 0;
-    let mut temp32tlen: i32 = 0;
     let mut adet: [f64; 64] = [0.; 64];
     let mut bdet: [f64; 64] = [0.; 64];
     let mut cdet: [f64; 64] = [0.; 64];
-    let mut alen: i32 = 0;
-    let mut blen: i32 = 0;
-    let mut clen: i32 = 0;
     let mut abdet: [f64; 128] = [0.; 128];
-    let mut ablen: i32 = 0;
     let mut deter: [f64; 192] = [0.; 192];
-    let mut deterlen: i32 = 0;
-    let mut bvirt: f64 = 0.;
-    let mut avirt: f64 = 0.;
-    let mut bround: f64 = 0.;
-    let mut around: f64 = 0.;
-    let mut c: f64 = 0.;
-    let mut abig: f64 = 0.;
-    let mut a0hi: f64 = 0.;
-    let mut a0lo: f64 = 0.;
-    let mut a1hi: f64 = 0.;
-    let mut a1lo: f64 = 0.;
-    let mut bhi: f64 = 0.;
-    let mut blo: f64 = 0.;
-    let mut err1: f64 = 0.;
-    let mut err2: f64 = 0.;
-    let mut err3: f64 = 0.;
-    let mut _i: f64 = 0.;
-    let mut _j: f64 = 0.;
-    let mut _k: f64 = 0.;
-    let mut _l: f64 = 0.;
-    let mut _m: f64 = 0.;
-    let mut _n: f64 = 0.;
-    let mut _0: f64 = 0.;
-    let mut _1: f64 = 0.;
-    let mut _2: f64 = 0.;
-    Two_Diff(*pa.offset(0 as i32 as isize),
-             *pd.offset(0 as i32 as isize), &mut adx, &mut adxtail);
-    Two_Diff(*pa.offset(1 as i32 as isize),
-             *pd.offset(1 as i32 as isize), &mut ady, &mut adytail);
-    Two_Diff(*pa.offset(2 as i32 as isize),
-             *pd.offset(2 as i32 as isize), &mut adz, &mut adztail);
-    Two_Diff(*pb.offset(0 as i32 as isize),
-             *pd.offset(0 as i32 as isize), &mut bdx, &mut bdxtail);
-    Two_Diff(*pb.offset(1 as i32 as isize),
-             *pd.offset(1 as i32 as isize), &mut bdy, &mut bdytail);
-    Two_Diff(*pb.offset(2 as i32 as isize),
-             *pd.offset(2 as i32 as isize), &mut bdz, &mut bdztail);
-    Two_Diff(*pc.offset(0 as i32 as isize),
-             *pd.offset(0 as i32 as isize), &mut cdx, &mut cdxtail);
-    Two_Diff(*pc.offset(1 as i32 as isize),
-             *pd.offset(1 as i32 as isize), &mut cdy, &mut cdytail);
-    Two_Diff(*pc.offset(2 as i32 as isize),
-             *pd.offset(2 as i32 as isize), &mut cdz, &mut cdztail);
-    Two_Two_Product(adx, adxtail, bdy, bdytail, axby.as_mut_ptr());
-    negate = -ady;
-    negatetail = -adytail;
-    Two_Two_Product(bdx, bdxtail, negate, negatetail, bxay.as_mut_ptr());
-    Two_Two_Product(bdx, bdxtail, cdy, cdytail, bxcy.as_mut_ptr());
-    negate = -bdy;
-    negatetail = -bdytail;
-    Two_Two_Product(cdx, cdxtail, negate, negatetail, cxby.as_mut_ptr());
-    Two_Two_Product(cdx, cdxtail, ady, adytail, cxay.as_mut_ptr());
-    negate = -cdy;
-    negatetail = -cdytail;
-    Two_Two_Product(adx, adxtail, negate, negatetail, axcy.as_mut_ptr());
-    temp16len =
-        fast_expansion_sum_zeroelim(8 as i32, bxcy.as_mut_ptr(),
-                                    8 as i32, cxby.as_mut_ptr(),
-                                    temp16.as_mut_ptr());
-    temp32len =
-        scale_expansion_zeroelim(temp16len, temp16.as_mut_ptr(), adz,
-                                 temp32.as_mut_ptr());
-    temp32tlen =
-        scale_expansion_zeroelim(temp16len, temp16.as_mut_ptr(), adztail,
-                                 temp32t.as_mut_ptr());
-    alen =
-        fast_expansion_sum_zeroelim(temp32len, temp32.as_mut_ptr(),
-                                    temp32tlen, temp32t.as_mut_ptr(),
-                                    adet.as_mut_ptr());
-    temp16len =
-        fast_expansion_sum_zeroelim(8 as i32, cxay.as_mut_ptr(),
-                                    8 as i32, axcy.as_mut_ptr(),
-                                    temp16.as_mut_ptr());
-    temp32len =
-        scale_expansion_zeroelim(temp16len, temp16.as_mut_ptr(), bdz,
-                                 temp32.as_mut_ptr());
-    temp32tlen =
-        scale_expansion_zeroelim(temp16len, temp16.as_mut_ptr(), bdztail,
-                                 temp32t.as_mut_ptr());
-    blen =
-        fast_expansion_sum_zeroelim(temp32len, temp32.as_mut_ptr(),
-                                    temp32tlen, temp32t.as_mut_ptr(),
-                                    bdet.as_mut_ptr());
-    temp16len =
-        fast_expansion_sum_zeroelim(8 as i32, axby.as_mut_ptr(),
-                                    8 as i32, bxay.as_mut_ptr(),
-                                    temp16.as_mut_ptr());
-    temp32len =
-        scale_expansion_zeroelim(temp16len, temp16.as_mut_ptr(), cdz,
-                                 temp32.as_mut_ptr());
-    temp32tlen =
-        scale_expansion_zeroelim(temp16len, temp16.as_mut_ptr(), cdztail,
-                                 temp32t.as_mut_ptr());
-    clen =
-        fast_expansion_sum_zeroelim(temp32len, temp32.as_mut_ptr(),
-                                    temp32tlen, temp32t.as_mut_ptr(),
-                                    cdet.as_mut_ptr());
-    ablen =
-        fast_expansion_sum_zeroelim(alen, adet.as_mut_ptr(), blen,
-                                    bdet.as_mut_ptr(), abdet.as_mut_ptr());
-    deterlen =
-        fast_expansion_sum_zeroelim(ablen, abdet.as_mut_ptr(), clen,
-                                    cdet.as_mut_ptr(), deter.as_mut_ptr());
-    return deter[(deterlen - 1 as i32) as usize];
+    let [adxtail, adx] = Two_Diff(pa[0], pd[0]);
+    let [adytail, ady] = Two_Diff(pa[1], pd[1]);
+    let [adztail, adz] = Two_Diff(pa[2], pd[2]);
+    let [bdxtail, bdx] = Two_Diff(pb[0], pd[0]);
+    let [bdytail, bdy] = Two_Diff(pb[1], pd[1]);
+    let [bdztail, bdz] = Two_Diff(pb[2], pd[2]);
+    let [cdxtail, cdx] = Two_Diff(pc[0], pd[0]);
+    let [cdytail, cdy] = Two_Diff(pc[1], pd[1]);
+    let [cdztail, cdz] = Two_Diff(pc[2], pd[2]);
+    let axby = Two_Two_Product(adx, adxtail, bdy, bdytail);
+    let negate = -ady;
+    let negatetail = -adytail;
+    let bxay = Two_Two_Product(bdx, bdxtail, negate, negatetail);
+    let bxcy = Two_Two_Product(bdx, bdxtail, cdy, cdytail);
+    let negate = -bdy;
+    let negatetail = -bdytail;
+    let cxby = Two_Two_Product(cdx, cdxtail, negate, negatetail);
+    let cxay = Two_Two_Product(cdx, cdxtail, ady, adytail);
+    let negate = -cdy;
+    let negatetail = -cdytail;
+    let axcy = Two_Two_Product(adx, adxtail, negate, negatetail);
+    let temp16len = fast_expansion_sum_zeroelim(&bxcy, &cxby, &mut temp16);
+    let temp32len = scale_expansion_zeroelim(&temp16[..temp16len], adz, &mut temp32);
+    let temp32tlen = scale_expansion_zeroelim(&temp16[..temp16len], adztail, &mut temp32t);
+    let alen = fast_expansion_sum_zeroelim(&temp32[..temp32len], &temp32t[..temp32tlen], &mut adet);
+    let temp16len = fast_expansion_sum_zeroelim(&cxay, &axcy, &mut temp16);
+    let temp32len = scale_expansion_zeroelim(&temp16[..temp16len], bdz, &mut temp32);
+    let temp32tlen = scale_expansion_zeroelim(&temp16[..temp16len], bdztail, &mut temp32t);
+    let blen = fast_expansion_sum_zeroelim(&temp32[..temp32len], &temp32t[..temp32tlen], &mut bdet);
+    let temp16len = fast_expansion_sum_zeroelim(&axby, &bxay, &mut temp16);
+    let temp32len = scale_expansion_zeroelim(&temp16[..temp16len], cdz, &mut temp32);
+    let temp32tlen = scale_expansion_zeroelim(&temp16[..temp16len], cdztail, &mut temp32t);
+    let clen = fast_expansion_sum_zeroelim(&temp32[..temp32len], &temp32t[..temp32tlen], &mut cdet);
+    let ablen = fast_expansion_sum_zeroelim(&adet[..alen], &bdet[..blen], &mut abdet);
+    let deterlen = fast_expansion_sum_zeroelim(&abdet[..ablen], &cdet[..clen], &mut deter);
+    deter[deterlen - 1]
 }
 
-pub unsafe fn orient3dadapt(mut pa: *const f64,
-                                       mut pb: *const f64,
-                                       mut pc: *const f64,
-                                       mut pd: *const f64,
-                                       mut permanent: f64)
- -> f64 {
-    let mut adx: f64 = 0.;
-    let mut bdx: f64 = 0.;
-    let mut cdx: f64 = 0.;
-    let mut ady: f64 = 0.;
-    let mut bdy: f64 = 0.;
-    let mut cdy: f64 = 0.;
-    let mut adz: f64 = 0.;
-    let mut bdz: f64 = 0.;
-    let mut cdz: f64 = 0.;
-    let mut det: f64 = 0.;
-    let mut errbound: f64 = 0.;
-    let mut bdxcdy1: f64 = 0.;
-    let mut cdxbdy1: f64 = 0.;
-    let mut cdxady1: f64 = 0.;
-    let mut adxcdy1: f64 = 0.;
-    let mut adxbdy1: f64 = 0.;
-    let mut bdxady1: f64 = 0.;
-    let mut bdxcdy0: f64 = 0.;
-    let mut cdxbdy0: f64 = 0.;
-    let mut cdxady0: f64 = 0.;
-    let mut adxcdy0: f64 = 0.;
-    let mut adxbdy0: f64 = 0.;
-    let mut bdxady0: f64 = 0.;
-    let mut bc: [f64; 4] = [0.; 4];
-    let mut ca: [f64; 4] = [0.; 4];
-    let mut ab: [f64; 4] = [0.; 4];
-    let mut bc3: f64 = 0.;
-    let mut ca3: f64 = 0.;
-    let mut ab3: f64 = 0.;
-    let mut adet: [f64; 8] = [0.; 8];
-    let mut bdet: [f64; 8] = [0.; 8];
-    let mut cdet: [f64; 8] = [0.; 8];
-    let mut alen: i32 = 0;
-    let mut blen: i32 = 0;
-    let mut clen: i32 = 0;
-    let mut abdet: [f64; 16] = [0.; 16];
-    let mut ablen: i32 = 0;
-    let mut finnow: *mut f64 = 0 as *mut f64;
-    let mut finother: *mut f64 = 0 as *mut f64;
-    let mut finswap: *mut f64 = 0 as *mut f64;
-    let mut fin1: [f64; 192] = [0.; 192];
-    let mut fin2: [f64; 192] = [0.; 192];
-    let mut finlength: i32 = 0;
-    let mut adxtail: f64 = 0.;
-    let mut bdxtail: f64 = 0.;
-    let mut cdxtail: f64 = 0.;
-    let mut adytail: f64 = 0.;
-    let mut bdytail: f64 = 0.;
-    let mut cdytail: f64 = 0.;
-    let mut adztail: f64 = 0.;
-    let mut bdztail: f64 = 0.;
-    let mut cdztail: f64 = 0.;
-    let mut at_blarge: f64 = 0.;
-    let mut at_clarge: f64 = 0.;
-    let mut bt_clarge: f64 = 0.;
-    let mut bt_alarge: f64 = 0.;
-    let mut ct_alarge: f64 = 0.;
-    let mut ct_blarge: f64 = 0.;
-    let mut at_b: [f64; 4] = [0.; 4];
-    let mut at_c: [f64; 4] = [0.; 4];
-    let mut bt_c: [f64; 4] = [0.; 4];
-    let mut bt_a: [f64; 4] = [0.; 4];
-    let mut ct_a: [f64; 4] = [0.; 4];
-    let mut ct_b: [f64; 4] = [0.; 4];
-    let mut at_blen: i32 = 0;
-    let mut at_clen: i32 = 0;
-    let mut bt_clen: i32 = 0;
-    let mut bt_alen: i32 = 0;
-    let mut ct_alen: i32 = 0;
-    let mut ct_blen: i32 = 0;
-    let mut bdxt_cdy1: f64 = 0.;
-    let mut cdxt_bdy1: f64 = 0.;
-    let mut cdxt_ady1: f64 = 0.;
-    let mut adxt_cdy1: f64 = 0.;
-    let mut adxt_bdy1: f64 = 0.;
-    let mut bdxt_ady1: f64 = 0.;
-    let mut bdxt_cdy0: f64 = 0.;
-    let mut cdxt_bdy0: f64 = 0.;
-    let mut cdxt_ady0: f64 = 0.;
-    let mut adxt_cdy0: f64 = 0.;
-    let mut adxt_bdy0: f64 = 0.;
-    let mut bdxt_ady0: f64 = 0.;
-    let mut bdyt_cdx1: f64 = 0.;
-    let mut cdyt_bdx1: f64 = 0.;
-    let mut cdyt_adx1: f64 = 0.;
-    let mut adyt_cdx1: f64 = 0.;
-    let mut adyt_bdx1: f64 = 0.;
-    let mut bdyt_adx1: f64 = 0.;
-    let mut bdyt_cdx0: f64 = 0.;
-    let mut cdyt_bdx0: f64 = 0.;
-    let mut cdyt_adx0: f64 = 0.;
-    let mut adyt_cdx0: f64 = 0.;
-    let mut adyt_bdx0: f64 = 0.;
-    let mut bdyt_adx0: f64 = 0.;
-    let mut bct: [f64; 8] = [0.; 8];
-    let mut cat: [f64; 8] = [0.; 8];
-    let mut abt: [f64; 8] = [0.; 8];
-    let mut bctlen: i32 = 0;
-    let mut catlen: i32 = 0;
-    let mut abtlen: i32 = 0;
-    let mut bdxt_cdyt1: f64 = 0.;
-    let mut cdxt_bdyt1: f64 = 0.;
-    let mut cdxt_adyt1: f64 = 0.;
-    let mut adxt_cdyt1: f64 = 0.;
-    let mut adxt_bdyt1: f64 = 0.;
-    let mut bdxt_adyt1: f64 = 0.;
-    let mut bdxt_cdyt0: f64 = 0.;
-    let mut cdxt_bdyt0: f64 = 0.;
-    let mut cdxt_adyt0: f64 = 0.;
-    let mut adxt_cdyt0: f64 = 0.;
-    let mut adxt_bdyt0: f64 = 0.;
-    let mut bdxt_adyt0: f64 = 0.;
-    let mut u: [f64; 4] = [0.; 4];
-    let mut v: [f64; 12] = [0.; 12];
-    let mut w: [f64; 16] = [0.; 16];
-    let mut u3: f64 = 0.;
-    let mut vlength: i32 = 0;
-    let mut wlength: i32 = 0;
-    let mut negate: f64 = 0.;
-    let mut bvirt: f64 = 0.;
-    let mut avirt: f64 = 0.;
-    let mut bround: f64 = 0.;
-    let mut around: f64 = 0.;
-    let mut c: f64 = 0.;
-    let mut abig: f64 = 0.;
-    let mut ahi: f64 = 0.;
-    let mut alo: f64 = 0.;
-    let mut bhi: f64 = 0.;
-    let mut blo: f64 = 0.;
-    let mut err1: f64 = 0.;
-    let mut err2: f64 = 0.;
-    let mut err3: f64 = 0.;
-    let mut _i: f64 = 0.;
-    let mut _j: f64 = 0.;
-    let mut _k: f64 = 0.;
-    let mut _0: f64 = 0.;
-    adx =
-        *pa.offset(0 as i32 as isize) -
-            *pd.offset(0 as i32 as isize);
-    bdx =
-        *pb.offset(0 as i32 as isize) -
-            *pd.offset(0 as i32 as isize);
-    cdx =
-        *pc.offset(0 as i32 as isize) -
-            *pd.offset(0 as i32 as isize);
-    ady =
-        *pa.offset(1 as i32 as isize) -
-            *pd.offset(1 as i32 as isize);
-    bdy =
-        *pb.offset(1 as i32 as isize) -
-            *pd.offset(1 as i32 as isize);
-    cdy =
-        *pc.offset(1 as i32 as isize) -
-            *pd.offset(1 as i32 as isize);
-    adz =
-        *pa.offset(2 as i32 as isize) -
-            *pd.offset(2 as i32 as isize);
-    bdz =
-        *pb.offset(2 as i32 as isize) -
-            *pd.offset(2 as i32 as isize);
-    cdz =
-        *pc.offset(2 as i32 as isize) -
-            *pd.offset(2 as i32 as isize);
-    Two_Product(bdx, cdy, &mut bdxcdy1, &mut bdxcdy0);
-    Two_Product(cdx, bdy, &mut cdxbdy1, &mut cdxbdy0);
-    Two_Two_Diff(bdxcdy1, bdxcdy0, cdxbdy1, cdxbdy0, bc.as_mut_ptr());
-    alen =
-        scale_expansion_zeroelim(4 as i32, bc.as_mut_ptr(), adz,
-                                 adet.as_mut_ptr());
-    Two_Product(cdx, ady, &mut cdxady1, &mut cdxady0);
-    Two_Product(adx, cdy, &mut adxcdy1, &mut adxcdy0);
-    Two_Two_Diff(cdxady1, cdxady0, adxcdy1, adxcdy0, ca.as_mut_ptr());
-    blen =
-        scale_expansion_zeroelim(4 as i32, ca.as_mut_ptr(), bdz,
-                                 bdet.as_mut_ptr());
-    Two_Product(adx, bdy, &mut adxbdy1, &mut adxbdy0);
-    Two_Product(bdx, ady, &mut bdxady1, &mut bdxady0);
-    Two_Two_Diff(adxbdy1, adxbdy0, bdxady1, bdxady0, ab.as_mut_ptr());
-    clen =
-        scale_expansion_zeroelim(4 as i32, ab.as_mut_ptr(), cdz,
-                                 cdet.as_mut_ptr());
-    ablen =
-        fast_expansion_sum_zeroelim(alen, adet.as_mut_ptr(), blen,
-                                    bdet.as_mut_ptr(), abdet.as_mut_ptr());
-    finlength =
-        fast_expansion_sum_zeroelim(ablen, abdet.as_mut_ptr(), clen,
-                                    cdet.as_mut_ptr(), fin1.as_mut_ptr());
-    det = estimate(finlength, fin1.as_mut_ptr());
-    errbound = PARAMS.o3derrboundB * permanent;
-    if det >= errbound || -det >= errbound { return det }
-    adxtail =
-        Two_Diff_Tail(*pa.offset(0 as i32 as isize),
-                      *pd.offset(0 as i32 as isize), adx);
-    bdxtail =
-        Two_Diff_Tail(*pb.offset(0 as i32 as isize),
-                      *pd.offset(0 as i32 as isize), bdx);
-    cdxtail =
-        Two_Diff_Tail(*pc.offset(0 as i32 as isize),
-                      *pd.offset(0 as i32 as isize), cdx);
-    adytail =
-        Two_Diff_Tail(*pa.offset(1 as i32 as isize),
-                      *pd.offset(1 as i32 as isize), ady);
-    bdytail =
-        Two_Diff_Tail(*pb.offset(1 as i32 as isize),
-                      *pd.offset(1 as i32 as isize), bdy);
-    cdytail =
-        Two_Diff_Tail(*pc.offset(1 as i32 as isize),
-                      *pd.offset(1 as i32 as isize), cdy);
-    adztail =
-        Two_Diff_Tail(*pa.offset(2 as i32 as isize),
-                      *pd.offset(2 as i32 as isize), adz);
-    bdztail =
-        Two_Diff_Tail(*pb.offset(2 as i32 as isize),
-                      *pd.offset(2 as i32 as isize), bdz);
-    cdztail =
-        Two_Diff_Tail(*pc.offset(2 as i32 as isize),
-                      *pd.offset(2 as i32 as isize), cdz);
-    if adxtail == 0.0f64 && bdxtail == 0.0f64 && cdxtail == 0.0f64 &&
-           adytail == 0.0f64 && bdytail == 0.0f64 && cdytail == 0.0f64 &&
-           adztail == 0.0f64 && bdztail == 0.0f64 && cdztail == 0.0f64 {
-        return det
+#[inline]
+pub fn orient3dadapt(pa: [f64; 3], pb: [f64; 3], pc: [f64; 3], pd: [f64; 3], permanent: f64) -> f64 {
+    let adx = pa[0] - pd[0];
+    let bdx = pb[0] - pd[0];
+    let cdx = pc[0] - pd[0];
+    let ady = pa[1] - pd[1];
+    let bdy = pb[1] - pd[1];
+    let cdy = pc[1] - pd[1];
+    let adz = pa[2] - pd[2];
+    let bdz = pb[2] - pd[2];
+    let cdz = pc[2] - pd[2];
+
+    let [bdxcdy0, bdxcdy1] = Two_Product(bdx, cdy);
+    let [cdxbdy0, cdxbdy1] = Two_Product(cdx, bdy);
+    let bc = Two_Two_Diff(bdxcdy1, bdxcdy0, cdxbdy1, cdxbdy0);
+    let mut adet = [0.; 8];
+    let alen = scale_expansion_zeroelim(&bc, adz, &mut adet);
+
+    let [cdxady0, cdxady1] = Two_Product(cdx, ady);
+    let [adxcdy0, adxcdy1] = Two_Product(adx, cdy);
+    let ca = Two_Two_Diff(cdxady1, cdxady0, adxcdy1, adxcdy0);
+    let mut bdet = [0.; 8];
+    let blen = scale_expansion_zeroelim(&ca, bdz, &mut bdet);
+
+    let [adxbdy0, adxbdy1] = Two_Product(adx, bdy);
+    let [bdxady0, bdxady1] = Two_Product(bdx, ady);
+    let ab = Two_Two_Diff(adxbdy1, adxbdy0, bdxady1, bdxady0);
+    let mut cdet = [0.; 8];
+    let clen = scale_expansion_zeroelim(&ab, cdz, &mut cdet);
+
+    let mut abdet = [0.; 16];
+    let ablen = fast_expansion_sum_zeroelim(&adet[..alen], &bdet[..blen], &mut abdet);
+    let mut fin1 = [0.; 192];
+    let mut finlength = fast_expansion_sum_zeroelim(&abdet[..ablen], &cdet[..clen], &mut fin1);
+
+    let mut det = estimate(&fin1[..finlength]);
+    let errbound = PARAMS.o3derrboundB * permanent;
+    if det >= errbound || -det >= errbound {
+        return det;
     }
-    errbound = PARAMS.o3derrboundC * permanent + PARAMS.resulterrbound * Absolute(det);
+
+    let adxtail = Two_Diff_Tail(pa[0], pd[0], adx);
+    let bdxtail = Two_Diff_Tail(pb[0], pd[0], bdx);
+    let cdxtail = Two_Diff_Tail(pc[0], pd[0], cdx);
+    let adytail = Two_Diff_Tail(pa[1], pd[1], ady);
+    let bdytail = Two_Diff_Tail(pb[1], pd[1], bdy);
+    let cdytail = Two_Diff_Tail(pc[1], pd[1], cdy);
+    let adztail = Two_Diff_Tail(pa[2], pd[2], adz);
+    let bdztail = Two_Diff_Tail(pb[2], pd[2], bdz);
+    let cdztail = Two_Diff_Tail(pc[2], pd[2], cdz);
+    if adxtail == 0.0 && bdxtail == 0.0 && cdxtail == 0.0 &&
+       adytail == 0.0 && bdytail == 0.0 && cdytail == 0.0 &&
+       adztail == 0.0 && bdztail == 0.0 && cdztail == 0.0 {
+        return det;
+    }
+    let errbound = PARAMS.o3derrboundC * permanent + PARAMS.resulterrbound * Absolute(det);
     det +=
         adz *
             (bdx * cdytail + cdy * bdxtail - (bdy * cdxtail + cdx * bdytail))
@@ -2395,456 +1557,350 @@ pub unsafe fn orient3dadapt(mut pa: *const f64,
                  (adx * bdytail + bdy * adxtail -
                       (ady * bdxtail + bdx * adytail)) +
                  cdztail * (adx * bdy - ady * bdx));
-    if det >= errbound || -det >= errbound { return det }
-    finnow = fin1.as_mut_ptr();
-    finother = fin2.as_mut_ptr();
-    if adxtail == 0.0f64 {
-        if adytail == 0.0f64 {
-            at_b[0 as i32 as usize] = 0.0f64;
-            at_blen = 1 as i32;
-            at_c[0 as i32 as usize] = 0.0f64;
-            at_clen = 1 as i32
+
+    if det >= errbound || -det >= errbound {
+        return det;
+    }
+
+    let at_blen;
+    let at_clen;
+    let at_b;
+    let at_c;
+    if adxtail == 0.0 {
+        if adytail == 0.0 {
+            at_b = [0.; 4];
+            at_blen = 1;
+            at_c = [0.; 4];
+            at_clen = 1;
         } else {
-            negate = -adytail;
-            Two_Product(negate, bdx, &mut at_blarge,
-                        &mut *at_b.as_mut_ptr().offset(0 as i32 as
-                                                           isize));
-            at_b[1 as i32 as usize] = at_blarge;
-            at_blen = 2 as i32;
-            Two_Product(adytail, cdx, &mut at_clarge,
-                        &mut *at_c.as_mut_ptr().offset(0 as i32 as
-                                                           isize));
-            at_c[1 as i32 as usize] = at_clarge;
-            at_clen = 2 as i32
+            let negate = -adytail;
+            let [at_b0, at_blarge] = Two_Product(negate, bdx);
+            at_b = [at_b0, at_blarge, 0., 0.];
+            at_blen = 2;
+            let [at_c0, at_clarge] = Two_Product(adytail, cdx);
+            at_c = [at_c0, at_clarge, 0., 0.];
+            at_clen = 2;
         }
-    } else if adytail == 0.0f64 {
-        Two_Product(adxtail, bdy, &mut at_blarge,
-                    &mut *at_b.as_mut_ptr().offset(0 as i32 as
-                                                       isize));
-        at_b[1 as i32 as usize] = at_blarge;
-        at_blen = 2 as i32;
-        negate = -adxtail;
-        Two_Product(negate, cdy, &mut at_clarge,
-                    &mut *at_c.as_mut_ptr().offset(0 as i32 as
-                                                       isize));
-        at_c[1 as i32 as usize] = at_clarge;
-        at_clen = 2 as i32
+    } else if adytail == 0.0 {
+        let [at_b0, at_blarge] = Two_Product(adxtail, bdy);
+        at_b = [at_b0, at_blarge, 0., 0.];
+        at_blen = 2;
+        let negate = -adxtail;
+        let [at_c0, at_clarge] = Two_Product(negate, cdy);
+        at_c = [at_c0, at_clarge, 0., 0.];
+        at_clen = 2;
     } else {
-        Two_Product(adxtail, bdy, &mut adxt_bdy1, &mut adxt_bdy0);
-        Two_Product(adytail, bdx, &mut adyt_bdx1, &mut adyt_bdx0);
-        Two_Two_Diff(adxt_bdy1, adxt_bdy0, adyt_bdx1, adyt_bdx0,
-                     at_b.as_mut_ptr());
-        at_blen = 4 as i32;
-        Two_Product(adytail, cdx, &mut adyt_cdx1, &mut adyt_cdx0);
-        Two_Product(adxtail, cdy, &mut adxt_cdy1, &mut adxt_cdy0);
-        Two_Two_Diff(adyt_cdx1, adyt_cdx0, adxt_cdy1, adxt_cdy0,
-                     at_c.as_mut_ptr());
-        at_clen = 4 as i32
+        let [adxt_bdy0, adxt_bdy1] = Two_Product(adxtail, bdy);
+        let [adyt_bdx0, adyt_bdx1] = Two_Product(adytail, bdx);
+        at_b = Two_Two_Diff(adxt_bdy1, adxt_bdy0, adyt_bdx1, adyt_bdx0);
+        at_blen = 4;
+        let [adyt_cdx0, adyt_cdx1] = Two_Product(adytail, cdx);
+        let [adxt_cdy0, adxt_cdy1] = Two_Product(adxtail, cdy);
+        at_c = Two_Two_Diff(adyt_cdx1, adyt_cdx0, adxt_cdy1, adxt_cdy0);
+        at_clen = 4;
     }
-    if bdxtail == 0.0f64 {
-        if bdytail == 0.0f64 {
-            bt_c[0 as i32 as usize] = 0.0f64;
-            bt_clen = 1 as i32;
-            bt_a[0 as i32 as usize] = 0.0f64;
-            bt_alen = 1 as i32
+    let bt_clen;
+    let bt_alen;
+    let bt_c;
+    let bt_a;
+    if bdxtail == 0.0 {
+        if bdytail == 0.0 {
+            bt_c = [0.0; 4];
+            bt_clen = 1;
+            bt_a = [0.0; 4];
+            bt_alen = 1;
         } else {
-            negate = -bdytail;
-            Two_Product(negate, cdx, &mut bt_clarge,
-                        &mut *bt_c.as_mut_ptr().offset(0 as i32 as
-                                                           isize));
-            bt_c[1 as i32 as usize] = bt_clarge;
-            bt_clen = 2 as i32;
-            Two_Product(bdytail, adx, &mut bt_alarge,
-                        &mut *bt_a.as_mut_ptr().offset(0 as i32 as
-                                                           isize));
-            bt_a[1 as i32 as usize] = bt_alarge;
-            bt_alen = 2 as i32
+            let negate = -bdytail;
+            let [bt_c0, bt_clarge] = Two_Product(negate, cdx);
+            bt_c = [bt_c0, bt_clarge, 0., 0.];
+            bt_clen = 2;
+            let [bt_a0, bt_alarge] = Two_Product(bdytail, adx);
+            bt_a = [bt_a0, bt_alarge, 0., 0.];
+            bt_alen = 2;
         }
-    } else if bdytail == 0.0f64 {
-        Two_Product(bdxtail, cdy, &mut bt_clarge,
-                    &mut *bt_c.as_mut_ptr().offset(0 as i32 as
-                                                       isize));
-        bt_c[1 as i32 as usize] = bt_clarge;
-        bt_clen = 2 as i32;
-        negate = -bdxtail;
-        Two_Product(negate, ady, &mut bt_alarge,
-                    &mut *bt_a.as_mut_ptr().offset(0 as i32 as
-                                                       isize));
-        bt_a[1 as i32 as usize] = bt_alarge;
-        bt_alen = 2 as i32
+    } else if bdytail == 0.0 {
+        let [bt_c0, bt_clarge] = Two_Product(bdxtail, cdy);
+        bt_c = [bt_c0, bt_clarge, 0., 0.];
+        bt_clen = 2;
+        let negate = -bdxtail;
+        let [bt_a0, bt_alarge] = Two_Product(negate, ady);
+        bt_a = [bt_a0, bt_alarge, 0., 0.];
+        bt_alen = 2
     } else {
-        Two_Product(bdxtail, cdy, &mut bdxt_cdy1, &mut bdxt_cdy0);
-        Two_Product(bdytail, cdx, &mut bdyt_cdx1, &mut bdyt_cdx0);
-        Two_Two_Diff(bdxt_cdy1, bdxt_cdy0, bdyt_cdx1, bdyt_cdx0,
-                     bt_c.as_mut_ptr());
-        bt_clen = 4 as i32;
-        Two_Product(bdytail, adx, &mut bdyt_adx1, &mut bdyt_adx0);
-        Two_Product(bdxtail, ady, &mut bdxt_ady1, &mut bdxt_ady0);
-        Two_Two_Diff(bdyt_adx1, bdyt_adx0, bdxt_ady1, bdxt_ady0,
-                     bt_a.as_mut_ptr());
-        bt_alen = 4 as i32
+        let [bdxt_cdy0, bdxt_cdy1] = Two_Product(bdxtail, cdy);
+        let [bdyt_cdx0, bdyt_cdx1] = Two_Product(bdytail, cdx);
+        bt_c = Two_Two_Diff(bdxt_cdy1, bdxt_cdy0, bdyt_cdx1, bdyt_cdx0);
+        bt_clen = 4;
+        let [bdyt_adx0, bdyt_adx1] = Two_Product(bdytail, adx);
+        let [bdxt_ady0, bdxt_ady1] = Two_Product(bdxtail, ady);
+        bt_a = Two_Two_Diff(bdyt_adx1, bdyt_adx0, bdxt_ady1, bdxt_ady0);
+        bt_alen = 4;
     }
-    if cdxtail == 0.0f64 {
-        if cdytail == 0.0f64 {
-            ct_a[0 as i32 as usize] = 0.0f64;
-            ct_alen = 1 as i32;
-            ct_b[0 as i32 as usize] = 0.0f64;
-            ct_blen = 1 as i32
+    let ct_alen;
+    let ct_blen;
+    let ct_a;
+    let ct_b;
+    if cdxtail == 0.0 {
+        if cdytail == 0.0 {
+            ct_a = [0.; 4];
+            ct_alen = 1;
+            ct_b = [0.; 4];
+            ct_blen = 1;
         } else {
-            negate = -cdytail;
-            Two_Product(negate, adx, &mut ct_alarge,
-                        &mut *ct_a.as_mut_ptr().offset(0 as i32 as
-                                                           isize));
-            ct_a[1 as i32 as usize] = ct_alarge;
-            ct_alen = 2 as i32;
-            Two_Product(cdytail, bdx, &mut ct_blarge,
-                        &mut *ct_b.as_mut_ptr().offset(0 as i32 as
-                                                           isize));
-            ct_b[1 as i32 as usize] = ct_blarge;
-            ct_blen = 2 as i32
+            let negate = -cdytail;
+            let [ct_a0, ct_alarge] = Two_Product(negate, adx);
+            ct_a = [ct_a0, ct_alarge, 0., 0.];
+            ct_alen = 2;
+            let [ct_b0, ct_blarge] = Two_Product(cdytail, bdx);
+            ct_b = [ct_b0, ct_blarge, 0., 0.];
+            ct_blen = 2;
         }
-    } else if cdytail == 0.0f64 {
-        Two_Product(cdxtail, ady, &mut ct_alarge,
-                    &mut *ct_a.as_mut_ptr().offset(0 as i32 as
-                                                       isize));
-        ct_a[1 as i32 as usize] = ct_alarge;
-        ct_alen = 2 as i32;
-        negate = -cdxtail;
-        Two_Product(negate, bdy, &mut ct_blarge,
-                    &mut *ct_b.as_mut_ptr().offset(0 as i32 as
-                                                       isize));
-        ct_b[1 as i32 as usize] = ct_blarge;
-        ct_blen = 2 as i32
+    } else if cdytail == 0.0 {
+        let [ct_a0, ct_alarge] = Two_Product(cdxtail, ady);
+        ct_a = [ct_a0, ct_alarge, 0., 0.];
+        ct_alen = 2;
+        let negate = -cdxtail;
+        let [ct_b0, ct_blarge] = Two_Product(negate, bdy);
+        ct_b = [ct_b0, ct_blarge, 0., 0.];
+        ct_blen = 2;
     } else {
-        Two_Product(cdxtail, ady, &mut cdxt_ady1, &mut cdxt_ady0);
-        Two_Product(cdytail, adx, &mut cdyt_adx1, &mut cdyt_adx0);
-        Two_Two_Diff(cdxt_ady1, cdxt_ady0, cdyt_adx1, cdyt_adx0,
-                     ct_a.as_mut_ptr());
-        ct_alen = 4 as i32;
-        Two_Product(cdytail, bdx, &mut cdyt_bdx1, &mut cdyt_bdx0);
-        Two_Product(cdxtail, bdy, &mut cdxt_bdy1, &mut cdxt_bdy0);
-        Two_Two_Diff(cdyt_bdx1, cdyt_bdx0, cdxt_bdy1, cdxt_bdy0,
-                     ct_b.as_mut_ptr());
-        ct_blen = 4 as i32
+        let [cdxt_ady0, cdxt_ady1] = Two_Product(cdxtail, ady);
+        let [cdyt_adx0, cdyt_adx1] = Two_Product(cdytail, adx);
+        ct_a = Two_Two_Diff(cdxt_ady1, cdxt_ady0, cdyt_adx1, cdyt_adx0);
+        ct_alen = 4;
+        let [cdyt_bdx0, cdyt_bdx1] = Two_Product(cdytail, bdx);
+        let [cdxt_bdy0, cdxt_bdy1] = Two_Product(cdxtail, bdy);
+        ct_b = Two_Two_Diff(cdyt_bdx1, cdyt_bdx0, cdxt_bdy1, cdxt_bdy0);
+        ct_blen = 4;
     }
-    bctlen =
-        fast_expansion_sum_zeroelim(bt_clen, bt_c.as_mut_ptr(), ct_blen,
-                                    ct_b.as_mut_ptr(), bct.as_mut_ptr());
-    wlength =
-        scale_expansion_zeroelim(bctlen, bct.as_mut_ptr(), adz,
-                                 w.as_mut_ptr());
-    finlength =
-        fast_expansion_sum_zeroelim(finlength, finnow, wlength,
-                                    w.as_mut_ptr(), finother);
-    finswap = finnow;
-    finnow = finother;
-    finother = finswap;
-    catlen =
-        fast_expansion_sum_zeroelim(ct_alen, ct_a.as_mut_ptr(), at_clen,
-                                    at_c.as_mut_ptr(), cat.as_mut_ptr());
-    wlength =
-        scale_expansion_zeroelim(catlen, cat.as_mut_ptr(), bdz,
-                                 w.as_mut_ptr());
-    finlength =
-        fast_expansion_sum_zeroelim(finlength, finnow, wlength,
-                                    w.as_mut_ptr(), finother);
-    finswap = finnow;
-    finnow = finother;
-    finother = finswap;
-    abtlen =
-        fast_expansion_sum_zeroelim(at_blen, at_b.as_mut_ptr(), bt_alen,
-                                    bt_a.as_mut_ptr(), abt.as_mut_ptr());
-    wlength =
-        scale_expansion_zeroelim(abtlen, abt.as_mut_ptr(), cdz,
-                                 w.as_mut_ptr());
-    finlength =
-        fast_expansion_sum_zeroelim(finlength, finnow, wlength,
-                                    w.as_mut_ptr(), finother);
-    finswap = finnow;
-    finnow = finother;
-    finother = finswap;
-    if adztail != 0.0f64 {
-        vlength =
-            scale_expansion_zeroelim(4 as i32, bc.as_mut_ptr(),
-                                     adztail, v.as_mut_ptr());
-        finlength =
-            fast_expansion_sum_zeroelim(finlength, finnow, vlength,
-                                        v.as_mut_ptr(), finother);
-        finswap = finnow;
-        finnow = finother;
-        finother = finswap
-    }
-    if bdztail != 0.0f64 {
-        vlength =
-            scale_expansion_zeroelim(4 as i32, ca.as_mut_ptr(),
-                                     bdztail, v.as_mut_ptr());
-        finlength =
-            fast_expansion_sum_zeroelim(finlength, finnow, vlength,
-                                        v.as_mut_ptr(), finother);
-        finswap = finnow;
-        finnow = finother;
-        finother = finswap
-    }
-    if cdztail != 0.0f64 {
-        vlength =
-            scale_expansion_zeroelim(4 as i32, ab.as_mut_ptr(),
-                                     cdztail, v.as_mut_ptr());
-        finlength =
-            fast_expansion_sum_zeroelim(finlength, finnow, vlength,
-                                        v.as_mut_ptr(), finother);
-        finswap = finnow;
-        finnow = finother;
-        finother = finswap
-    }
-    if adxtail != 0.0f64 {
-        if bdytail != 0.0f64 {
-            Two_Product(adxtail, bdytail, &mut adxt_bdyt1, &mut adxt_bdyt0);
-            Two_One_Product(adxt_bdyt1, adxt_bdyt0, cdz, u.as_mut_ptr());
-            finlength =
-                fast_expansion_sum_zeroelim(finlength, finnow,
-                                            4 as i32, u.as_mut_ptr(),
-                                            finother);
-            finswap = finnow;
-            finnow = finother;
-            finother = finswap;
-            if cdztail != 0.0f64 {
-                Two_One_Product(adxt_bdyt1, adxt_bdyt0, cdztail,
-                                u.as_mut_ptr());
-                finlength =
-                    fast_expansion_sum_zeroelim(finlength, finnow,
-                                                4 as i32,
-                                                u.as_mut_ptr(), finother);
-                finswap = finnow;
-                finnow = finother;
-                finother = finswap
+
+    let mut fin2 = [0.; 192];
+
+    let mut w = [0.; 16];
+
+    let mut bct = [0.; 8];
+    let bctlen = fast_expansion_sum_zeroelim(&bt_c[..bt_clen], &ct_b[..ct_blen], &mut bct);
+    let wlength = scale_expansion_zeroelim(&bct[..bctlen], adz, &mut w);
+    finlength = fast_expansion_sum_zeroelim(&fin1[..finlength], &w[..wlength], &mut fin2);
+
+    let mut cat = [0.; 8];
+    let catlen = fast_expansion_sum_zeroelim(&ct_a[..ct_alen], &at_c[..at_clen], &mut cat);
+    let wlength = scale_expansion_zeroelim(&cat[..catlen], bdz, &mut w);
+    finlength = fast_expansion_sum_zeroelim(&fin2[..finlength], &w[..wlength], &mut fin1);
+
+    let mut abt = [0.; 8];
+    let abtlen = fast_expansion_sum_zeroelim(&at_b[..at_blen], &bt_a[..bt_alen], &mut abt);
+    let wlength = scale_expansion_zeroelim(&abt[..abtlen], cdz, &mut w);
+    finlength = fast_expansion_sum_zeroelim(&fin1[..finlength], &w[..wlength], &mut fin2);
+
+    let mut v = [0.; 12];
+
+    // TODO: replace these swaps with destructuring assignment when it is stable;
+    // https://github.com/rust-lang/rfcs/pull/2909
+    let (mut fin1, fin2) = if adztail != 0.0 {
+        let vlength = scale_expansion_zeroelim(&bc, adztail, &mut v);
+        finlength = fast_expansion_sum_zeroelim(&fin2[..finlength], &v[..vlength], &mut fin1);
+        (fin2, fin1)
+    } else {
+        (fin1, fin2)
+    };
+    let (mut fin1, fin2) = if bdztail != 0.0 {
+        let vlength = scale_expansion_zeroelim(&ca, bdztail, &mut v);
+        finlength = fast_expansion_sum_zeroelim(&fin2[..finlength], &v[..vlength], &mut fin1);
+        (fin2, fin1)
+    } else {
+        (fin1, fin2)
+    };
+    let (mut fin1, fin2) = if cdztail != 0.0 {
+        let vlength = scale_expansion_zeroelim(&ab, cdztail, &mut v);
+        finlength = fast_expansion_sum_zeroelim(&fin2[..finlength], &v[..vlength], &mut fin1);
+        (fin2, fin1)
+    } else {
+        (fin1, fin2)
+    };
+    let (mut fin1, fin2) = if adxtail != 0.0 {
+        let (mut fin1, fin2) = if bdytail != 0.0 {
+            let [adxt_bdyt0, adxt_bdyt1] = Two_Product(adxtail, bdytail);
+            let u = Two_One_Product(adxt_bdyt1, adxt_bdyt0, cdz);
+            finlength = fast_expansion_sum_zeroelim(&fin2[..finlength], &u, &mut fin1);
+            let (mut fin1, fin2) = (fin2, fin1);
+            if cdztail != 0.0 {
+                let u = Two_One_Product(adxt_bdyt1, adxt_bdyt0, cdztail);
+                finlength = fast_expansion_sum_zeroelim(&fin2[..finlength], &u, &mut fin1);
+                (fin2, fin1)
+            } else {
+                (fin1, fin2)
             }
-        }
-        if cdytail != 0.0f64 {
-            negate = -adxtail;
-            Two_Product(negate, cdytail, &mut adxt_cdyt1, &mut adxt_cdyt0);
-            Two_One_Product(adxt_cdyt1, adxt_cdyt0, bdz, u.as_mut_ptr());
-            finlength =
-                fast_expansion_sum_zeroelim(finlength, finnow,
-                                            4 as i32, u.as_mut_ptr(),
-                                            finother);
-            finswap = finnow;
-            finnow = finother;
-            finother = finswap;
-            if bdztail != 0.0f64 {
-                Two_One_Product(adxt_cdyt1, adxt_cdyt0, bdztail,
-                                u.as_mut_ptr());
+        } else {
+            (fin1, fin2)
+        };
+        if cdytail != 0.0 {
+            let negate = -adxtail;
+            let [adxt_cdyt0, adxt_cdyt1] = Two_Product(negate, cdytail);
+            let u = Two_One_Product(adxt_cdyt1, adxt_cdyt0, bdz);
+            finlength = fast_expansion_sum_zeroelim(&fin2[..finlength], &u, &mut fin1);
+            let (mut fin1, fin2) = (fin2, fin1);
+            if bdztail != 0.0 {
+                let u = Two_One_Product(adxt_cdyt1, adxt_cdyt0, bdztail);
                 finlength =
-                    fast_expansion_sum_zeroelim(finlength, finnow,
-                                                4 as i32,
-                                                u.as_mut_ptr(), finother);
-                finswap = finnow;
-                finnow = finother;
-                finother = finswap
+                    fast_expansion_sum_zeroelim(&fin2[..finlength], &u, &mut fin1);
+                (fin2, fin1)
+            } else {
+                (fin1, fin2)
             }
+        } else {
+            (fin1, fin2)
         }
-    }
-    if bdxtail != 0.0f64 {
-        if cdytail != 0.0f64 {
-            Two_Product(bdxtail, cdytail, &mut bdxt_cdyt1, &mut bdxt_cdyt0);
-            Two_One_Product(bdxt_cdyt1, bdxt_cdyt0, adz, u.as_mut_ptr());
-            finlength =
-                fast_expansion_sum_zeroelim(finlength, finnow,
-                                            4 as i32, u.as_mut_ptr(),
-                                            finother);
-            finswap = finnow;
-            finnow = finother;
-            finother = finswap;
-            if adztail != 0.0f64 {
-                Two_One_Product(bdxt_cdyt1, bdxt_cdyt0, adztail,
-                                u.as_mut_ptr());
-                finlength =
-                    fast_expansion_sum_zeroelim(finlength, finnow,
-                                                4 as i32,
-                                                u.as_mut_ptr(), finother);
-                finswap = finnow;
-                finnow = finother;
-                finother = finswap
+    } else {
+        (fin1, fin2)
+    };
+    let (mut fin1, fin2) = if bdxtail != 0.0 {
+        let (mut fin1, fin2) = if cdytail != 0.0 {
+            let [bdxt_cdyt0, bdxt_cdyt1] = Two_Product(bdxtail, cdytail);
+            let u = Two_One_Product(bdxt_cdyt1, bdxt_cdyt0, adz);
+            finlength = fast_expansion_sum_zeroelim(&fin2[..finlength], &u, &mut fin1);
+            let (mut fin1, fin2) = (fin2, fin1);
+            if adztail != 0.0 {
+                let u = Two_One_Product(bdxt_cdyt1, bdxt_cdyt0, adztail);
+                finlength = fast_expansion_sum_zeroelim(&fin2[..finlength], &u, &mut fin1);
+                (fin2, fin1)
+            } else {
+                (fin1, fin2)
             }
-        }
-        if adytail != 0.0f64 {
-            negate = -bdxtail;
-            Two_Product(negate, adytail, &mut bdxt_adyt1, &mut bdxt_adyt0);
-            Two_One_Product(bdxt_adyt1, bdxt_adyt0, cdz, u.as_mut_ptr());
-            finlength =
-                fast_expansion_sum_zeroelim(finlength, finnow,
-                                            4 as i32, u.as_mut_ptr(),
-                                            finother);
-            finswap = finnow;
-            finnow = finother;
-            finother = finswap;
-            if cdztail != 0.0f64 {
-                Two_One_Product(bdxt_adyt1, bdxt_adyt0, cdztail,
-                                u.as_mut_ptr());
-                finlength =
-                    fast_expansion_sum_zeroelim(finlength, finnow,
-                                                4 as i32,
-                                                u.as_mut_ptr(), finother);
-                finswap = finnow;
-                finnow = finother;
-                finother = finswap
+        } else {
+            (fin1, fin2)
+        };
+        if adytail != 0.0 {
+            let negate = -bdxtail;
+            let [bdxt_adyt0, bdxt_adyt1] = Two_Product(negate, adytail);
+            let u = Two_One_Product(bdxt_adyt1, bdxt_adyt0, cdz);
+            finlength = fast_expansion_sum_zeroelim(&fin2[..finlength], &u, &mut fin1);
+            let (mut fin1, fin2) = (fin2, fin1);
+            if cdztail != 0.0 {
+                let u = Two_One_Product(bdxt_adyt1, bdxt_adyt0, cdztail);
+                finlength = fast_expansion_sum_zeroelim(&fin2[..finlength], &u, &mut fin1);
+                (fin2, fin1)
+            } else {
+                (fin1, fin2)
             }
+        } else {
+            (fin1, fin2)
         }
-    }
-    if cdxtail != 0.0f64 {
-        if adytail != 0.0f64 {
-            Two_Product(cdxtail, adytail, &mut cdxt_adyt1, &mut cdxt_adyt0);
-            Two_One_Product(cdxt_adyt1, cdxt_adyt0, bdz, u.as_mut_ptr());
-            finlength =
-                fast_expansion_sum_zeroelim(finlength, finnow,
-                                            4 as i32, u.as_mut_ptr(),
-                                            finother);
-            finswap = finnow;
-            finnow = finother;
-            finother = finswap;
-            if bdztail != 0.0f64 {
-                Two_One_Product(cdxt_adyt1, cdxt_adyt0, bdztail,
-                                u.as_mut_ptr());
-                finlength =
-                    fast_expansion_sum_zeroelim(finlength, finnow,
-                                                4 as i32,
-                                                u.as_mut_ptr(), finother);
-                finswap = finnow;
-                finnow = finother;
-                finother = finswap
+    } else {
+        (fin1, fin2)
+    };
+    let (mut fin1, fin2) = if cdxtail != 0.0 {
+        let (mut fin1, fin2) = if adytail != 0.0 {
+            let [cdxt_adyt0, cdxt_adyt1] = Two_Product(cdxtail, adytail);
+            let u = Two_One_Product(cdxt_adyt1, cdxt_adyt0, bdz);
+            finlength = fast_expansion_sum_zeroelim(&fin2[..finlength], &u, &mut fin1);
+            let (mut fin1, fin2) = (fin2, fin1);
+            if bdztail != 0.0 {
+                let u = Two_One_Product(cdxt_adyt1, cdxt_adyt0, bdztail);
+                finlength = fast_expansion_sum_zeroelim(&fin2[..finlength], &u, &mut fin1);
+                (fin2, fin1)
+            } else {
+                (fin1, fin2)
             }
-        }
-        if bdytail != 0.0f64 {
-            negate = -cdxtail;
-            Two_Product(negate, bdytail, &mut cdxt_bdyt1, &mut cdxt_bdyt0);
-            Two_One_Product(cdxt_bdyt1, cdxt_bdyt0, adz, u.as_mut_ptr());
-            finlength =
-                fast_expansion_sum_zeroelim(finlength, finnow,
-                                            4 as i32, u.as_mut_ptr(),
-                                            finother);
-            finswap = finnow;
-            finnow = finother;
-            finother = finswap;
-            if adztail != 0.0f64 {
-                Two_One_Product(cdxt_bdyt1, cdxt_bdyt0, adztail,
-                                u.as_mut_ptr());
-                finlength =
-                    fast_expansion_sum_zeroelim(finlength, finnow,
-                                                4 as i32,
-                                                u.as_mut_ptr(), finother);
-                finswap = finnow;
-                finnow = finother;
-                finother = finswap
+        } else {
+            (fin1, fin2)
+        };
+        if bdytail != 0.0 {
+            let negate = -cdxtail;
+            let [cdxt_bdyt0, cdxt_bdyt1] = Two_Product(negate, bdytail);
+            let u = Two_One_Product(cdxt_bdyt1, cdxt_bdyt0, adz);
+            finlength = fast_expansion_sum_zeroelim(&fin2[..finlength], &u, &mut fin1);
+            let (mut fin1, fin2) = (fin2, fin1);
+            if adztail != 0.0 {
+                let u = Two_One_Product(cdxt_bdyt1, cdxt_bdyt0, adztail);
+                finlength = fast_expansion_sum_zeroelim(&fin2[..finlength], &u, &mut fin1);
+                (fin2, fin1)
+            } else {
+                (fin1, fin2)
             }
+        } else {
+            (fin1, fin2)
         }
-    }
-    if adztail != 0.0f64 {
-        wlength =
-            scale_expansion_zeroelim(bctlen, bct.as_mut_ptr(), adztail,
-                                     w.as_mut_ptr());
-        finlength =
-            fast_expansion_sum_zeroelim(finlength, finnow, wlength,
-                                        w.as_mut_ptr(), finother);
-        finswap = finnow;
-        finnow = finother;
-        finother = finswap
-    }
-    if bdztail != 0.0f64 {
-        wlength =
-            scale_expansion_zeroelim(catlen, cat.as_mut_ptr(), bdztail,
-                                     w.as_mut_ptr());
-        finlength =
-            fast_expansion_sum_zeroelim(finlength, finnow, wlength,
-                                        w.as_mut_ptr(), finother);
-        finswap = finnow;
-        finnow = finother;
-        finother = finswap
-    }
-    if cdztail != 0.0f64 {
-        wlength =
-            scale_expansion_zeroelim(abtlen, abt.as_mut_ptr(), cdztail,
-                                     w.as_mut_ptr());
-        finlength =
-            fast_expansion_sum_zeroelim(finlength, finnow, wlength,
-                                        w.as_mut_ptr(), finother);
-        finswap = finnow;
-        finnow = finother;
-        finother = finswap
-    }
-    return *finnow.offset((finlength - 1 as i32) as isize);
+    } else {
+        (fin1, fin2)
+    };
+    let (mut fin1, fin2) = if adztail != 0.0 {
+        let wlength = scale_expansion_zeroelim(&bct[..bctlen], adztail, &mut w);
+        finlength = fast_expansion_sum_zeroelim(&fin2[..finlength], &w[..wlength], &mut fin1);
+        (fin2, fin1)
+    } else {
+        (fin1, fin2)
+    };
+    let (mut fin1, fin2) = if bdztail != 0.0 {
+        let wlength = scale_expansion_zeroelim(&cat[..catlen], bdztail, &mut w);
+        finlength = fast_expansion_sum_zeroelim(&fin2[..finlength], &w[..wlength], &mut fin1);
+        (fin2, fin1)
+    } else {
+        (fin1, fin2)
+    };
+    let fin2 = if cdztail != 0.0 {
+        let wlength = scale_expansion_zeroelim(&abt[..abtlen], cdztail, &mut w);
+        finlength = fast_expansion_sum_zeroelim(&fin2[..finlength], &w[..wlength], &mut fin1);
+        fin1
+    } else {
+        fin2
+    };
+    fin2[finlength - 1]
 }
 
-pub unsafe fn orient3d(mut pa: *const f64,
-                                  mut pb: *const f64,
-                                  mut pc: *const f64,
-                                  mut pd: *const f64)
- -> f64 {
-    let mut adx: f64 = 0.;
-    let mut bdx: f64 = 0.;
-    let mut cdx: f64 = 0.;
-    let mut ady: f64 = 0.;
-    let mut bdy: f64 = 0.;
-    let mut cdy: f64 = 0.;
-    let mut adz: f64 = 0.;
-    let mut bdz: f64 = 0.;
-    let mut cdz: f64 = 0.;
-    let mut bdxcdy: f64 = 0.;
-    let mut cdxbdy: f64 = 0.;
-    let mut cdxady: f64 = 0.;
-    let mut adxcdy: f64 = 0.;
-    let mut adxbdy: f64 = 0.;
-    let mut bdxady: f64 = 0.;
-    let mut det: f64 = 0.;
-    let mut permanent: f64 = 0.;
-    let mut errbound: f64 = 0.;
-    adx =
-        *pa.offset(0 as i32 as isize) -
-            *pd.offset(0 as i32 as isize);
-    bdx =
-        *pb.offset(0 as i32 as isize) -
-            *pd.offset(0 as i32 as isize);
-    cdx =
-        *pc.offset(0 as i32 as isize) -
-            *pd.offset(0 as i32 as isize);
-    ady =
-        *pa.offset(1 as i32 as isize) -
-            *pd.offset(1 as i32 as isize);
-    bdy =
-        *pb.offset(1 as i32 as isize) -
-            *pd.offset(1 as i32 as isize);
-    cdy =
-        *pc.offset(1 as i32 as isize) -
-            *pd.offset(1 as i32 as isize);
-    adz =
-        *pa.offset(2 as i32 as isize) -
-            *pd.offset(2 as i32 as isize);
-    bdz =
-        *pb.offset(2 as i32 as isize) -
-            *pd.offset(2 as i32 as isize);
-    cdz =
-        *pc.offset(2 as i32 as isize) -
-            *pd.offset(2 as i32 as isize);
-    bdxcdy = bdx * cdy;
-    cdxbdy = cdx * bdy;
-    cdxady = cdx * ady;
-    adxcdy = adx * cdy;
-    adxbdy = adx * bdy;
-    bdxady = bdx * ady;
-    det =
+/**
+ * Adaptive exact 3D orientation test. Robust.
+ *
+ * Return a positive value if the point `pd` lies below the
+ * plane passing through `pa`, `pb`, and `pc`; "below" is defined so
+ * that `pa`, `pb`, and `pc` appear in counterclockwise order when
+ * viewed from above the plane.  Returns a negative value if
+ * pd lies above the plane.  Returns zero if the points are
+ * coplanar.  The result is also a rough approximation of six
+ * times the signed volume of the tetrahedron defined by the
+ * four points.
+ *
+ * The result returned is the determinant of a matrix.
+ * This determinant is computed adaptively, in the sense that exact
+ * arithmetic is used only to the degree it is needed to ensure that the
+ * returned value has the correct sign.  Hence, orient3d() is usually quite
+ * fast, but will run more slowly when the input points are coplanar or
+ * nearly so.
+ */
+#[inline]
+pub fn orient3d(pa: [f64; 3], pb: [f64; 3], pc: [f64; 3], pd: [f64; 3]) -> f64 {
+    let adx = pa[0] - pd[0];
+    let bdx = pb[0] - pd[0];
+    let cdx = pc[0] - pd[0];
+    let ady = pa[1] - pd[1];
+    let bdy = pb[1] - pd[1];
+    let cdy = pc[1] - pd[1];
+    let adz = pa[2] - pd[2];
+    let bdz = pb[2] - pd[2];
+    let cdz = pc[2] - pd[2];
+    let bdxcdy = bdx * cdy;
+    let cdxbdy = cdx * bdy;
+    let cdxady = cdx * ady;
+    let adxcdy = adx * cdy;
+    let adxbdy = adx * bdy;
+    let bdxady = bdx * ady;
+    let det =
         adz * (bdxcdy - cdxbdy) + bdz * (cdxady - adxcdy) +
             cdz * (adxbdy - bdxady);
-    permanent =
+    let permanent =
         (Absolute(bdxcdy) + Absolute(cdxbdy)) * Absolute(adz) +
             (Absolute(cdxady) + Absolute(adxcdy)) * Absolute(bdz) +
             (Absolute(adxbdy) + Absolute(bdxady)) * Absolute(cdz);
-    errbound = PARAMS.o3derrboundA * permanent;
+    let errbound = PARAMS.o3derrboundA * permanent;
     if det > errbound || -det > errbound { return det }
-    return orient3dadapt(pa, pb, pc, pd, permanent);
+    orient3dadapt(pa, pb, pc, pd, permanent)
 }
+
 /* ****************************************************************************/
 /*                                                                           */
-/*  incirclefast()   Approximate 2D incircle test.  Nonrobust.               */
-/*  incircleexact()   Exact 2D incircle test.  Robust.                       */
-/*  incircleslow()   Another exact 2D incircle test.  Robust.                */
+/*  incircle_fast()   Approximate 2D incircle test.  Nonrobust.               */
+/*  incircle_exact()   Exact 2D incircle test.  Robust.                       */
+/*  incircle_slow()   Another exact 2D incircle test.  Robust.                */
 /*  incircle()   Adaptive exact 2D incircle test.  Robust.                   */
 /*                                                                           */
 /*               Return a positive value if the point pd lies inside the     */
@@ -2866,1668 +1922,668 @@ pub unsafe fn orient3d(mut pa: *const f64,
 /*                                                                           */
 /* ****************************************************************************/
 
-pub unsafe fn incirclefast(mut pa: *const f64,
-                                      mut pb: *const f64,
-                                      mut pc: *const f64,
-                                      mut pd: *const f64)
- -> f64 {
-    let mut adx: f64 = 0.;
-    let mut ady: f64 = 0.;
-    let mut bdx: f64 = 0.;
-    let mut bdy: f64 = 0.;
-    let mut cdx: f64 = 0.;
-    let mut cdy: f64 = 0.;
-    let mut abdet: f64 = 0.;
-    let mut bcdet: f64 = 0.;
-    let mut cadet: f64 = 0.;
-    let mut alift: f64 = 0.;
-    let mut blift: f64 = 0.;
-    let mut clift: f64 = 0.;
-    adx =
-        *pa.offset(0 as i32 as isize) -
-            *pd.offset(0 as i32 as isize);
-    ady =
-        *pa.offset(1 as i32 as isize) -
-            *pd.offset(1 as i32 as isize);
-    bdx =
-        *pb.offset(0 as i32 as isize) -
-            *pd.offset(0 as i32 as isize);
-    bdy =
-        *pb.offset(1 as i32 as isize) -
-            *pd.offset(1 as i32 as isize);
-    cdx =
-        *pc.offset(0 as i32 as isize) -
-            *pd.offset(0 as i32 as isize);
-    cdy =
-        *pc.offset(1 as i32 as isize) -
-            *pd.offset(1 as i32 as isize);
-    abdet = adx * bdy - bdx * ady;
-    bcdet = bdx * cdy - cdx * bdy;
-    cadet = cdx * ady - adx * cdy;
-    alift = adx * adx + ady * ady;
-    blift = bdx * bdx + bdy * bdy;
-    clift = cdx * cdx + cdy * cdy;
-    return alift * bcdet + blift * cadet + clift * abdet;
+/// Approximate 2D incircle test. Non-robust version of `incircle`
+#[inline]
+pub fn incircle_fast(pa: [f64; 2], pb: [f64; 2], pc: [f64; 2], pd: [f64; 2]) -> f64 {
+    let adx = pa[0] - pd[0];
+    let ady = pa[1] - pd[1];
+    let bdx = pb[0] - pd[0];
+    let bdy = pb[1] - pd[1];
+    let cdx = pc[0] - pd[0];
+    let cdy = pc[1] - pd[1];
+    let abdet = adx * bdy - bdx * ady;
+    let bcdet = bdx * cdy - cdx * bdy;
+    let cadet = cdx * ady - adx * cdy;
+    let alift = adx * adx + ady * ady;
+    let blift = bdx * bdx + bdy * bdy;
+    let clift = cdx * cdx + cdy * cdy;
+    alift * bcdet + blift * cadet + clift * abdet
 }
 
-pub unsafe fn incircleexact(mut pa: *mut f64,
-                                       mut pb: *mut f64,
-                                       mut pc: *mut f64,
-                                       mut pd: *mut f64)
- -> f64 {
-    let mut axby1: f64 = 0.;
-    let mut bxcy1: f64 = 0.;
-    let mut cxdy1: f64 = 0.;
-    let mut dxay1: f64 = 0.;
-    let mut axcy1: f64 = 0.;
-    let mut bxdy1: f64 = 0.;
-    let mut bxay1: f64 = 0.;
-    let mut cxby1: f64 = 0.;
-    let mut dxcy1: f64 = 0.;
-    let mut axdy1: f64 = 0.;
-    let mut cxay1: f64 = 0.;
-    let mut dxby1: f64 = 0.;
-    let mut axby0: f64 = 0.;
-    let mut bxcy0: f64 = 0.;
-    let mut cxdy0: f64 = 0.;
-    let mut dxay0: f64 = 0.;
-    let mut axcy0: f64 = 0.;
-    let mut bxdy0: f64 = 0.;
-    let mut bxay0: f64 = 0.;
-    let mut cxby0: f64 = 0.;
-    let mut dxcy0: f64 = 0.;
-    let mut axdy0: f64 = 0.;
-    let mut cxay0: f64 = 0.;
-    let mut dxby0: f64 = 0.;
-    let mut ab: [f64; 4] = [0.; 4];
-    let mut bc: [f64; 4] = [0.; 4];
-    let mut cd: [f64; 4] = [0.; 4];
-    let mut da: [f64; 4] = [0.; 4];
-    let mut ac: [f64; 4] = [0.; 4];
-    let mut bd: [f64; 4] = [0.; 4];
-    let mut temp8: [f64; 8] = [0.; 8];
-    let mut templen: i32 = 0;
-    let mut abc: [f64; 12] = [0.; 12];
-    let mut bcd: [f64; 12] = [0.; 12];
-    let mut cda: [f64; 12] = [0.; 12];
-    let mut dab: [f64; 12] = [0.; 12];
-    let mut abclen: i32 = 0;
-    let mut bcdlen: i32 = 0;
-    let mut cdalen: i32 = 0;
-    let mut dablen: i32 = 0;
-    let mut det24x: [f64; 24] = [0.; 24];
-    let mut det24y: [f64; 24] = [0.; 24];
-    let mut det48x: [f64; 48] = [0.; 48];
-    let mut det48y: [f64; 48] = [0.; 48];
-    let mut xlen: i32 = 0;
-    let mut ylen: i32 = 0;
-    let mut adet: [f64; 96] = [0.; 96];
-    let mut bdet: [f64; 96] = [0.; 96];
-    let mut cdet: [f64; 96] = [0.; 96];
-    let mut ddet: [f64; 96] = [0.; 96];
-    let mut alen: i32 = 0;
-    let mut blen: i32 = 0;
-    let mut clen: i32 = 0;
-    let mut dlen: i32 = 0;
-    let mut abdet: [f64; 192] = [0.; 192];
-    let mut cddet: [f64; 192] = [0.; 192];
-    let mut ablen: i32 = 0;
-    let mut cdlen: i32 = 0;
-    let mut deter: [f64; 384] = [0.; 384];
-    let mut deterlen: i32 = 0;
-    let mut i: i32 = 0;
-    let mut bvirt: f64 = 0.;
-    let mut avirt: f64 = 0.;
-    let mut bround: f64 = 0.;
-    let mut around: f64 = 0.;
-    let mut c: f64 = 0.;
-    let mut abig: f64 = 0.;
-    let mut ahi: f64 = 0.;
-    let mut alo: f64 = 0.;
-    let mut bhi: f64 = 0.;
-    let mut blo: f64 = 0.;
-    let mut err1: f64 = 0.;
-    let mut err2: f64 = 0.;
-    let mut err3: f64 = 0.;
-    let mut _i: f64 = 0.;
-    let mut _j: f64 = 0.;
-    let mut _0: f64 = 0.;
-    Two_Product(*pa.offset(0 as i32 as isize),
-                *pb.offset(1 as i32 as isize), &mut axby1,
-                &mut axby0);
-    Two_Product(*pb.offset(0 as i32 as isize),
-                *pa.offset(1 as i32 as isize), &mut bxay1,
-                &mut bxay0);
-    Two_Two_Diff(axby1, axby0, bxay1, bxay0, ab.as_mut_ptr());
-    Two_Product(*pb.offset(0 as i32 as isize),
-                *pc.offset(1 as i32 as isize), &mut bxcy1,
-                &mut bxcy0);
-    Two_Product(*pc.offset(0 as i32 as isize),
-                *pb.offset(1 as i32 as isize), &mut cxby1,
-                &mut cxby0);
-    Two_Two_Diff(bxcy1, bxcy0, cxby1, cxby0, bc.as_mut_ptr());
-    Two_Product(*pc.offset(0 as i32 as isize),
-                *pd.offset(1 as i32 as isize), &mut cxdy1,
-                &mut cxdy0);
-    Two_Product(*pd.offset(0 as i32 as isize),
-                *pc.offset(1 as i32 as isize), &mut dxcy1,
-                &mut dxcy0);
-    Two_Two_Diff(cxdy1, cxdy0, dxcy1, dxcy0, cd.as_mut_ptr());
-    Two_Product(*pd.offset(0 as i32 as isize),
-                *pa.offset(1 as i32 as isize), &mut dxay1,
-                &mut dxay0);
-    Two_Product(*pa.offset(0 as i32 as isize),
-                *pd.offset(1 as i32 as isize), &mut axdy1,
-                &mut axdy0);
-    Two_Two_Diff(dxay1, dxay0, axdy1, axdy0, da.as_mut_ptr());
-    Two_Product(*pa.offset(0 as i32 as isize),
-                *pc.offset(1 as i32 as isize), &mut axcy1,
-                &mut axcy0);
-    Two_Product(*pc.offset(0 as i32 as isize),
-                *pa.offset(1 as i32 as isize), &mut cxay1,
-                &mut cxay0);
-    Two_Two_Diff(axcy1, axcy0, cxay1, cxay0, ac.as_mut_ptr());
-    Two_Product(*pb.offset(0 as i32 as isize),
-                *pd.offset(1 as i32 as isize), &mut bxdy1,
-                &mut bxdy0);
-    Two_Product(*pd.offset(0 as i32 as isize),
-                *pb.offset(1 as i32 as isize), &mut dxby1,
-                &mut dxby0);
-    Two_Two_Diff(bxdy1, bxdy0, dxby1, dxby0, bd.as_mut_ptr());
-    templen =
-        fast_expansion_sum_zeroelim(4 as i32, cd.as_mut_ptr(),
-                                    4 as i32, da.as_mut_ptr(),
-                                    temp8.as_mut_ptr());
-    cdalen =
-        fast_expansion_sum_zeroelim(templen, temp8.as_mut_ptr(),
-                                    4 as i32, ac.as_mut_ptr(),
-                                    cda.as_mut_ptr());
-    templen =
-        fast_expansion_sum_zeroelim(4 as i32, da.as_mut_ptr(),
-                                    4 as i32, ab.as_mut_ptr(),
-                                    temp8.as_mut_ptr());
-    dablen =
-        fast_expansion_sum_zeroelim(templen, temp8.as_mut_ptr(),
-                                    4 as i32, bd.as_mut_ptr(),
-                                    dab.as_mut_ptr());
-    i = 0 as i32;
-    while i < 4 as i32 {
-        bd[i as usize] = -bd[i as usize];
-        ac[i as usize] = -ac[i as usize];
-        i += 1
-    }
-    templen =
-        fast_expansion_sum_zeroelim(4 as i32, ab.as_mut_ptr(),
-                                    4 as i32, bc.as_mut_ptr(),
-                                    temp8.as_mut_ptr());
-    abclen =
-        fast_expansion_sum_zeroelim(templen, temp8.as_mut_ptr(),
-                                    4 as i32, ac.as_mut_ptr(),
-                                    abc.as_mut_ptr());
-    templen =
-        fast_expansion_sum_zeroelim(4 as i32, bc.as_mut_ptr(),
-                                    4 as i32, cd.as_mut_ptr(),
-                                    temp8.as_mut_ptr());
-    bcdlen =
-        fast_expansion_sum_zeroelim(templen, temp8.as_mut_ptr(),
-                                    4 as i32, bd.as_mut_ptr(),
-                                    bcd.as_mut_ptr());
-    xlen =
-        scale_expansion_zeroelim(bcdlen, bcd.as_mut_ptr(),
-                                 *pa.offset(0 as i32 as isize),
-                                 det24x.as_mut_ptr());
-    xlen =
-        scale_expansion_zeroelim(xlen, det24x.as_mut_ptr(),
-                                 *pa.offset(0 as i32 as isize),
-                                 det48x.as_mut_ptr());
-    ylen =
-        scale_expansion_zeroelim(bcdlen, bcd.as_mut_ptr(),
-                                 *pa.offset(1 as i32 as isize),
-                                 det24y.as_mut_ptr());
-    ylen =
-        scale_expansion_zeroelim(ylen, det24y.as_mut_ptr(),
-                                 *pa.offset(1 as i32 as isize),
-                                 det48y.as_mut_ptr());
-    alen =
-        fast_expansion_sum_zeroelim(xlen, det48x.as_mut_ptr(), ylen,
-                                    det48y.as_mut_ptr(), adet.as_mut_ptr());
-    xlen =
-        scale_expansion_zeroelim(cdalen, cda.as_mut_ptr(),
-                                 *pb.offset(0 as i32 as isize),
-                                 det24x.as_mut_ptr());
-    xlen =
-        scale_expansion_zeroelim(xlen, det24x.as_mut_ptr(),
-                                 -*pb.offset(0 as i32 as isize),
-                                 det48x.as_mut_ptr());
-    ylen =
-        scale_expansion_zeroelim(cdalen, cda.as_mut_ptr(),
-                                 *pb.offset(1 as i32 as isize),
-                                 det24y.as_mut_ptr());
-    ylen =
-        scale_expansion_zeroelim(ylen, det24y.as_mut_ptr(),
-                                 -*pb.offset(1 as i32 as isize),
-                                 det48y.as_mut_ptr());
-    blen =
-        fast_expansion_sum_zeroelim(xlen, det48x.as_mut_ptr(), ylen,
-                                    det48y.as_mut_ptr(), bdet.as_mut_ptr());
-    xlen =
-        scale_expansion_zeroelim(dablen, dab.as_mut_ptr(),
-                                 *pc.offset(0 as i32 as isize),
-                                 det24x.as_mut_ptr());
-    xlen =
-        scale_expansion_zeroelim(xlen, det24x.as_mut_ptr(),
-                                 *pc.offset(0 as i32 as isize),
-                                 det48x.as_mut_ptr());
-    ylen =
-        scale_expansion_zeroelim(dablen, dab.as_mut_ptr(),
-                                 *pc.offset(1 as i32 as isize),
-                                 det24y.as_mut_ptr());
-    ylen =
-        scale_expansion_zeroelim(ylen, det24y.as_mut_ptr(),
-                                 *pc.offset(1 as i32 as isize),
-                                 det48y.as_mut_ptr());
-    clen =
-        fast_expansion_sum_zeroelim(xlen, det48x.as_mut_ptr(), ylen,
-                                    det48y.as_mut_ptr(), cdet.as_mut_ptr());
-    xlen =
-        scale_expansion_zeroelim(abclen, abc.as_mut_ptr(),
-                                 *pd.offset(0 as i32 as isize),
-                                 det24x.as_mut_ptr());
-    xlen =
-        scale_expansion_zeroelim(xlen, det24x.as_mut_ptr(),
-                                 -*pd.offset(0 as i32 as isize),
-                                 det48x.as_mut_ptr());
-    ylen =
-        scale_expansion_zeroelim(abclen, abc.as_mut_ptr(),
-                                 *pd.offset(1 as i32 as isize),
-                                 det24y.as_mut_ptr());
-    ylen =
-        scale_expansion_zeroelim(ylen, det24y.as_mut_ptr(),
-                                 -*pd.offset(1 as i32 as isize),
-                                 det48y.as_mut_ptr());
-    dlen =
-        fast_expansion_sum_zeroelim(xlen, det48x.as_mut_ptr(), ylen,
-                                    det48y.as_mut_ptr(), ddet.as_mut_ptr());
-    ablen =
-        fast_expansion_sum_zeroelim(alen, adet.as_mut_ptr(), blen,
-                                    bdet.as_mut_ptr(), abdet.as_mut_ptr());
-    cdlen =
-        fast_expansion_sum_zeroelim(clen, cdet.as_mut_ptr(), dlen,
-                                    ddet.as_mut_ptr(), cddet.as_mut_ptr());
-    deterlen =
-        fast_expansion_sum_zeroelim(ablen, abdet.as_mut_ptr(), cdlen,
-                                    cddet.as_mut_ptr(), deter.as_mut_ptr());
-    return deter[(deterlen - 1 as i32) as usize];
+#[inline]
+pub fn incircle_exact(pa: [f64; 2], pb: [f64; 2], pc: [f64; 2], pd: [f64; 2]) -> f64 {
+    let [axby0, axby1] = Two_Product(pa[0], pb[1]);
+    let [bxay0, bxay1] = Two_Product(pb[0], pa[1]);
+    let ab = Two_Two_Diff(axby1, axby0, bxay1, bxay0);
+    let [bxcy0, bxcy1] = Two_Product(pb[0], pc[1]);
+    let [cxby0, cxby1] = Two_Product(pc[0], pb[1]);
+    let bc = Two_Two_Diff(bxcy1, bxcy0, cxby1, cxby0);
+    let [cxdy0, cxdy1] = Two_Product(pc[0], pd[1]);
+    let [dxcy0, dxcy1] = Two_Product(pd[0], pc[1]);
+    let cd = Two_Two_Diff(cxdy1, cxdy0, dxcy1, dxcy0);
+    let [dxay0, dxay1] = Two_Product(pd[0], pa[1]);
+    let [axdy0, axdy1] = Two_Product(pa[0], pd[1]);
+    let da = Two_Two_Diff(dxay1, dxay0, axdy1, axdy0);
+    let [axcy0, axcy1] = Two_Product(pa[0], pc[1]);
+    let [cxay0, cxay1] = Two_Product(pc[0], pa[1]);
+    let mut ac = Two_Two_Diff(axcy1, axcy0, cxay1, cxay0);
+    let [bxdy0, bxdy1] = Two_Product(pb[0], pd[1]);
+    let [dxby0, dxby1] = Two_Product(pd[0], pb[1]);
+    let mut bd = Two_Two_Diff(bxdy1, bxdy0, dxby1, dxby0);
+    let mut temp8 = [0.; 8];
+    let templen = fast_expansion_sum_zeroelim(&cd, &da, &mut temp8);
+    let mut cda = [0.; 12];
+    let cdalen = fast_expansion_sum_zeroelim(&temp8[..templen], &ac, &mut cda);
+    let templen = fast_expansion_sum_zeroelim(&da, &ab, &mut temp8);
+    let mut dab = [0.; 12];
+    let dablen = fast_expansion_sum_zeroelim(&temp8[..templen], &bd, &mut dab);
+    bd.iter_mut().for_each(|x| *x = -*x);
+    ac.iter_mut().for_each(|x| *x = -*x);
+    let templen = fast_expansion_sum_zeroelim(&ab, &bc, &mut temp8);
+    let mut abc = [0.; 12];
+    let abclen = fast_expansion_sum_zeroelim(&temp8[..templen], &ac, &mut abc);
+    let templen = fast_expansion_sum_zeroelim(&bc, &cd, &mut temp8);
+    let mut bcd = [0.; 12];
+    let bcdlen = fast_expansion_sum_zeroelim(&temp8[..templen], &bd, &mut bcd);
+    let mut det24x = [0.; 24];
+    let xlen = scale_expansion_zeroelim(&bcd[..bcdlen], pa[0], &mut det24x);
+    let mut det48x = [0.; 48];
+    let xlen = scale_expansion_zeroelim(&det24x[..xlen], pa[0], &mut det48x);
+    let mut det24y = [0.; 24];
+    let ylen = scale_expansion_zeroelim(&bcd[..bcdlen], pa[1], &mut det24y);
+    let mut det48y = [0.; 48];
+    let ylen = scale_expansion_zeroelim(&det24y[..ylen], pa[1], &mut det48y);
+    let mut adet = [0.; 96];
+    let alen = fast_expansion_sum_zeroelim(&det48x[..xlen], &det48y[..ylen], &mut adet);
+    let xlen = scale_expansion_zeroelim(&cda[..cdalen], pb[0], &mut det24x);
+    let xlen = scale_expansion_zeroelim(&det24x[..xlen], -pb[0], &mut det48x);
+    let ylen = scale_expansion_zeroelim(&cda[..cdalen], pb[1], &mut det24y);
+    let ylen = scale_expansion_zeroelim(&det24y[..ylen], -pb[1], &mut det48y);
+    let mut bdet = [0.; 96];
+    let blen = fast_expansion_sum_zeroelim(&det48x[..xlen], &det48y[..ylen], &mut bdet);
+    let xlen = scale_expansion_zeroelim(&dab[..dablen], pc[0], &mut det24x);
+    let xlen = scale_expansion_zeroelim(&det24x[..xlen], pc[0], &mut det48x);
+    let ylen = scale_expansion_zeroelim(&dab[..dablen], pc[1], &mut det24y);
+    let ylen = scale_expansion_zeroelim(&det24y[..ylen], pc[1], &mut det48y);
+    let mut cdet = [0.; 96];
+    let clen = fast_expansion_sum_zeroelim(&det48x[..xlen], &det48y[..ylen], &mut cdet);
+    let xlen = scale_expansion_zeroelim(&abc[..abclen], pd[0], &mut det24x);
+    let xlen = scale_expansion_zeroelim(&det24x[..xlen], -pd[0], &mut det48x);
+    let ylen = scale_expansion_zeroelim(&abc[..abclen], pd[1], &mut det24y);
+    let ylen = scale_expansion_zeroelim(&det24y[..ylen], -pd[1], &mut det48y);
+    let mut ddet = [0.; 96];
+    let dlen = fast_expansion_sum_zeroelim(&det48x[..xlen], &det48y[..ylen], &mut ddet);
+    let mut abdet = [0.; 192];
+    let ablen = fast_expansion_sum_zeroelim(&adet[..alen], &bdet[..blen], &mut abdet);
+    let mut cddet = [0.; 192];
+    let cdlen = fast_expansion_sum_zeroelim(&cdet[..clen], &ddet[..dlen], &mut cddet);
+    let mut deter = [0.; 384];
+    let deterlen = fast_expansion_sum_zeroelim(&abdet[..ablen], &cddet[..cdlen], &mut deter);
+    deter[deterlen - 1]
 }
 
-pub unsafe fn incircleslow(mut pa: *const f64,
-                                      mut pb: *const f64,
-                                      mut pc: *const f64,
-                                      mut pd: *const f64)
- -> f64 {
-    let mut adx: f64 = 0.;
-    let mut bdx: f64 = 0.;
-    let mut cdx: f64 = 0.;
-    let mut ady: f64 = 0.;
-    let mut bdy: f64 = 0.;
-    let mut cdy: f64 = 0.;
-    let mut adxtail: f64 = 0.;
-    let mut bdxtail: f64 = 0.;
-    let mut cdxtail: f64 = 0.;
-    let mut adytail: f64 = 0.;
-    let mut bdytail: f64 = 0.;
-    let mut cdytail: f64 = 0.;
-    let mut negate: f64 = 0.;
-    let mut negatetail: f64 = 0.;
-    let mut axby7: f64 = 0.;
-    let mut bxcy7: f64 = 0.;
-    let mut axcy7: f64 = 0.;
-    let mut bxay7: f64 = 0.;
-    let mut cxby7: f64 = 0.;
-    let mut cxay7: f64 = 0.;
-    let mut axby: [f64; 8] = [0.; 8];
-    let mut bxcy: [f64; 8] = [0.; 8];
-    let mut axcy: [f64; 8] = [0.; 8];
-    let mut bxay: [f64; 8] = [0.; 8];
-    let mut cxby: [f64; 8] = [0.; 8];
-    let mut cxay: [f64; 8] = [0.; 8];
-    let mut temp16: [f64; 16] = [0.; 16];
-    let mut temp16len: i32 = 0;
-    let mut detx: [f64; 32] = [0.; 32];
-    let mut detxx: [f64; 64] = [0.; 64];
-    let mut detxt: [f64; 32] = [0.; 32];
-    let mut detxxt: [f64; 64] = [0.; 64];
-    let mut detxtxt: [f64; 64] = [0.; 64];
-    let mut xlen: i32 = 0;
-    let mut xxlen: i32 = 0;
-    let mut xtlen: i32 = 0;
-    let mut xxtlen: i32 = 0;
-    let mut xtxtlen: i32 = 0;
-    let mut x1: [f64; 128] = [0.; 128];
-    let mut x2: [f64; 192] = [0.; 192];
-    let mut x1len: i32 = 0;
-    let mut x2len: i32 = 0;
-    let mut dety: [f64; 32] = [0.; 32];
-    let mut detyy: [f64; 64] = [0.; 64];
-    let mut detyt: [f64; 32] = [0.; 32];
-    let mut detyyt: [f64; 64] = [0.; 64];
-    let mut detytyt: [f64; 64] = [0.; 64];
-    let mut ylen: i32 = 0;
-    let mut yylen: i32 = 0;
-    let mut ytlen: i32 = 0;
-    let mut yytlen: i32 = 0;
-    let mut ytytlen: i32 = 0;
-    let mut y1: [f64; 128] = [0.; 128];
-    let mut y2: [f64; 192] = [0.; 192];
-    let mut y1len: i32 = 0;
-    let mut y2len: i32 = 0;
-    let mut adet: [f64; 384] = [0.; 384];
-    let mut bdet: [f64; 384] = [0.; 384];
-    let mut cdet: [f64; 384] = [0.; 384];
-    let mut abdet: [f64; 768] = [0.; 768];
-    let mut deter: [f64; 1152] = [0.; 1152];
-    let mut alen: i32 = 0;
-    let mut blen: i32 = 0;
-    let mut clen: i32 = 0;
-    let mut ablen: i32 = 0;
-    let mut deterlen: i32 = 0;
-    let mut i: i32 = 0;
-    let mut bvirt: f64 = 0.;
-    let mut avirt: f64 = 0.;
-    let mut bround: f64 = 0.;
-    let mut around: f64 = 0.;
-    let mut c: f64 = 0.;
-    let mut abig: f64 = 0.;
-    let mut a0hi: f64 = 0.;
-    let mut a0lo: f64 = 0.;
-    let mut a1hi: f64 = 0.;
-    let mut a1lo: f64 = 0.;
-    let mut bhi: f64 = 0.;
-    let mut blo: f64 = 0.;
-    let mut err1: f64 = 0.;
-    let mut err2: f64 = 0.;
-    let mut err3: f64 = 0.;
-    let mut _i: f64 = 0.;
-    let mut _j: f64 = 0.;
-    let mut _k: f64 = 0.;
-    let mut _l: f64 = 0.;
-    let mut _m: f64 = 0.;
-    let mut _n: f64 = 0.;
-    let mut _0: f64 = 0.;
-    let mut _1: f64 = 0.;
-    let mut _2: f64 = 0.;
-    Two_Diff(*pa.offset(0 as i32 as isize),
-             *pd.offset(0 as i32 as isize), &mut adx, &mut adxtail);
-    Two_Diff(*pa.offset(1 as i32 as isize),
-             *pd.offset(1 as i32 as isize), &mut ady, &mut adytail);
-    Two_Diff(*pb.offset(0 as i32 as isize),
-             *pd.offset(0 as i32 as isize), &mut bdx, &mut bdxtail);
-    Two_Diff(*pb.offset(1 as i32 as isize),
-             *pd.offset(1 as i32 as isize), &mut bdy, &mut bdytail);
-    Two_Diff(*pc.offset(0 as i32 as isize),
-             *pd.offset(0 as i32 as isize), &mut cdx, &mut cdxtail);
-    Two_Diff(*pc.offset(1 as i32 as isize),
-             *pd.offset(1 as i32 as isize), &mut cdy, &mut cdytail);
-    Two_Two_Product(adx, adxtail, bdy, bdytail, axby.as_mut_ptr());
-    negate = -ady;
-    negatetail = -adytail;
-    Two_Two_Product(bdx, bdxtail, negate, negatetail, bxay.as_mut_ptr());
-    Two_Two_Product(bdx, bdxtail, cdy, cdytail, bxcy.as_mut_ptr());
-    negate = -bdy;
-    negatetail = -bdytail;
-    Two_Two_Product(cdx, cdxtail, negate, negatetail, cxby.as_mut_ptr());
-    Two_Two_Product(cdx, cdxtail, ady, adytail, cxay.as_mut_ptr());
-    negate = -cdy;
-    negatetail = -cdytail;
-    Two_Two_Product(adx, adxtail, negate, negatetail, axcy.as_mut_ptr());
-    temp16len =
-        fast_expansion_sum_zeroelim(8 as i32, bxcy.as_mut_ptr(),
-                                    8 as i32, cxby.as_mut_ptr(),
-                                    temp16.as_mut_ptr());
-    xlen =
-        scale_expansion_zeroelim(temp16len, temp16.as_mut_ptr(), adx,
-                                 detx.as_mut_ptr());
-    xxlen =
-        scale_expansion_zeroelim(xlen, detx.as_mut_ptr(), adx,
-                                 detxx.as_mut_ptr());
-    xtlen =
-        scale_expansion_zeroelim(temp16len, temp16.as_mut_ptr(), adxtail,
-                                 detxt.as_mut_ptr());
-    xxtlen =
-        scale_expansion_zeroelim(xtlen, detxt.as_mut_ptr(), adx,
-                                 detxxt.as_mut_ptr());
-    i = 0 as i32;
-    while i < xxtlen { detxxt[i as usize] *= 2.0f64; i += 1 }
-    xtxtlen =
-        scale_expansion_zeroelim(xtlen, detxt.as_mut_ptr(), adxtail,
-                                 detxtxt.as_mut_ptr());
-    x1len =
-        fast_expansion_sum_zeroelim(xxlen, detxx.as_mut_ptr(), xxtlen,
-                                    detxxt.as_mut_ptr(), x1.as_mut_ptr());
-    x2len =
-        fast_expansion_sum_zeroelim(x1len, x1.as_mut_ptr(), xtxtlen,
-                                    detxtxt.as_mut_ptr(), x2.as_mut_ptr());
-    ylen =
-        scale_expansion_zeroelim(temp16len, temp16.as_mut_ptr(), ady,
-                                 dety.as_mut_ptr());
-    yylen =
-        scale_expansion_zeroelim(ylen, dety.as_mut_ptr(), ady,
-                                 detyy.as_mut_ptr());
-    ytlen =
-        scale_expansion_zeroelim(temp16len, temp16.as_mut_ptr(), adytail,
-                                 detyt.as_mut_ptr());
-    yytlen =
-        scale_expansion_zeroelim(ytlen, detyt.as_mut_ptr(), ady,
-                                 detyyt.as_mut_ptr());
-    i = 0 as i32;
-    while i < yytlen { detyyt[i as usize] *= 2.0f64; i += 1 }
-    ytytlen =
-        scale_expansion_zeroelim(ytlen, detyt.as_mut_ptr(), adytail,
-                                 detytyt.as_mut_ptr());
-    y1len =
-        fast_expansion_sum_zeroelim(yylen, detyy.as_mut_ptr(), yytlen,
-                                    detyyt.as_mut_ptr(), y1.as_mut_ptr());
-    y2len =
-        fast_expansion_sum_zeroelim(y1len, y1.as_mut_ptr(), ytytlen,
-                                    detytyt.as_mut_ptr(), y2.as_mut_ptr());
-    alen =
-        fast_expansion_sum_zeroelim(x2len, x2.as_mut_ptr(), y2len,
-                                    y2.as_mut_ptr(), adet.as_mut_ptr());
-    temp16len =
-        fast_expansion_sum_zeroelim(8 as i32, cxay.as_mut_ptr(),
-                                    8 as i32, axcy.as_mut_ptr(),
-                                    temp16.as_mut_ptr());
-    xlen =
-        scale_expansion_zeroelim(temp16len, temp16.as_mut_ptr(), bdx,
-                                 detx.as_mut_ptr());
-    xxlen =
-        scale_expansion_zeroelim(xlen, detx.as_mut_ptr(), bdx,
-                                 detxx.as_mut_ptr());
-    xtlen =
-        scale_expansion_zeroelim(temp16len, temp16.as_mut_ptr(), bdxtail,
-                                 detxt.as_mut_ptr());
-    xxtlen =
-        scale_expansion_zeroelim(xtlen, detxt.as_mut_ptr(), bdx,
-                                 detxxt.as_mut_ptr());
-    i = 0 as i32;
-    while i < xxtlen { detxxt[i as usize] *= 2.0f64; i += 1 }
-    xtxtlen =
-        scale_expansion_zeroelim(xtlen, detxt.as_mut_ptr(), bdxtail,
-                                 detxtxt.as_mut_ptr());
-    x1len =
-        fast_expansion_sum_zeroelim(xxlen, detxx.as_mut_ptr(), xxtlen,
-                                    detxxt.as_mut_ptr(), x1.as_mut_ptr());
-    x2len =
-        fast_expansion_sum_zeroelim(x1len, x1.as_mut_ptr(), xtxtlen,
-                                    detxtxt.as_mut_ptr(), x2.as_mut_ptr());
-    ylen =
-        scale_expansion_zeroelim(temp16len, temp16.as_mut_ptr(), bdy,
-                                 dety.as_mut_ptr());
-    yylen =
-        scale_expansion_zeroelim(ylen, dety.as_mut_ptr(), bdy,
-                                 detyy.as_mut_ptr());
-    ytlen =
-        scale_expansion_zeroelim(temp16len, temp16.as_mut_ptr(), bdytail,
-                                 detyt.as_mut_ptr());
-    yytlen =
-        scale_expansion_zeroelim(ytlen, detyt.as_mut_ptr(), bdy,
-                                 detyyt.as_mut_ptr());
-    i = 0 as i32;
-    while i < yytlen { detyyt[i as usize] *= 2.0f64; i += 1 }
-    ytytlen =
-        scale_expansion_zeroelim(ytlen, detyt.as_mut_ptr(), bdytail,
-                                 detytyt.as_mut_ptr());
-    y1len =
-        fast_expansion_sum_zeroelim(yylen, detyy.as_mut_ptr(), yytlen,
-                                    detyyt.as_mut_ptr(), y1.as_mut_ptr());
-    y2len =
-        fast_expansion_sum_zeroelim(y1len, y1.as_mut_ptr(), ytytlen,
-                                    detytyt.as_mut_ptr(), y2.as_mut_ptr());
-    blen =
-        fast_expansion_sum_zeroelim(x2len, x2.as_mut_ptr(), y2len,
-                                    y2.as_mut_ptr(), bdet.as_mut_ptr());
-    temp16len =
-        fast_expansion_sum_zeroelim(8 as i32, axby.as_mut_ptr(),
-                                    8 as i32, bxay.as_mut_ptr(),
-                                    temp16.as_mut_ptr());
-    xlen =
-        scale_expansion_zeroelim(temp16len, temp16.as_mut_ptr(), cdx,
-                                 detx.as_mut_ptr());
-    xxlen =
-        scale_expansion_zeroelim(xlen, detx.as_mut_ptr(), cdx,
-                                 detxx.as_mut_ptr());
-    xtlen =
-        scale_expansion_zeroelim(temp16len, temp16.as_mut_ptr(), cdxtail,
-                                 detxt.as_mut_ptr());
-    xxtlen =
-        scale_expansion_zeroelim(xtlen, detxt.as_mut_ptr(), cdx,
-                                 detxxt.as_mut_ptr());
-    i = 0 as i32;
-    while i < xxtlen { detxxt[i as usize] *= 2.0f64; i += 1 }
-    xtxtlen =
-        scale_expansion_zeroelim(xtlen, detxt.as_mut_ptr(), cdxtail,
-                                 detxtxt.as_mut_ptr());
-    x1len =
-        fast_expansion_sum_zeroelim(xxlen, detxx.as_mut_ptr(), xxtlen,
-                                    detxxt.as_mut_ptr(), x1.as_mut_ptr());
-    x2len =
-        fast_expansion_sum_zeroelim(x1len, x1.as_mut_ptr(), xtxtlen,
-                                    detxtxt.as_mut_ptr(), x2.as_mut_ptr());
-    ylen =
-        scale_expansion_zeroelim(temp16len, temp16.as_mut_ptr(), cdy,
-                                 dety.as_mut_ptr());
-    yylen =
-        scale_expansion_zeroelim(ylen, dety.as_mut_ptr(), cdy,
-                                 detyy.as_mut_ptr());
-    ytlen =
-        scale_expansion_zeroelim(temp16len, temp16.as_mut_ptr(), cdytail,
-                                 detyt.as_mut_ptr());
-    yytlen =
-        scale_expansion_zeroelim(ytlen, detyt.as_mut_ptr(), cdy,
-                                 detyyt.as_mut_ptr());
-    i = 0 as i32;
-    while i < yytlen { detyyt[i as usize] *= 2.0f64; i += 1 }
-    ytytlen =
-        scale_expansion_zeroelim(ytlen, detyt.as_mut_ptr(), cdytail,
-                                 detytyt.as_mut_ptr());
-    y1len =
-        fast_expansion_sum_zeroelim(yylen, detyy.as_mut_ptr(), yytlen,
-                                    detyyt.as_mut_ptr(), y1.as_mut_ptr());
-    y2len =
-        fast_expansion_sum_zeroelim(y1len, y1.as_mut_ptr(), ytytlen,
-                                    detytyt.as_mut_ptr(), y2.as_mut_ptr());
-    clen =
-        fast_expansion_sum_zeroelim(x2len, x2.as_mut_ptr(), y2len,
-                                    y2.as_mut_ptr(), cdet.as_mut_ptr());
-    ablen =
-        fast_expansion_sum_zeroelim(alen, adet.as_mut_ptr(), blen,
-                                    bdet.as_mut_ptr(), abdet.as_mut_ptr());
-    deterlen =
-        fast_expansion_sum_zeroelim(ablen, abdet.as_mut_ptr(), clen,
-                                    cdet.as_mut_ptr(), deter.as_mut_ptr());
-    return deter[(deterlen - 1 as i32) as usize];
+#[inline]
+pub fn incircle_slow(pa: [f64; 2], pb: [f64; 2], pc: [f64; 2], pd: [f64; 2]) -> f64 {
+    let [adxtail, adx] = Two_Diff(pa[0], pd[0]);
+    let [adytail, ady] = Two_Diff(pa[1], pd[1]);
+    let [bdxtail, bdx] = Two_Diff(pb[0], pd[0]);
+    let [bdytail, bdy] = Two_Diff(pb[1], pd[1]);
+    let [cdxtail, cdx] = Two_Diff(pc[0], pd[0]);
+    let [cdytail, cdy] = Two_Diff(pc[1], pd[1]);
+    let axby = Two_Two_Product(adx, adxtail, bdy, bdytail);
+    let negate = -ady;
+    let negatetail = -adytail;
+    let bxay = Two_Two_Product(bdx, bdxtail, negate, negatetail);
+    let bxcy = Two_Two_Product(bdx, bdxtail, cdy, cdytail);
+    let negate = -bdy;
+    let negatetail = -bdytail;
+    let cxby = Two_Two_Product(cdx, cdxtail, negate, negatetail);
+    let cxay = Two_Two_Product(cdx, cdxtail, ady, adytail);
+    let negate = -cdy;
+    let negatetail = -cdytail;
+    let axcy = Two_Two_Product(adx, adxtail, negate, negatetail);
+    let mut temp16 = [0.; 16];
+    let temp16len = fast_expansion_sum_zeroelim(&bxcy, &cxby, &mut temp16);
+    let mut detx = [0.; 32];
+    let xlen = scale_expansion_zeroelim(&temp16[..temp16len], adx, &mut detx);
+    let mut detxx = [0.; 64];
+    let xxlen = scale_expansion_zeroelim(&detx[..xlen], adx, &mut detxx);
+    let mut detxt = [0.; 32];
+    let xtlen = scale_expansion_zeroelim(&temp16[..temp16len], adxtail, &mut detxt);
+    let mut detxxt = [0.; 64];
+    let xxtlen = scale_expansion_zeroelim(&detxt[..xtlen], adx, &mut detxxt);
+    detxxt[..xxtlen].iter_mut().for_each(|x| *x *= 2.0);
+    let mut detxtxt = [0.; 64];
+    let xtxtlen = scale_expansion_zeroelim(&detxt[..xtlen], adxtail, &mut detxtxt);
+    let mut x1 = [0.; 128];
+    let x1len = fast_expansion_sum_zeroelim(&detxx[..xxlen], &detxxt[..xxtlen], &mut x1);
+    let mut x2 = [0.; 192];
+    let x2len = fast_expansion_sum_zeroelim(&x1[..x1len], &detxtxt[..xtxtlen], &mut x2);
+    let mut dety = [0.; 32];
+    let ylen = scale_expansion_zeroelim(&temp16[..temp16len], ady, &mut dety);
+    let mut detyy = [0.; 64];
+    let yylen = scale_expansion_zeroelim(&dety[..ylen], ady, &mut detyy);
+    let mut detyt = [0.; 32];
+    let ytlen = scale_expansion_zeroelim(&temp16[..temp16len], adytail, &mut detyt);
+    let mut detyyt = [0.; 64];
+    let yytlen = scale_expansion_zeroelim(&detyt[..ytlen], ady, &mut detyyt);
+    detyyt[..yytlen].iter_mut().for_each(|x| *x *= 2.0);
+    let mut detytyt = [0.; 64];
+    let ytytlen = scale_expansion_zeroelim(&detyt[..ytlen], adytail, &mut detytyt);
+    let mut y1 = [0.; 128];
+    let y1len = fast_expansion_sum_zeroelim(&detyy[..yylen], &detyyt[..yytlen], &mut y1);
+    let mut y2 = [0.; 192];
+    let y2len = fast_expansion_sum_zeroelim(&y1[..y1len], &detytyt[..ytytlen], &mut y2);
+    let mut adet = [0.; 384];
+    let alen = fast_expansion_sum_zeroelim(&x2[..x2len], &y2[..y2len], &mut adet);
+    let temp16len = fast_expansion_sum_zeroelim(&cxay, &axcy, &mut temp16);
+    let xlen = scale_expansion_zeroelim(&temp16[..temp16len], bdx, &mut detx);
+    let xxlen = scale_expansion_zeroelim(&detx[..xlen], bdx, &mut detxx);
+    let xtlen = scale_expansion_zeroelim(&temp16[..temp16len], bdxtail, &mut detxt);
+    let xxtlen = scale_expansion_zeroelim(&detxt[..xtlen], bdx, &mut detxxt);
+    detxxt[..xxtlen].iter_mut().for_each(|x| *x *= 2.0);
+    let xtxtlen = scale_expansion_zeroelim(&detxt[..xtlen], bdxtail, &mut detxtxt);
+    let x1len = fast_expansion_sum_zeroelim(&detxx[..xxlen], &detxxt[..xxtlen], &mut x1);
+    let x2len = fast_expansion_sum_zeroelim(&x1[..x1len], &detxtxt[..xtxtlen], &mut x2);
+    let ylen = scale_expansion_zeroelim(&temp16[..temp16len], bdy, &mut dety);
+    let yylen = scale_expansion_zeroelim(&dety[..ylen], bdy, &mut detyy);
+    let ytlen = scale_expansion_zeroelim(&temp16[..temp16len], bdytail, &mut detyt);
+    let yytlen = scale_expansion_zeroelim(&detyt[..ytlen], bdy, &mut detyyt);
+    detyyt[..yytlen].iter_mut().for_each(|x| *x *= 2.0);
+    let ytytlen = scale_expansion_zeroelim(&detyt[..ytlen], bdytail, &mut detytyt);
+    let y1len = fast_expansion_sum_zeroelim(&detyy[..yylen], &detyyt[..yytlen], &mut y1);
+    let y2len = fast_expansion_sum_zeroelim(&y1[..y1len], &detytyt[..ytytlen], &mut y2);
+    let mut bdet = [0.; 384];
+    let blen = fast_expansion_sum_zeroelim(&x2[..x2len], &y2[..y2len], &mut bdet);
+    let temp16len = fast_expansion_sum_zeroelim(&axby, &bxay, &mut temp16);
+    let xlen = scale_expansion_zeroelim(&temp16[..temp16len], cdx, &mut detx);
+    let xxlen = scale_expansion_zeroelim(&detx[..xlen], cdx, &mut detxx);
+    let xtlen = scale_expansion_zeroelim(&temp16[..temp16len], cdxtail, &mut detxt);
+    let xxtlen = scale_expansion_zeroelim(&detxt[..xtlen], cdx, &mut detxxt);
+    detxxt[..xxtlen].iter_mut().for_each(|x| *x *= 2.0);
+    let xtxtlen = scale_expansion_zeroelim(&detxt[..xtlen], cdxtail, &mut detxtxt);
+    let x1len = fast_expansion_sum_zeroelim(&detxx[..xxlen], &detxxt[..xxtlen], &mut x1);
+    let x2len = fast_expansion_sum_zeroelim(&x1[..x1len], &detxtxt[..xtxtlen], &mut x2);
+    let ylen = scale_expansion_zeroelim(&temp16[..temp16len], cdy, &mut dety);
+    let yylen = scale_expansion_zeroelim(&dety[..ylen], cdy, &mut detyy);
+    let ytlen = scale_expansion_zeroelim(&temp16[..temp16len], cdytail, &mut detyt);
+    let yytlen = scale_expansion_zeroelim(&detyt[..ytlen], cdy, &mut detyyt);
+    detyyt[..yytlen].iter_mut().for_each(|x| *x *= 2.0);
+    let ytytlen = scale_expansion_zeroelim(&detyt[..ytlen], cdytail, &mut detytyt);
+    let y1len = fast_expansion_sum_zeroelim(&detyy[..yylen], &detyyt[..yytlen], &mut y1);
+    let y2len = fast_expansion_sum_zeroelim(&y1[..y1len], &detytyt[..ytytlen], &mut y2);
+    let mut cdet = [0.; 384];
+    let clen = fast_expansion_sum_zeroelim(&x2[..x2len], &y2[..y2len], &mut cdet);
+    let mut abdet = [0.; 768];
+    let ablen = fast_expansion_sum_zeroelim(&adet[..alen], &bdet[..blen], &mut abdet);
+    let mut deter = [0.; 1152];
+    let deterlen = fast_expansion_sum_zeroelim(&abdet[..ablen], &cdet[..clen], &mut deter);
+    deter[deterlen - 1]
 }
 
-pub unsafe fn incircleadapt(mut pa: *const f64,
-                                       mut pb: *const f64,
-                                       mut pc: *const f64,
-                                       mut pd: *const f64,
-                                       mut permanent: f64)
- -> f64 {
-    let mut adx: f64 = 0.;
-    let mut bdx: f64 = 0.;
-    let mut cdx: f64 = 0.;
-    let mut ady: f64 = 0.;
-    let mut bdy: f64 = 0.;
-    let mut cdy: f64 = 0.;
-    let mut det: f64 = 0.;
-    let mut errbound: f64 = 0.;
-    let mut bdxcdy1: f64 = 0.;
-    let mut cdxbdy1: f64 = 0.;
-    let mut cdxady1: f64 = 0.;
-    let mut adxcdy1: f64 = 0.;
-    let mut adxbdy1: f64 = 0.;
-    let mut bdxady1: f64 = 0.;
-    let mut bdxcdy0: f64 = 0.;
-    let mut cdxbdy0: f64 = 0.;
-    let mut cdxady0: f64 = 0.;
-    let mut adxcdy0: f64 = 0.;
-    let mut adxbdy0: f64 = 0.;
-    let mut bdxady0: f64 = 0.;
-    let mut bc: [f64; 4] = [0.; 4];
-    let mut ca: [f64; 4] = [0.; 4];
-    let mut ab: [f64; 4] = [0.; 4];
-    let mut bc3: f64 = 0.;
-    let mut ca3: f64 = 0.;
-    let mut ab3: f64 = 0.;
-    let mut axbc: [f64; 8] = [0.; 8];
-    let mut axxbc: [f64; 16] = [0.; 16];
-    let mut aybc: [f64; 8] = [0.; 8];
-    let mut ayybc: [f64; 16] = [0.; 16];
-    let mut adet: [f64; 32] = [0.; 32];
-    let mut axbclen: i32 = 0;
-    let mut axxbclen: i32 = 0;
-    let mut aybclen: i32 = 0;
-    let mut ayybclen: i32 = 0;
-    let mut alen: i32 = 0;
-    let mut bxca: [f64; 8] = [0.; 8];
-    let mut bxxca: [f64; 16] = [0.; 16];
-    let mut byca: [f64; 8] = [0.; 8];
-    let mut byyca: [f64; 16] = [0.; 16];
-    let mut bdet: [f64; 32] = [0.; 32];
-    let mut bxcalen: i32 = 0;
-    let mut bxxcalen: i32 = 0;
-    let mut bycalen: i32 = 0;
-    let mut byycalen: i32 = 0;
-    let mut blen: i32 = 0;
-    let mut cxab: [f64; 8] = [0.; 8];
-    let mut cxxab: [f64; 16] = [0.; 16];
-    let mut cyab: [f64; 8] = [0.; 8];
-    let mut cyyab: [f64; 16] = [0.; 16];
-    let mut cdet: [f64; 32] = [0.; 32];
-    let mut cxablen: i32 = 0;
-    let mut cxxablen: i32 = 0;
-    let mut cyablen: i32 = 0;
-    let mut cyyablen: i32 = 0;
-    let mut clen: i32 = 0;
-    let mut abdet: [f64; 64] = [0.; 64];
-    let mut ablen: i32 = 0;
-    let mut fin1: [f64; 1152] = [0.; 1152];
-    let mut fin2: [f64; 1152] = [0.; 1152];
-    let mut finnow: *mut f64 = 0 as *mut f64;
-    let mut finother: *mut f64 = 0 as *mut f64;
-    let mut finswap: *mut f64 = 0 as *mut f64;
-    let mut finlength: i32 = 0;
-    let mut adxtail: f64 = 0.;
-    let mut bdxtail: f64 = 0.;
-    let mut cdxtail: f64 = 0.;
-    let mut adytail: f64 = 0.;
-    let mut bdytail: f64 = 0.;
-    let mut cdytail: f64 = 0.;
-    let mut adxadx1: f64 = 0.;
-    let mut adyady1: f64 = 0.;
-    let mut bdxbdx1: f64 = 0.;
-    let mut bdybdy1: f64 = 0.;
-    let mut cdxcdx1: f64 = 0.;
-    let mut cdycdy1: f64 = 0.;
-    let mut adxadx0: f64 = 0.;
-    let mut adyady0: f64 = 0.;
-    let mut bdxbdx0: f64 = 0.;
-    let mut bdybdy0: f64 = 0.;
-    let mut cdxcdx0: f64 = 0.;
-    let mut cdycdy0: f64 = 0.;
-    let mut aa: [f64; 4] = [0.; 4];
-    let mut bb: [f64; 4] = [0.; 4];
-    let mut cc: [f64; 4] = [0.; 4];
-    let mut aa3: f64 = 0.;
-    let mut bb3: f64 = 0.;
-    let mut cc3: f64 = 0.;
-    let mut ti1: f64 = 0.;
-    let mut tj1: f64 = 0.;
-    let mut ti0: f64 = 0.;
-    let mut tj0: f64 = 0.;
-    let mut u: [f64; 4] = [0.; 4];
-    let mut v: [f64; 4] = [0.; 4];
-    let mut u3: f64 = 0.;
-    let mut v3: f64 = 0.;
-    let mut temp8: [f64; 8] = [0.; 8];
-    let mut temp16a: [f64; 16] = [0.; 16];
-    let mut temp16b: [f64; 16] = [0.; 16];
-    let mut temp16c: [f64; 16] = [0.; 16];
-    let mut temp32a: [f64; 32] = [0.; 32];
-    let mut temp32b: [f64; 32] = [0.; 32];
-    let mut temp48: [f64; 48] = [0.; 48];
-    let mut temp64: [f64; 64] = [0.; 64];
-    let mut temp8len: i32 = 0;
-    let mut temp16alen: i32 = 0;
-    let mut temp16blen: i32 = 0;
-    let mut temp16clen: i32 = 0;
-    let mut temp32alen: i32 = 0;
-    let mut temp32blen: i32 = 0;
-    let mut temp48len: i32 = 0;
-    let mut temp64len: i32 = 0;
-    let mut axtbb: [f64; 8] = [0.; 8];
-    let mut axtcc: [f64; 8] = [0.; 8];
-    let mut aytbb: [f64; 8] = [0.; 8];
-    let mut aytcc: [f64; 8] = [0.; 8];
-    let mut axtbblen: i32 = 0;
-    let mut axtcclen: i32 = 0;
-    let mut aytbblen: i32 = 0;
-    let mut aytcclen: i32 = 0;
-    let mut bxtaa: [f64; 8] = [0.; 8];
-    let mut bxtcc: [f64; 8] = [0.; 8];
-    let mut bytaa: [f64; 8] = [0.; 8];
-    let mut bytcc: [f64; 8] = [0.; 8];
-    let mut bxtaalen: i32 = 0;
-    let mut bxtcclen: i32 = 0;
-    let mut bytaalen: i32 = 0;
-    let mut bytcclen: i32 = 0;
-    let mut cxtaa: [f64; 8] = [0.; 8];
-    let mut cxtbb: [f64; 8] = [0.; 8];
-    let mut cytaa: [f64; 8] = [0.; 8];
-    let mut cytbb: [f64; 8] = [0.; 8];
-    let mut cxtaalen: i32 = 0;
-    let mut cxtbblen: i32 = 0;
-    let mut cytaalen: i32 = 0;
-    let mut cytbblen: i32 = 0;
-    let mut axtbc: [f64; 8] = [0.; 8];
-    let mut aytbc: [f64; 8] = [0.; 8];
-    let mut bxtca: [f64; 8] = [0.; 8];
-    let mut bytca: [f64; 8] = [0.; 8];
-    let mut cxtab: [f64; 8] = [0.; 8];
-    let mut cytab: [f64; 8] = [0.; 8];
-    let mut axtbclen: i32 = 0;
-    let mut aytbclen: i32 = 0;
-    let mut bxtcalen: i32 = 0;
-    let mut bytcalen: i32 = 0;
-    let mut cxtablen: i32 = 0;
-    let mut cytablen: i32 = 0;
-    let mut axtbct: [f64; 16] = [0.; 16];
-    let mut aytbct: [f64; 16] = [0.; 16];
-    let mut bxtcat: [f64; 16] = [0.; 16];
-    let mut bytcat: [f64; 16] = [0.; 16];
-    let mut cxtabt: [f64; 16] = [0.; 16];
-    let mut cytabt: [f64; 16] = [0.; 16];
-    let mut axtbctlen: i32 = 0;
-    let mut aytbctlen: i32 = 0;
-    let mut bxtcatlen: i32 = 0;
-    let mut bytcatlen: i32 = 0;
-    let mut cxtabtlen: i32 = 0;
-    let mut cytabtlen: i32 = 0;
-    let mut axtbctt: [f64; 8] = [0.; 8];
-    let mut aytbctt: [f64; 8] = [0.; 8];
-    let mut bxtcatt: [f64; 8] = [0.; 8];
-    let mut bytcatt: [f64; 8] = [0.; 8];
-    let mut cxtabtt: [f64; 8] = [0.; 8];
-    let mut cytabtt: [f64; 8] = [0.; 8];
-    let mut axtbcttlen: i32 = 0;
-    let mut aytbcttlen: i32 = 0;
-    let mut bxtcattlen: i32 = 0;
-    let mut bytcattlen: i32 = 0;
-    let mut cxtabttlen: i32 = 0;
-    let mut cytabttlen: i32 = 0;
-    let mut abt: [f64; 8] = [0.; 8];
-    let mut bct: [f64; 8] = [0.; 8];
-    let mut cat: [f64; 8] = [0.; 8];
-    let mut abtlen: i32 = 0;
-    let mut bctlen: i32 = 0;
-    let mut catlen: i32 = 0;
-    let mut abtt: [f64; 4] = [0.; 4];
-    let mut bctt: [f64; 4] = [0.; 4];
-    let mut catt: [f64; 4] = [0.; 4];
-    let mut abttlen: i32 = 0;
-    let mut bcttlen: i32 = 0;
-    let mut cattlen: i32 = 0;
-    let mut abtt3: f64 = 0.;
-    let mut bctt3: f64 = 0.;
-    let mut catt3: f64 = 0.;
-    let mut negate: f64 = 0.;
-    let mut bvirt: f64 = 0.;
-    let mut avirt: f64 = 0.;
-    let mut bround: f64 = 0.;
-    let mut around: f64 = 0.;
-    let mut c: f64 = 0.;
-    let mut abig: f64 = 0.;
-    let mut ahi: f64 = 0.;
-    let mut alo: f64 = 0.;
-    let mut bhi: f64 = 0.;
-    let mut blo: f64 = 0.;
-    let mut err1: f64 = 0.;
-    let mut err2: f64 = 0.;
-    let mut err3: f64 = 0.;
-    let mut _i: f64 = 0.;
-    let mut _j: f64 = 0.;
-    let mut _0: f64 = 0.;
-    adx =
-        *pa.offset(0 as i32 as isize) -
-            *pd.offset(0 as i32 as isize);
-    bdx =
-        *pb.offset(0 as i32 as isize) -
-            *pd.offset(0 as i32 as isize);
-    cdx =
-        *pc.offset(0 as i32 as isize) -
-            *pd.offset(0 as i32 as isize);
-    ady =
-        *pa.offset(1 as i32 as isize) -
-            *pd.offset(1 as i32 as isize);
-    bdy =
-        *pb.offset(1 as i32 as isize) -
-            *pd.offset(1 as i32 as isize);
-    cdy =
-        *pc.offset(1 as i32 as isize) -
-            *pd.offset(1 as i32 as isize);
-    Two_Product(bdx, cdy, &mut bdxcdy1, &mut bdxcdy0);
-    Two_Product(cdx, bdy, &mut cdxbdy1, &mut cdxbdy0);
-    Two_Two_Diff(bdxcdy1, bdxcdy0, cdxbdy1, cdxbdy0, bc.as_mut_ptr());
-    axbclen =
-        scale_expansion_zeroelim(4 as i32, bc.as_mut_ptr(), adx,
-                                 axbc.as_mut_ptr());
-    axxbclen =
-        scale_expansion_zeroelim(axbclen, axbc.as_mut_ptr(), adx,
-                                 axxbc.as_mut_ptr());
-    aybclen =
-        scale_expansion_zeroelim(4 as i32, bc.as_mut_ptr(), ady,
-                                 aybc.as_mut_ptr());
-    ayybclen =
-        scale_expansion_zeroelim(aybclen, aybc.as_mut_ptr(), ady,
-                                 ayybc.as_mut_ptr());
-    alen =
-        fast_expansion_sum_zeroelim(axxbclen, axxbc.as_mut_ptr(), ayybclen,
-                                    ayybc.as_mut_ptr(), adet.as_mut_ptr());
-    Two_Product(cdx, ady, &mut cdxady1, &mut cdxady0);
-    Two_Product(adx, cdy, &mut adxcdy1, &mut adxcdy0);
-    Two_Two_Diff(cdxady1, cdxady0, adxcdy1, adxcdy0, ca.as_mut_ptr());
-    bxcalen =
-        scale_expansion_zeroelim(4 as i32, ca.as_mut_ptr(), bdx,
-                                 bxca.as_mut_ptr());
-    bxxcalen =
-        scale_expansion_zeroelim(bxcalen, bxca.as_mut_ptr(), bdx,
-                                 bxxca.as_mut_ptr());
-    bycalen =
-        scale_expansion_zeroelim(4 as i32, ca.as_mut_ptr(), bdy,
-                                 byca.as_mut_ptr());
-    byycalen =
-        scale_expansion_zeroelim(bycalen, byca.as_mut_ptr(), bdy,
-                                 byyca.as_mut_ptr());
-    blen =
-        fast_expansion_sum_zeroelim(bxxcalen, bxxca.as_mut_ptr(), byycalen,
-                                    byyca.as_mut_ptr(), bdet.as_mut_ptr());
-    Two_Product(adx, bdy, &mut adxbdy1, &mut adxbdy0);
-    Two_Product(bdx, ady, &mut bdxady1, &mut bdxady0);
-    Two_Two_Diff(adxbdy1, adxbdy0, bdxady1, bdxady0, ab.as_mut_ptr());
-    cxablen =
-        scale_expansion_zeroelim(4 as i32, ab.as_mut_ptr(), cdx,
-                                 cxab.as_mut_ptr());
-    cxxablen =
-        scale_expansion_zeroelim(cxablen, cxab.as_mut_ptr(), cdx,
-                                 cxxab.as_mut_ptr());
-    cyablen =
-        scale_expansion_zeroelim(4 as i32, ab.as_mut_ptr(), cdy,
-                                 cyab.as_mut_ptr());
-    cyyablen =
-        scale_expansion_zeroelim(cyablen, cyab.as_mut_ptr(), cdy,
-                                 cyyab.as_mut_ptr());
-    clen =
-        fast_expansion_sum_zeroelim(cxxablen, cxxab.as_mut_ptr(), cyyablen,
-                                    cyyab.as_mut_ptr(), cdet.as_mut_ptr());
-    ablen =
-        fast_expansion_sum_zeroelim(alen, adet.as_mut_ptr(), blen,
-                                    bdet.as_mut_ptr(), abdet.as_mut_ptr());
-    finlength =
-        fast_expansion_sum_zeroelim(ablen, abdet.as_mut_ptr(), clen,
-                                    cdet.as_mut_ptr(), fin1.as_mut_ptr());
-    det = estimate(finlength, fin1.as_mut_ptr());
-    errbound = PARAMS.iccerrboundB * permanent;
+#[inline]
+pub fn incircleadapt(pa: [f64; 2], pb: [f64; 2], pc: [f64; 2], pd: [f64; 2], permanent: f64) -> f64 {
+    let mut axbc = [0.; 8];
+    let mut axxbc = [0.; 16];
+    let mut aybc = [0.; 8];
+    let mut ayybc = [0.; 16];
+    let mut adet = [0.; 32];
+    let mut bxca = [0.; 8];
+    let mut bxxca = [0.; 16];
+    let mut byca = [0.; 8];
+    let mut byyca = [0.; 16];
+    let mut bdet = [0.; 32];
+    let mut cxab = [0.; 8];
+    let mut cxxab = [0.; 16];
+    let mut cyab = [0.; 8];
+    let mut cyyab = [0.; 16];
+    let mut cdet = [0.; 32];
+    let mut abdet = [0.; 64];
+    let mut fin1 = [0.; 1152];
+    let mut fin2 = [0.; 1152];
+    let mut finnow: &mut [f64];
+    let mut finother: &mut [f64];
+    let mut finswap: &mut [f64];
+    let mut temp8 = [0.; 8];
+    let mut temp16a = [0.; 16];
+    let mut temp16b = [0.; 16];
+    let mut temp16c = [0.; 16];
+    let mut temp32a = [0.; 32];
+    let mut temp32b = [0.; 32];
+    let mut temp48 = [0.; 48];
+    let mut temp64 = [0.; 64];
+    let mut axtbb = [0.; 8];
+    let mut axtcc = [0.; 8];
+    let mut aytbb = [0.; 8];
+    let mut aytcc = [0.; 8];
+    let mut bxtaa = [0.; 8];
+    let mut bxtcc = [0.; 8];
+    let mut bytaa = [0.; 8];
+    let mut bytcc = [0.; 8];
+    let mut cxtaa = [0.; 8];
+    let mut cxtbb = [0.; 8];
+    let mut cytaa = [0.; 8];
+    let mut cytbb = [0.; 8];
+    let mut axtbct = [0.; 16];
+    let mut aytbct = [0.; 16];
+    let mut bxtcat = [0.; 16];
+    let mut bytcat = [0.; 16];
+    let mut cxtabt = [0.; 16];
+    let mut cytabt = [0.; 16];
+    let mut axtbctt = [0.; 8];
+    let mut aytbctt = [0.; 8];
+    let mut bxtcatt = [0.; 8];
+    let mut bytcatt = [0.; 8];
+    let mut cxtabtt = [0.; 8];
+    let mut cytabtt = [0.; 8];
+    let adx = pa[0] - pd[0];
+    let bdx = pb[0] - pd[0];
+    let cdx = pc[0] - pd[0];
+    let ady = pa[1] - pd[1];
+    let bdy = pb[1] - pd[1];
+    let cdy = pc[1] - pd[1];
+    let [bdxcdy0, bdxcdy1] = Two_Product(bdx, cdy);
+    let [cdxbdy0, cdxbdy1] = Two_Product(cdx, bdy);
+    let bc = Two_Two_Diff(bdxcdy1, bdxcdy0, cdxbdy1, cdxbdy0);
+    let axbclen = scale_expansion_zeroelim(&bc, adx, &mut axbc);
+    let axxbclen = scale_expansion_zeroelim(&axbc[..axbclen], adx, &mut axxbc);
+    let aybclen = scale_expansion_zeroelim(&bc, ady, &mut aybc);
+    let ayybclen = scale_expansion_zeroelim(&aybc[..aybclen], ady, &mut ayybc);
+    let alen = fast_expansion_sum_zeroelim(&axxbc[..axxbclen], &ayybc[..ayybclen], &mut adet);
+    let [cdxady0, cdxady1] = Two_Product(cdx, ady);
+    let [adxcdy0, adxcdy1] = Two_Product(adx, cdy);
+    let ca = Two_Two_Diff(cdxady1, cdxady0, adxcdy1, adxcdy0);
+    let bxcalen = scale_expansion_zeroelim(&ca, bdx, &mut bxca);
+    let bxxcalen = scale_expansion_zeroelim(&bxca[..bxcalen], bdx, &mut bxxca);
+    let bycalen = scale_expansion_zeroelim(&ca, bdy, &mut byca);
+    let byycalen = scale_expansion_zeroelim(&byca[..bycalen], bdy, &mut byyca);
+    let blen = fast_expansion_sum_zeroelim(&bxxca[..bxxcalen], &byyca[..byycalen], &mut bdet);
+    let [adxbdy0, adxbdy1] = Two_Product(adx, bdy);
+    let [bdxady0, bdxady1] = Two_Product(bdx, ady);
+    let ab = Two_Two_Diff(adxbdy1, adxbdy0, bdxady1, bdxady0);
+    let cxablen = scale_expansion_zeroelim(&ab, cdx, &mut cxab);
+    let cxxablen = scale_expansion_zeroelim(&cxab[..cxablen], cdx, &mut cxxab);
+    let cyablen = scale_expansion_zeroelim(&ab, cdy, &mut cyab);
+    let cyyablen = scale_expansion_zeroelim(&cyab[..cyablen], cdy, &mut cyyab);
+    let clen = fast_expansion_sum_zeroelim(&cxxab[..cxxablen], &cyyab[..cyyablen], &mut cdet);
+    let ablen = fast_expansion_sum_zeroelim(&adet[..alen], &bdet[..blen], &mut abdet);
+    let mut finlength = fast_expansion_sum_zeroelim(&abdet[..ablen], &cdet[..clen], &mut fin1);
+    let mut det = estimate(&fin1[..finlength]);
+    let errbound = PARAMS.iccerrboundB * permanent;
     if det >= errbound || -det >= errbound { return det }
-    adxtail =
-        Two_Diff_Tail(*pa.offset(0 as i32 as isize),
-                      *pd.offset(0 as i32 as isize), adx);
-    adytail =
-        Two_Diff_Tail(*pa.offset(1 as i32 as isize),
-                      *pd.offset(1 as i32 as isize), ady);
-    bdxtail =
-        Two_Diff_Tail(*pb.offset(0 as i32 as isize),
-                      *pd.offset(0 as i32 as isize), bdx);
-    bdytail =
-        Two_Diff_Tail(*pb.offset(1 as i32 as isize),
-                      *pd.offset(1 as i32 as isize), bdy);
-    cdxtail =
-        Two_Diff_Tail(*pc.offset(0 as i32 as isize),
-                      *pd.offset(0 as i32 as isize), cdx);
-    cdytail =
-        Two_Diff_Tail(*pc.offset(1 as i32 as isize),
-                      *pd.offset(1 as i32 as isize), cdy);
-    if adxtail == 0.0f64 && bdxtail == 0.0f64 && cdxtail == 0.0f64 &&
-           adytail == 0.0f64 && bdytail == 0.0f64 && cdytail == 0.0f64 {
-        return det
+    let adxtail = Two_Diff_Tail(pa[0], pd[0], adx);
+    let adytail = Two_Diff_Tail(pa[1], pd[1], ady);
+    let bdxtail = Two_Diff_Tail(pb[0], pd[0], bdx);
+    let bdytail = Two_Diff_Tail(pb[1], pd[1], bdy);
+    let cdxtail = Two_Diff_Tail(pc[0], pd[0], cdx);
+    let cdytail = Two_Diff_Tail(pc[1], pd[1], cdy);
+    if adxtail == 0.0 && bdxtail == 0.0 && cdxtail == 0.0 &&
+           adytail == 0.0 && bdytail == 0.0 && cdytail == 0.0 {
+        return det;
     }
-    errbound = PARAMS.iccerrboundC * permanent + PARAMS.resulterrbound * Absolute(det);
+    let errbound = PARAMS.iccerrboundC * permanent + PARAMS.resulterrbound * Absolute(det);
     det +=
         (adx * adx + ady * ady) *
             (bdx * cdytail + cdy * bdxtail - (bdy * cdxtail + cdx * bdytail))
             +
-            2.0f64 * (adx * adxtail + ady * adytail) * (bdx * cdy - bdy * cdx)
+            2.0 * (adx * adxtail + ady * adytail) * (bdx * cdy - bdy * cdx)
             +
             ((bdx * bdx + bdy * bdy) *
                  (cdx * adytail + ady * cdxtail -
                       (cdy * adxtail + adx * cdytail)) +
-                 2.0f64 * (bdx * bdxtail + bdy * bdytail) *
+                 2.0 * (bdx * bdxtail + bdy * bdytail) *
                      (cdx * ady - cdy * adx)) +
             ((cdx * cdx + cdy * cdy) *
                  (adx * bdytail + bdy * adxtail -
                       (ady * bdxtail + bdx * adytail)) +
-                 2.0f64 * (cdx * cdxtail + cdy * cdytail) *
+                 2.0 * (cdx * cdxtail + cdy * cdytail) *
                      (adx * bdy - ady * bdx));
     if det >= errbound || -det >= errbound { return det }
-    finnow = fin1.as_mut_ptr();
-    finother = fin2.as_mut_ptr();
-    if bdxtail != 0.0f64 || bdytail != 0.0f64 || cdxtail != 0.0f64 ||
-           cdytail != 0.0f64 {
-        Square(adx, &mut adxadx1, &mut adxadx0);
-        Square(ady, &mut adyady1, &mut adyady0);
-        Two_Two_Sum(adxadx1, adxadx0, adyady1, adyady0, aa.as_mut_ptr());
+    finnow = &mut fin1;
+    finother = &mut fin2;
+    let aa = if bdxtail != 0.0 || bdytail != 0.0 || cdxtail != 0.0 || cdytail != 0.0 {
+        let [adxadx0, adxadx1] = Square(adx);
+        let [adyady0, adyady1] = Square(ady);
+        Two_Two_Sum(adxadx1, adxadx0, adyady1, adyady0)
+    } else {
+        [0.; 4]
+    };
+    let bb = if cdxtail != 0.0 || cdytail != 0.0 || adxtail != 0.0 || adytail != 0.0 {
+        let [bdxbdx0, bdxbdx1] = Square(bdx);
+        let [bdybdy0, bdybdy1] = Square(bdy);
+        Two_Two_Sum(bdxbdx1, bdxbdx0, bdybdy1, bdybdy0)
+    } else {
+        [0.; 4]
+    };
+    let cc = if adxtail != 0.0 || adytail != 0.0 || bdxtail != 0.0 || bdytail != 0.0 {
+        let [cdxcdx0, cdxcdx1] = Square(cdx);
+        let [cdycdy0, cdycdy1] = Square(cdy);
+        Two_Two_Sum(cdxcdx1, cdxcdx0, cdycdy1, cdycdy0)
+    } else {
+        [0.; 4]
+    };
+    let mut axtbclen = 8;
+    let mut axtbc = [0.; 8];
+    if adxtail != 0.0 {
+        axtbclen = scale_expansion_zeroelim(&bc, adxtail, &mut axtbc);
+        let temp16alen = scale_expansion_zeroelim(&axtbc[..axtbclen], 2.0 * adx, &mut temp16a);
+        let axtcclen = scale_expansion_zeroelim(&cc, adxtail, &mut axtcc);
+        let temp16blen = scale_expansion_zeroelim(&axtcc[..axtcclen], bdy, &mut temp16b);
+        let axtbblen = scale_expansion_zeroelim(&bb, adxtail, &mut axtbb);
+        let temp16clen = scale_expansion_zeroelim(&axtbb[..axtbblen], -cdy, &mut temp16c);
+        let temp32alen = fast_expansion_sum_zeroelim(&temp16a[..temp16alen], &temp16b[..temp16blen], &mut temp32a);
+        let temp48len = fast_expansion_sum_zeroelim(&temp16c[..temp16clen], &temp32a[..temp32alen], &mut temp48);
+        finlength = fast_expansion_sum_zeroelim(&finnow[..finlength], &temp48[..temp48len], finother);
+        core::mem::swap(&mut finnow, &mut finother);
     }
-    if cdxtail != 0.0f64 || cdytail != 0.0f64 || adxtail != 0.0f64 ||
-           adytail != 0.0f64 {
-        Square(bdx, &mut bdxbdx1, &mut bdxbdx0);
-        Square(bdy, &mut bdybdy1, &mut bdybdy0);
-        Two_Two_Sum(bdxbdx1, bdxbdx0, bdybdy1, bdybdy0, bb.as_mut_ptr());
+    let mut aytbclen = 8;
+    let mut aytbc = [0.; 8];
+    if adytail != 0.0 {
+        aytbclen = scale_expansion_zeroelim(&bc, adytail, &mut aytbc);
+        let temp16alen = scale_expansion_zeroelim(&aytbc[..aytbclen], 2.0 * ady, &mut temp16a);
+        let aytbblen = scale_expansion_zeroelim(&bb, adytail, &mut aytbb);
+        let temp16blen = scale_expansion_zeroelim(&aytbb[..aytbblen], cdx, &mut temp16b);
+        let aytcclen = scale_expansion_zeroelim(&cc, adytail, &mut aytcc);
+        let temp16clen = scale_expansion_zeroelim(&aytcc[..aytcclen], -bdx, &mut temp16c);
+        let temp32alen = fast_expansion_sum_zeroelim(&temp16a[..temp16alen], &temp16b[..temp16blen], &mut temp32a);
+        let temp48len = fast_expansion_sum_zeroelim(&temp16c[..temp16clen], &temp32a[..temp32alen], &mut temp48);
+        finlength = fast_expansion_sum_zeroelim(&finnow[..finlength], &temp48[..temp48len], finother);
+        core::mem::swap(&mut finnow, &mut finother);
     }
-    if adxtail != 0.0f64 || adytail != 0.0f64 || bdxtail != 0.0f64 ||
-           bdytail != 0.0f64 {
-        Square(cdx, &mut cdxcdx1, &mut cdxcdx0);
-        Square(cdy, &mut cdycdy1, &mut cdycdy0);
-        Two_Two_Sum(cdxcdx1, cdxcdx0, cdycdy1, cdycdy0, cc.as_mut_ptr());
+    let mut bxtcalen = 8;
+    let mut bxtca = [0.; 8];
+    if bdxtail != 0.0 {
+        bxtcalen = scale_expansion_zeroelim(&ca, bdxtail, &mut bxtca);
+        let temp16alen = scale_expansion_zeroelim(&bxtca[..bxtcalen], 2.0 * bdx, &mut temp16a);
+        let bxtaalen = scale_expansion_zeroelim(&aa, bdxtail, &mut bxtaa);
+        let temp16blen = scale_expansion_zeroelim(&bxtaa[..bxtaalen], cdy, &mut temp16b);
+        let bxtcclen = scale_expansion_zeroelim(&cc, bdxtail, &mut bxtcc);
+        let temp16clen = scale_expansion_zeroelim(&bxtcc[..bxtcclen], -ady, &mut temp16c);
+        let temp32alen = fast_expansion_sum_zeroelim(&temp16a[..temp16alen], &temp16b[..temp16blen], &mut temp32a);
+        let temp48len = fast_expansion_sum_zeroelim(&temp16c[..temp16clen], &temp32a[..temp32alen], &mut temp48);
+        finlength = fast_expansion_sum_zeroelim(&finnow[..finlength], &temp48[..temp48len], finother);
+        core::mem::swap(&mut finnow, &mut finother);
     }
-    if adxtail != 0.0f64 {
-        axtbclen =
-            scale_expansion_zeroelim(4 as i32, bc.as_mut_ptr(),
-                                     adxtail, axtbc.as_mut_ptr());
-        temp16alen =
-            scale_expansion_zeroelim(axtbclen, axtbc.as_mut_ptr(),
-                                     2.0f64 * adx, temp16a.as_mut_ptr());
-        axtcclen =
-            scale_expansion_zeroelim(4 as i32, cc.as_mut_ptr(),
-                                     adxtail, axtcc.as_mut_ptr());
-        temp16blen =
-            scale_expansion_zeroelim(axtcclen, axtcc.as_mut_ptr(), bdy,
-                                     temp16b.as_mut_ptr());
-        axtbblen =
-            scale_expansion_zeroelim(4 as i32, bb.as_mut_ptr(),
-                                     adxtail, axtbb.as_mut_ptr());
-        temp16clen =
-            scale_expansion_zeroelim(axtbblen, axtbb.as_mut_ptr(), -cdy,
-                                     temp16c.as_mut_ptr());
-        temp32alen =
-            fast_expansion_sum_zeroelim(temp16alen, temp16a.as_mut_ptr(),
-                                        temp16blen, temp16b.as_mut_ptr(),
-                                        temp32a.as_mut_ptr());
-        temp48len =
-            fast_expansion_sum_zeroelim(temp16clen, temp16c.as_mut_ptr(),
-                                        temp32alen, temp32a.as_mut_ptr(),
-                                        temp48.as_mut_ptr());
-        finlength =
-            fast_expansion_sum_zeroelim(finlength, finnow, temp48len,
-                                        temp48.as_mut_ptr(), finother);
-        finswap = finnow;
-        finnow = finother;
-        finother = finswap
+    let mut bytcalen = 8;
+    let mut bytca = [0.; 8];
+    if bdytail != 0.0 {
+        bytcalen = scale_expansion_zeroelim(&ca, bdytail, &mut bytca);
+        let temp16alen = scale_expansion_zeroelim(&bytca[..bytcalen], 2.0 * bdy, &mut temp16a);
+        let bytcclen = scale_expansion_zeroelim(&cc, bdytail, &mut bytcc);
+        let temp16blen = scale_expansion_zeroelim(&bytcc[..bytcclen], adx, &mut temp16b);
+        let bytaalen = scale_expansion_zeroelim(&aa, bdytail, &mut bytaa);
+        let temp16clen = scale_expansion_zeroelim(&bytaa[..bytaalen], -cdx, &mut temp16c);
+        let temp32alen = fast_expansion_sum_zeroelim(&temp16a[..temp16alen], &temp16b[..temp16blen], &mut temp32a);
+        let temp48len = fast_expansion_sum_zeroelim(&temp16c[..temp16clen], &temp32a[..temp32alen], &mut temp48);
+        finlength = fast_expansion_sum_zeroelim(&finnow[..finlength], &temp48[..temp48len], finother);
+        core::mem::swap(&mut finnow, &mut finother);
     }
-    if adytail != 0.0f64 {
-        aytbclen =
-            scale_expansion_zeroelim(4 as i32, bc.as_mut_ptr(),
-                                     adytail, aytbc.as_mut_ptr());
-        temp16alen =
-            scale_expansion_zeroelim(aytbclen, aytbc.as_mut_ptr(),
-                                     2.0f64 * ady, temp16a.as_mut_ptr());
-        aytbblen =
-            scale_expansion_zeroelim(4 as i32, bb.as_mut_ptr(),
-                                     adytail, aytbb.as_mut_ptr());
-        temp16blen =
-            scale_expansion_zeroelim(aytbblen, aytbb.as_mut_ptr(), cdx,
-                                     temp16b.as_mut_ptr());
-        aytcclen =
-            scale_expansion_zeroelim(4 as i32, cc.as_mut_ptr(),
-                                     adytail, aytcc.as_mut_ptr());
-        temp16clen =
-            scale_expansion_zeroelim(aytcclen, aytcc.as_mut_ptr(), -bdx,
-                                     temp16c.as_mut_ptr());
-        temp32alen =
-            fast_expansion_sum_zeroelim(temp16alen, temp16a.as_mut_ptr(),
-                                        temp16blen, temp16b.as_mut_ptr(),
-                                        temp32a.as_mut_ptr());
-        temp48len =
-            fast_expansion_sum_zeroelim(temp16clen, temp16c.as_mut_ptr(),
-                                        temp32alen, temp32a.as_mut_ptr(),
-                                        temp48.as_mut_ptr());
-        finlength =
-            fast_expansion_sum_zeroelim(finlength, finnow, temp48len,
-                                        temp48.as_mut_ptr(), finother);
-        finswap = finnow;
-        finnow = finother;
-        finother = finswap
+    let mut cxtablen = 8;
+    let mut cxtab = [0.; 8];
+    if cdxtail != 0.0 {
+        let cxtablen = scale_expansion_zeroelim(&ab, cdxtail, &mut cxtab);
+        let temp16alen = scale_expansion_zeroelim(&cxtab[..cxtablen], 2.0 * cdx, &mut temp16a);
+        let cxtbblen = scale_expansion_zeroelim(&bb, cdxtail, &mut cxtbb);
+        let temp16blen = scale_expansion_zeroelim(&cxtbb[..cxtbblen], ady, &mut temp16b);
+        let cxtaalen = scale_expansion_zeroelim(&aa, cdxtail, &mut cxtaa);
+        let temp16clen = scale_expansion_zeroelim(&cxtaa[..cxtaalen], -bdy, &mut temp16c);
+        let temp32alen = fast_expansion_sum_zeroelim(&temp16a[..temp16alen], &temp16b[..temp16blen], &mut temp32a);
+        let temp48len = fast_expansion_sum_zeroelim(&temp16c[..temp16clen], &temp32a[..temp32alen], &mut temp48);
+        finlength = fast_expansion_sum_zeroelim(&finnow[..finlength], &temp48[..temp48len], finother);
+        core::mem::swap(&mut finnow, &mut finother);
     }
-    if bdxtail != 0.0f64 {
-        bxtcalen =
-            scale_expansion_zeroelim(4 as i32, ca.as_mut_ptr(),
-                                     bdxtail, bxtca.as_mut_ptr());
-        temp16alen =
-            scale_expansion_zeroelim(bxtcalen, bxtca.as_mut_ptr(),
-                                     2.0f64 * bdx, temp16a.as_mut_ptr());
-        bxtaalen =
-            scale_expansion_zeroelim(4 as i32, aa.as_mut_ptr(),
-                                     bdxtail, bxtaa.as_mut_ptr());
-        temp16blen =
-            scale_expansion_zeroelim(bxtaalen, bxtaa.as_mut_ptr(), cdy,
-                                     temp16b.as_mut_ptr());
-        bxtcclen =
-            scale_expansion_zeroelim(4 as i32, cc.as_mut_ptr(),
-                                     bdxtail, bxtcc.as_mut_ptr());
-        temp16clen =
-            scale_expansion_zeroelim(bxtcclen, bxtcc.as_mut_ptr(), -ady,
-                                     temp16c.as_mut_ptr());
-        temp32alen =
-            fast_expansion_sum_zeroelim(temp16alen, temp16a.as_mut_ptr(),
-                                        temp16blen, temp16b.as_mut_ptr(),
-                                        temp32a.as_mut_ptr());
-        temp48len =
-            fast_expansion_sum_zeroelim(temp16clen, temp16c.as_mut_ptr(),
-                                        temp32alen, temp32a.as_mut_ptr(),
-                                        temp48.as_mut_ptr());
-        finlength =
-            fast_expansion_sum_zeroelim(finlength, finnow, temp48len,
-                                        temp48.as_mut_ptr(), finother);
-        finswap = finnow;
-        finnow = finother;
-        finother = finswap
+    let mut cytablen = 8;
+    let mut cytab = [0.; 8];
+    if cdytail != 0.0 {
+        cytablen = scale_expansion_zeroelim(&ab, cdytail, &mut cytab);
+        let temp16alen = scale_expansion_zeroelim(&cytab[..cytablen], 2.0 * cdy, &mut temp16a);
+        let cytaalen = scale_expansion_zeroelim(&aa, cdytail, &mut cytaa);
+        let temp16blen = scale_expansion_zeroelim(&cytaa[..cytaalen], bdx, &mut temp16b);
+        let cytbblen = scale_expansion_zeroelim(&bb, cdytail, &mut cytbb);
+        let temp16clen = scale_expansion_zeroelim(&cytbb[..cytbblen], -adx, &mut temp16c);
+        let temp32alen = fast_expansion_sum_zeroelim(&temp16a[..temp16alen], &temp16b[..temp16blen], &mut temp32a);
+        let temp48len = fast_expansion_sum_zeroelim(&temp16c[..temp16clen], &temp32a[..temp32alen], &mut temp48);
+        finlength = fast_expansion_sum_zeroelim(&finnow[..finlength], &temp48[..temp48len], finother);
+        core::mem::swap(&mut finnow, &mut finother);
     }
-    if bdytail != 0.0f64 {
-        bytcalen =
-            scale_expansion_zeroelim(4 as i32, ca.as_mut_ptr(),
-                                     bdytail, bytca.as_mut_ptr());
-        temp16alen =
-            scale_expansion_zeroelim(bytcalen, bytca.as_mut_ptr(),
-                                     2.0f64 * bdy, temp16a.as_mut_ptr());
-        bytcclen =
-            scale_expansion_zeroelim(4 as i32, cc.as_mut_ptr(),
-                                     bdytail, bytcc.as_mut_ptr());
-        temp16blen =
-            scale_expansion_zeroelim(bytcclen, bytcc.as_mut_ptr(), adx,
-                                     temp16b.as_mut_ptr());
-        bytaalen =
-            scale_expansion_zeroelim(4 as i32, aa.as_mut_ptr(),
-                                     bdytail, bytaa.as_mut_ptr());
-        temp16clen =
-            scale_expansion_zeroelim(bytaalen, bytaa.as_mut_ptr(), -cdx,
-                                     temp16c.as_mut_ptr());
-        temp32alen =
-            fast_expansion_sum_zeroelim(temp16alen, temp16a.as_mut_ptr(),
-                                        temp16blen, temp16b.as_mut_ptr(),
-                                        temp32a.as_mut_ptr());
-        temp48len =
-            fast_expansion_sum_zeroelim(temp16clen, temp16c.as_mut_ptr(),
-                                        temp32alen, temp32a.as_mut_ptr(),
-                                        temp48.as_mut_ptr());
-        finlength =
-            fast_expansion_sum_zeroelim(finlength, finnow, temp48len,
-                                        temp48.as_mut_ptr(), finother);
-        finswap = finnow;
-        finnow = finother;
-        finother = finswap
-    }
-    if cdxtail != 0.0f64 {
-        cxtablen =
-            scale_expansion_zeroelim(4 as i32, ab.as_mut_ptr(),
-                                     cdxtail, cxtab.as_mut_ptr());
-        temp16alen =
-            scale_expansion_zeroelim(cxtablen, cxtab.as_mut_ptr(),
-                                     2.0f64 * cdx, temp16a.as_mut_ptr());
-        cxtbblen =
-            scale_expansion_zeroelim(4 as i32, bb.as_mut_ptr(),
-                                     cdxtail, cxtbb.as_mut_ptr());
-        temp16blen =
-            scale_expansion_zeroelim(cxtbblen, cxtbb.as_mut_ptr(), ady,
-                                     temp16b.as_mut_ptr());
-        cxtaalen =
-            scale_expansion_zeroelim(4 as i32, aa.as_mut_ptr(),
-                                     cdxtail, cxtaa.as_mut_ptr());
-        temp16clen =
-            scale_expansion_zeroelim(cxtaalen, cxtaa.as_mut_ptr(), -bdy,
-                                     temp16c.as_mut_ptr());
-        temp32alen =
-            fast_expansion_sum_zeroelim(temp16alen, temp16a.as_mut_ptr(),
-                                        temp16blen, temp16b.as_mut_ptr(),
-                                        temp32a.as_mut_ptr());
-        temp48len =
-            fast_expansion_sum_zeroelim(temp16clen, temp16c.as_mut_ptr(),
-                                        temp32alen, temp32a.as_mut_ptr(),
-                                        temp48.as_mut_ptr());
-        finlength =
-            fast_expansion_sum_zeroelim(finlength, finnow, temp48len,
-                                        temp48.as_mut_ptr(), finother);
-        finswap = finnow;
-        finnow = finother;
-        finother = finswap
-    }
-    if cdytail != 0.0f64 {
-        cytablen =
-            scale_expansion_zeroelim(4 as i32, ab.as_mut_ptr(),
-                                     cdytail, cytab.as_mut_ptr());
-        temp16alen =
-            scale_expansion_zeroelim(cytablen, cytab.as_mut_ptr(),
-                                     2.0f64 * cdy, temp16a.as_mut_ptr());
-        cytaalen =
-            scale_expansion_zeroelim(4 as i32, aa.as_mut_ptr(),
-                                     cdytail, cytaa.as_mut_ptr());
-        temp16blen =
-            scale_expansion_zeroelim(cytaalen, cytaa.as_mut_ptr(), bdx,
-                                     temp16b.as_mut_ptr());
-        cytbblen =
-            scale_expansion_zeroelim(4 as i32, bb.as_mut_ptr(),
-                                     cdytail, cytbb.as_mut_ptr());
-        temp16clen =
-            scale_expansion_zeroelim(cytbblen, cytbb.as_mut_ptr(), -adx,
-                                     temp16c.as_mut_ptr());
-        temp32alen =
-            fast_expansion_sum_zeroelim(temp16alen, temp16a.as_mut_ptr(),
-                                        temp16blen, temp16b.as_mut_ptr(),
-                                        temp32a.as_mut_ptr());
-        temp48len =
-            fast_expansion_sum_zeroelim(temp16clen, temp16c.as_mut_ptr(),
-                                        temp32alen, temp32a.as_mut_ptr(),
-                                        temp48.as_mut_ptr());
-        finlength =
-            fast_expansion_sum_zeroelim(finlength, finnow, temp48len,
-                                        temp48.as_mut_ptr(), finother);
-        finswap = finnow;
-        finnow = finother;
-        finother = finswap
-    }
-    if adxtail != 0.0f64 || adytail != 0.0f64 {
-        if bdxtail != 0.0f64 || bdytail != 0.0f64 || cdxtail != 0.0f64 ||
-               cdytail != 0.0f64 {
-            Two_Product(bdxtail, cdy, &mut ti1, &mut ti0);
-            Two_Product(bdx, cdytail, &mut tj1, &mut tj0);
-            Two_Two_Sum(ti1, ti0, tj1, tj0, u.as_mut_ptr());
-            negate = -bdy;
-            Two_Product(cdxtail, negate, &mut ti1, &mut ti0);
-            negate = -bdytail;
-            Two_Product(cdx, negate, &mut tj1, &mut tj0);
-            Two_Two_Sum(ti1, ti0, tj1, tj0, v.as_mut_ptr());
-            bctlen =
-                fast_expansion_sum_zeroelim(4 as i32, u.as_mut_ptr(),
-                                            4 as i32, v.as_mut_ptr(),
-                                            bct.as_mut_ptr());
-            Two_Product(bdxtail, cdytail, &mut ti1, &mut ti0);
-            Two_Product(cdxtail, bdytail, &mut tj1, &mut tj0);
-            Two_Two_Diff(ti1, ti0, tj1, tj0, bctt.as_mut_ptr());
-            bcttlen = 4 as i32
-        } else {
-            bct[0 as i32 as usize] = 0.0f64;
-            bctlen = 1 as i32;
-            bctt[0 as i32 as usize] = 0.0f64;
-            bcttlen = 1 as i32
+    if adxtail != 0.0 || adytail != 0.0 {
+        let mut bctlen = 1;
+        let mut bcttlen = 1;
+        let mut bct: [f64; 8] = [0.; 8];
+        let mut bctt: [f64; 4] = [0.; 4];
+        if bdxtail != 0.0 || bdytail != 0.0 || cdxtail != 0.0 || cdytail != 0.0 {
+            let [ti0, ti1] = Two_Product(bdxtail, cdy);
+            let [tj0, tj1] = Two_Product(bdx, cdytail);
+            let u = Two_Two_Sum(ti1, ti0, tj1, tj0);
+            let negate = -bdy;
+            let [ti0, ti1] = Two_Product(cdxtail, negate);
+            let negate = -bdytail;
+            let [tj0, tj1] = Two_Product(cdx, negate);
+            let v = Two_Two_Sum(ti1, ti0, tj1, tj0);
+            bctlen = fast_expansion_sum_zeroelim(&u, &v, &mut bct);
+            let [ti0, ti1] = Two_Product(bdxtail, cdytail);
+            let [tj0, tj1] = Two_Product(cdxtail, bdytail);
+            bctt = Two_Two_Diff(ti1, ti0, tj1, tj0);
+            bcttlen = 4;
         }
-        if adxtail != 0.0f64 {
-            temp16alen =
-                scale_expansion_zeroelim(axtbclen, axtbc.as_mut_ptr(),
-                                         adxtail, temp16a.as_mut_ptr());
-            axtbctlen =
-                scale_expansion_zeroelim(bctlen, bct.as_mut_ptr(), adxtail,
-                                         axtbct.as_mut_ptr());
-            temp32alen =
-                scale_expansion_zeroelim(axtbctlen, axtbct.as_mut_ptr(),
-                                         2.0f64 * adx, temp32a.as_mut_ptr());
-            temp48len =
-                fast_expansion_sum_zeroelim(temp16alen, temp16a.as_mut_ptr(),
-                                            temp32alen, temp32a.as_mut_ptr(),
-                                            temp48.as_mut_ptr());
-            finlength =
-                fast_expansion_sum_zeroelim(finlength, finnow, temp48len,
-                                            temp48.as_mut_ptr(), finother);
-            finswap = finnow;
-            finnow = finother;
-            finother = finswap;
-            if bdytail != 0.0f64 {
-                temp8len =
-                    scale_expansion_zeroelim(4 as i32,
-                                             cc.as_mut_ptr(), adxtail,
-                                             temp8.as_mut_ptr());
-                temp16alen =
-                    scale_expansion_zeroelim(temp8len, temp8.as_mut_ptr(),
-                                             bdytail, temp16a.as_mut_ptr());
-                finlength =
-                    fast_expansion_sum_zeroelim(finlength, finnow, temp16alen,
-                                                temp16a.as_mut_ptr(),
-                                                finother);
-                finswap = finnow;
-                finnow = finother;
-                finother = finswap
+        if adxtail != 0.0 {
+            let temp16alen = scale_expansion_zeroelim(&axtbc[..axtbclen], adxtail, &mut temp16a);
+            let axtbctlen = scale_expansion_zeroelim(&bct[..bctlen], adxtail, &mut axtbct);
+            let temp32alen = scale_expansion_zeroelim(&axtbct[..axtbctlen], 2.0 * adx, &mut temp32a);
+            let temp48len = fast_expansion_sum_zeroelim(&temp16a[..temp16alen], &temp32a[..temp32alen], &mut temp48);
+            finlength = fast_expansion_sum_zeroelim(&finnow[..finlength], &temp48[..temp48len], finother);
+            core::mem::swap(&mut finnow, &mut finother);
+            if bdytail != 0.0 {
+                let temp8len = scale_expansion_zeroelim(&cc, adxtail, &mut temp8);
+                let temp16alen = scale_expansion_zeroelim(&temp8[..temp8len], bdytail, &mut temp16a);
+                finlength = fast_expansion_sum_zeroelim(&finnow[..finlength], &temp16a[..temp16alen], finother);
+                core::mem::swap(&mut finnow, &mut finother);
             }
-            if cdytail != 0.0f64 {
-                temp8len =
-                    scale_expansion_zeroelim(4 as i32,
-                                             bb.as_mut_ptr(), -adxtail,
-                                             temp8.as_mut_ptr());
-                temp16alen =
-                    scale_expansion_zeroelim(temp8len, temp8.as_mut_ptr(),
-                                             cdytail, temp16a.as_mut_ptr());
-                finlength =
-                    fast_expansion_sum_zeroelim(finlength, finnow, temp16alen,
-                                                temp16a.as_mut_ptr(),
-                                                finother);
-                finswap = finnow;
-                finnow = finother;
-                finother = finswap
+            if cdytail != 0.0 {
+                let temp8len = scale_expansion_zeroelim(&bb, -adxtail, &mut temp8);
+                let temp16alen = scale_expansion_zeroelim(&temp8[..temp8len], cdytail, &mut temp16a);
+                finlength = fast_expansion_sum_zeroelim(&finnow[..finlength], &temp16a[..temp16alen], finother);
+                core::mem::swap(&mut finnow, &mut finother);
             }
-            temp32alen =
-                scale_expansion_zeroelim(axtbctlen, axtbct.as_mut_ptr(),
-                                         adxtail, temp32a.as_mut_ptr());
-            axtbcttlen =
-                scale_expansion_zeroelim(bcttlen, bctt.as_mut_ptr(), adxtail,
-                                         axtbctt.as_mut_ptr());
-            temp16alen =
-                scale_expansion_zeroelim(axtbcttlen, axtbctt.as_mut_ptr(),
-                                         2.0f64 * adx, temp16a.as_mut_ptr());
-            temp16blen =
-                scale_expansion_zeroelim(axtbcttlen, axtbctt.as_mut_ptr(),
-                                         adxtail, temp16b.as_mut_ptr());
-            temp32blen =
-                fast_expansion_sum_zeroelim(temp16alen, temp16a.as_mut_ptr(),
-                                            temp16blen, temp16b.as_mut_ptr(),
-                                            temp32b.as_mut_ptr());
-            temp64len =
-                fast_expansion_sum_zeroelim(temp32alen, temp32a.as_mut_ptr(),
-                                            temp32blen, temp32b.as_mut_ptr(),
-                                            temp64.as_mut_ptr());
-            finlength =
-                fast_expansion_sum_zeroelim(finlength, finnow, temp64len,
-                                            temp64.as_mut_ptr(), finother);
-            finswap = finnow;
-            finnow = finother;
-            finother = finswap
+            let temp32alen = scale_expansion_zeroelim(&axtbct[..axtbctlen], adxtail, &mut temp32a);
+            let axtbcttlen = scale_expansion_zeroelim(&bctt[..bcttlen], adxtail, &mut axtbctt);
+            let temp16alen = scale_expansion_zeroelim(&axtbctt[..axtbcttlen], 2.0 * adx, &mut temp16a);
+            let temp16blen = scale_expansion_zeroelim(&axtbctt[..axtbcttlen], adxtail, &mut temp16b);
+            let temp32blen = fast_expansion_sum_zeroelim(&temp16a[..temp16alen], &temp16b[..temp16blen], &mut temp32b);
+            let temp64len = fast_expansion_sum_zeroelim(&temp32a[..temp32alen], &temp32b[..temp32blen], &mut temp64);
+            finlength = fast_expansion_sum_zeroelim(&finnow[..finlength], &temp64[..temp64len], finother);
+            core::mem::swap(&mut finnow, &mut finother);
         }
-        if adytail != 0.0f64 {
-            temp16alen =
-                scale_expansion_zeroelim(aytbclen, aytbc.as_mut_ptr(),
-                                         adytail, temp16a.as_mut_ptr());
-            aytbctlen =
-                scale_expansion_zeroelim(bctlen, bct.as_mut_ptr(), adytail,
-                                         aytbct.as_mut_ptr());
-            temp32alen =
-                scale_expansion_zeroelim(aytbctlen, aytbct.as_mut_ptr(),
-                                         2.0f64 * ady, temp32a.as_mut_ptr());
-            temp48len =
-                fast_expansion_sum_zeroelim(temp16alen, temp16a.as_mut_ptr(),
-                                            temp32alen, temp32a.as_mut_ptr(),
-                                            temp48.as_mut_ptr());
-            finlength =
-                fast_expansion_sum_zeroelim(finlength, finnow, temp48len,
-                                            temp48.as_mut_ptr(), finother);
-            finswap = finnow;
-            finnow = finother;
-            finother = finswap;
-            temp32alen =
-                scale_expansion_zeroelim(aytbctlen, aytbct.as_mut_ptr(),
-                                         adytail, temp32a.as_mut_ptr());
-            aytbcttlen =
-                scale_expansion_zeroelim(bcttlen, bctt.as_mut_ptr(), adytail,
-                                         aytbctt.as_mut_ptr());
-            temp16alen =
-                scale_expansion_zeroelim(aytbcttlen, aytbctt.as_mut_ptr(),
-                                         2.0f64 * ady, temp16a.as_mut_ptr());
-            temp16blen =
-                scale_expansion_zeroelim(aytbcttlen, aytbctt.as_mut_ptr(),
-                                         adytail, temp16b.as_mut_ptr());
-            temp32blen =
-                fast_expansion_sum_zeroelim(temp16alen, temp16a.as_mut_ptr(),
-                                            temp16blen, temp16b.as_mut_ptr(),
-                                            temp32b.as_mut_ptr());
-            temp64len =
-                fast_expansion_sum_zeroelim(temp32alen, temp32a.as_mut_ptr(),
-                                            temp32blen, temp32b.as_mut_ptr(),
-                                            temp64.as_mut_ptr());
-            finlength =
-                fast_expansion_sum_zeroelim(finlength, finnow, temp64len,
-                                            temp64.as_mut_ptr(), finother);
-            finswap = finnow;
-            finnow = finother;
-            finother = finswap
+        if adytail != 0.0 {
+            let temp16alen = scale_expansion_zeroelim(&aytbc[..aytbclen], adytail, &mut temp16a);
+            let aytbctlen = scale_expansion_zeroelim(&bct[..bctlen], adytail, &mut aytbct);
+            let temp32alen = scale_expansion_zeroelim(&aytbct[..aytbctlen], 2.0 * ady, &mut temp32a);
+            let temp48len = fast_expansion_sum_zeroelim(&temp16a[..temp16alen], &temp32a[..temp32alen], &mut temp48);
+            finlength = fast_expansion_sum_zeroelim(&finnow[..finlength], &temp48[..temp48len], finother);
+            core::mem::swap(&mut finnow, &mut finother);
+            let temp32alen = scale_expansion_zeroelim(&aytbct[..aytbctlen], adytail, &mut temp32a);
+            let aytbcttlen = scale_expansion_zeroelim(&bctt[..bcttlen], adytail, &mut aytbctt);
+            let temp16alen = scale_expansion_zeroelim(&aytbctt[..aytbcttlen], 2.0 * ady, &mut temp16a);
+            let temp16blen = scale_expansion_zeroelim(&aytbctt[..aytbcttlen], adytail, &mut temp16b);
+            let temp32blen = fast_expansion_sum_zeroelim(&temp16a[..temp16alen], &temp16b[..temp16blen], &mut temp32b);
+            let temp64len = fast_expansion_sum_zeroelim(&temp32a[..temp32alen], &temp32b[..temp32blen], &mut temp64);
+            finlength = fast_expansion_sum_zeroelim(&finnow[..finlength], &temp64[..temp64len], finother);
+            core::mem::swap(&mut finnow, &mut finother);
         }
     }
-    if bdxtail != 0.0f64 || bdytail != 0.0f64 {
-        if cdxtail != 0.0f64 || cdytail != 0.0f64 || adxtail != 0.0f64 ||
-               adytail != 0.0f64 {
-            Two_Product(cdxtail, ady, &mut ti1, &mut ti0);
-            Two_Product(cdx, adytail, &mut tj1, &mut tj0);
-            Two_Two_Sum(ti1, ti0, tj1, tj0, u.as_mut_ptr());
-            negate = -cdy;
-            Two_Product(adxtail, negate, &mut ti1, &mut ti0);
-            negate = -cdytail;
-            Two_Product(adx, negate, &mut tj1, &mut tj0);
-            Two_Two_Sum(ti1, ti0, tj1, tj0, v.as_mut_ptr());
-            catlen =
-                fast_expansion_sum_zeroelim(4 as i32, u.as_mut_ptr(),
-                                            4 as i32, v.as_mut_ptr(),
-                                            cat.as_mut_ptr());
-            Two_Product(cdxtail, adytail, &mut ti1, &mut ti0);
-            Two_Product(adxtail, cdytail, &mut tj1, &mut tj0);
-            Two_Two_Diff(ti1, ti0, tj1, tj0, catt.as_mut_ptr());
-            cattlen = 4 as i32
-        } else {
-            cat[0 as i32 as usize] = 0.0f64;
-            catlen = 1 as i32;
-            catt[0 as i32 as usize] = 0.0f64;
-            cattlen = 1 as i32
+    if bdxtail != 0.0 || bdytail != 0.0 {
+        let mut catlen = 1;
+        let mut cattlen = 1;
+        let mut cat: [f64; 8] = [0.; 8];
+        let mut catt: [f64; 4] = [0.; 4];
+        if cdxtail != 0.0 || cdytail != 0.0 || adxtail != 0.0 || adytail != 0.0 {
+            let [ti0, ti1] = Two_Product(cdxtail, ady);
+            let [tj0, tj1] = Two_Product(cdx, adytail);
+            let u = Two_Two_Sum(ti1, ti0, tj1, tj0);
+            let negate = -cdy;
+            let [ti0, ti1] = Two_Product(adxtail, negate);
+            let negate = -cdytail;
+            let [tj0, tj1] = Two_Product(adx, negate);
+            let v = Two_Two_Sum(ti1, ti0, tj1, tj0);
+            catlen = fast_expansion_sum_zeroelim(&u, &v, &mut cat);
+            let [ti0, ti1] = Two_Product(cdxtail, adytail);
+            let [tj0, tj1] = Two_Product(adxtail, cdytail);
+            catt = Two_Two_Diff(ti1, ti0, tj1, tj0);
+            cattlen = 4;
         }
-        if bdxtail != 0.0f64 {
-            temp16alen =
-                scale_expansion_zeroelim(bxtcalen, bxtca.as_mut_ptr(),
-                                         bdxtail, temp16a.as_mut_ptr());
-            bxtcatlen =
-                scale_expansion_zeroelim(catlen, cat.as_mut_ptr(), bdxtail,
-                                         bxtcat.as_mut_ptr());
-            temp32alen =
-                scale_expansion_zeroelim(bxtcatlen, bxtcat.as_mut_ptr(),
-                                         2.0f64 * bdx, temp32a.as_mut_ptr());
-            temp48len =
-                fast_expansion_sum_zeroelim(temp16alen, temp16a.as_mut_ptr(),
-                                            temp32alen, temp32a.as_mut_ptr(),
-                                            temp48.as_mut_ptr());
-            finlength =
-                fast_expansion_sum_zeroelim(finlength, finnow, temp48len,
-                                            temp48.as_mut_ptr(), finother);
-            finswap = finnow;
-            finnow = finother;
-            finother = finswap;
-            if cdytail != 0.0f64 {
-                temp8len =
-                    scale_expansion_zeroelim(4 as i32,
-                                             aa.as_mut_ptr(), bdxtail,
-                                             temp8.as_mut_ptr());
-                temp16alen =
-                    scale_expansion_zeroelim(temp8len, temp8.as_mut_ptr(),
-                                             cdytail, temp16a.as_mut_ptr());
-                finlength =
-                    fast_expansion_sum_zeroelim(finlength, finnow, temp16alen,
-                                                temp16a.as_mut_ptr(),
-                                                finother);
-                finswap = finnow;
-                finnow = finother;
-                finother = finswap
+        if bdxtail != 0.0 {
+            let temp16alen = scale_expansion_zeroelim(&bxtca[..bxtcalen], bdxtail, &mut temp16a);
+            let bxtcatlen = scale_expansion_zeroelim(&cat[..catlen], bdxtail, &mut bxtcat);
+            let temp32alen = scale_expansion_zeroelim(&bxtcat[..bxtcatlen], 2.0 * bdx, &mut temp32a);
+            let temp48len = fast_expansion_sum_zeroelim(&temp16a[..temp16alen], &temp32a[..temp32alen], &mut temp48);
+            finlength = fast_expansion_sum_zeroelim(&finnow[..finlength], &temp48[..temp48len], finother);
+            core::mem::swap(&mut finnow, &mut finother);
+            if cdytail != 0.0 {
+                let temp8len = scale_expansion_zeroelim(&aa, bdxtail, &mut temp8);
+                let temp16alen = scale_expansion_zeroelim(&temp8[..temp8len], cdytail, &mut temp16a);
+                finlength = fast_expansion_sum_zeroelim(&finnow[..finlength], &temp16a[..temp16alen], finother);
+                core::mem::swap(&mut finnow, &mut finother);
             }
-            if adytail != 0.0f64 {
-                temp8len =
-                    scale_expansion_zeroelim(4 as i32,
-                                             cc.as_mut_ptr(), -bdxtail,
-                                             temp8.as_mut_ptr());
-                temp16alen =
-                    scale_expansion_zeroelim(temp8len, temp8.as_mut_ptr(),
-                                             adytail, temp16a.as_mut_ptr());
-                finlength =
-                    fast_expansion_sum_zeroelim(finlength, finnow, temp16alen,
-                                                temp16a.as_mut_ptr(),
-                                                finother);
-                finswap = finnow;
-                finnow = finother;
-                finother = finswap
+            if adytail != 0.0 {
+                let temp8len = scale_expansion_zeroelim(&cc, -bdxtail, &mut temp8);
+                let temp16alen = scale_expansion_zeroelim(&temp8[..temp8len], adytail, &mut temp16a);
+                finlength = fast_expansion_sum_zeroelim(&finnow[..finlength], &temp16a[..temp16alen], finother);
+                core::mem::swap(&mut finnow, &mut finother);
             }
-            temp32alen =
-                scale_expansion_zeroelim(bxtcatlen, bxtcat.as_mut_ptr(),
-                                         bdxtail, temp32a.as_mut_ptr());
-            bxtcattlen =
-                scale_expansion_zeroelim(cattlen, catt.as_mut_ptr(), bdxtail,
-                                         bxtcatt.as_mut_ptr());
-            temp16alen =
-                scale_expansion_zeroelim(bxtcattlen, bxtcatt.as_mut_ptr(),
-                                         2.0f64 * bdx, temp16a.as_mut_ptr());
-            temp16blen =
-                scale_expansion_zeroelim(bxtcattlen, bxtcatt.as_mut_ptr(),
-                                         bdxtail, temp16b.as_mut_ptr());
-            temp32blen =
-                fast_expansion_sum_zeroelim(temp16alen, temp16a.as_mut_ptr(),
-                                            temp16blen, temp16b.as_mut_ptr(),
-                                            temp32b.as_mut_ptr());
-            temp64len =
-                fast_expansion_sum_zeroelim(temp32alen, temp32a.as_mut_ptr(),
-                                            temp32blen, temp32b.as_mut_ptr(),
-                                            temp64.as_mut_ptr());
-            finlength =
-                fast_expansion_sum_zeroelim(finlength, finnow, temp64len,
-                                            temp64.as_mut_ptr(), finother);
-            finswap = finnow;
-            finnow = finother;
-            finother = finswap
+            let temp32alen = scale_expansion_zeroelim(&bxtcat[..bxtcatlen], bdxtail, &mut temp32a);
+            let bxtcattlen = scale_expansion_zeroelim(&catt[..cattlen], bdxtail, &mut bxtcatt);
+            let temp16alen = scale_expansion_zeroelim(&bxtcatt[..bxtcattlen], 2.0 * bdx, &mut temp16a);
+            let temp16blen = scale_expansion_zeroelim(&bxtcatt[..bxtcattlen], bdxtail, &mut temp16b);
+            let temp32blen = fast_expansion_sum_zeroelim(&temp16a[..temp16alen], &temp16b[..temp16blen], &mut temp32b);
+            let temp64len = fast_expansion_sum_zeroelim(&temp32a[..temp32alen], &temp32b[..temp32blen], &mut temp64);
+            finlength = fast_expansion_sum_zeroelim(&finnow[..finlength], &temp64[..temp64len], finother);
+            core::mem::swap(&mut finnow, &mut finother);
         }
-        if bdytail != 0.0f64 {
-            temp16alen =
-                scale_expansion_zeroelim(bytcalen, bytca.as_mut_ptr(),
-                                         bdytail, temp16a.as_mut_ptr());
-            bytcatlen =
-                scale_expansion_zeroelim(catlen, cat.as_mut_ptr(), bdytail,
-                                         bytcat.as_mut_ptr());
-            temp32alen =
-                scale_expansion_zeroelim(bytcatlen, bytcat.as_mut_ptr(),
-                                         2.0f64 * bdy, temp32a.as_mut_ptr());
-            temp48len =
-                fast_expansion_sum_zeroelim(temp16alen, temp16a.as_mut_ptr(),
-                                            temp32alen, temp32a.as_mut_ptr(),
-                                            temp48.as_mut_ptr());
-            finlength =
-                fast_expansion_sum_zeroelim(finlength, finnow, temp48len,
-                                            temp48.as_mut_ptr(), finother);
-            finswap = finnow;
-            finnow = finother;
-            finother = finswap;
-            temp32alen =
-                scale_expansion_zeroelim(bytcatlen, bytcat.as_mut_ptr(),
-                                         bdytail, temp32a.as_mut_ptr());
-            bytcattlen =
-                scale_expansion_zeroelim(cattlen, catt.as_mut_ptr(), bdytail,
-                                         bytcatt.as_mut_ptr());
-            temp16alen =
-                scale_expansion_zeroelim(bytcattlen, bytcatt.as_mut_ptr(),
-                                         2.0f64 * bdy, temp16a.as_mut_ptr());
-            temp16blen =
-                scale_expansion_zeroelim(bytcattlen, bytcatt.as_mut_ptr(),
-                                         bdytail, temp16b.as_mut_ptr());
-            temp32blen =
-                fast_expansion_sum_zeroelim(temp16alen, temp16a.as_mut_ptr(),
-                                            temp16blen, temp16b.as_mut_ptr(),
-                                            temp32b.as_mut_ptr());
-            temp64len =
-                fast_expansion_sum_zeroelim(temp32alen, temp32a.as_mut_ptr(),
-                                            temp32blen, temp32b.as_mut_ptr(),
-                                            temp64.as_mut_ptr());
-            finlength =
-                fast_expansion_sum_zeroelim(finlength, finnow, temp64len,
-                                            temp64.as_mut_ptr(), finother);
-            finswap = finnow;
-            finnow = finother;
-            finother = finswap
+        if bdytail != 0.0 {
+            let temp16alen = scale_expansion_zeroelim(&bytca[..bytcalen], bdytail, &mut temp16a);
+            let bytcatlen = scale_expansion_zeroelim(&cat[..catlen], bdytail, &mut bytcat);
+            let temp32alen = scale_expansion_zeroelim(&bytcat[..bytcatlen], 2.0 * bdy, &mut temp32a);
+            let temp48len = fast_expansion_sum_zeroelim(&temp16a[..temp16alen], &temp32a[..temp32alen], &mut temp48);
+            finlength = fast_expansion_sum_zeroelim(&finnow[..finlength], &temp48[..temp48len], finother);
+            core::mem::swap(&mut finnow, &mut finother);
+            let temp32alen = scale_expansion_zeroelim(&bytcat[..bytcatlen], bdytail, &mut temp32a);
+            let bytcattlen = scale_expansion_zeroelim(&catt[..cattlen], bdytail, &mut bytcatt);
+            let temp16alen = scale_expansion_zeroelim(&bytcatt[..bytcattlen], 2.0 * bdy, &mut temp16a);
+            let temp16blen = scale_expansion_zeroelim(&bytcatt[..bytcattlen], bdytail, &mut temp16b);
+            let temp32blen = fast_expansion_sum_zeroelim(&temp16a[..temp16alen], &temp16b[..temp16blen], &mut temp32b);
+            let temp64len = fast_expansion_sum_zeroelim(&temp32a[..temp32alen], &temp32b[..temp32blen], &mut temp64);
+            finlength = fast_expansion_sum_zeroelim(&finnow[..finlength], &temp64[..temp64len], finother);
+            core::mem::swap(&mut finnow, &mut finother);
         }
     }
-    if cdxtail != 0.0f64 || cdytail != 0.0f64 {
-        if adxtail != 0.0f64 || adytail != 0.0f64 || bdxtail != 0.0f64 ||
-               bdytail != 0.0f64 {
-            Two_Product(adxtail, bdy, &mut ti1, &mut ti0);
-            Two_Product(adx, bdytail, &mut tj1, &mut tj0);
-            Two_Two_Sum(ti1, ti0, tj1, tj0, u.as_mut_ptr());
-            negate = -ady;
-            Two_Product(bdxtail, negate, &mut ti1, &mut ti0);
-            negate = -adytail;
-            Two_Product(bdx, negate, &mut tj1, &mut tj0);
-            Two_Two_Sum(ti1, ti0, tj1, tj0, v.as_mut_ptr());
-            abtlen =
-                fast_expansion_sum_zeroelim(4 as i32, u.as_mut_ptr(),
-                                            4 as i32, v.as_mut_ptr(),
-                                            abt.as_mut_ptr());
-            Two_Product(adxtail, bdytail, &mut ti1, &mut ti0);
-            Two_Product(bdxtail, adytail, &mut tj1, &mut tj0);
-            Two_Two_Diff(ti1, ti0, tj1, tj0, abtt.as_mut_ptr());
-            abttlen = 4 as i32
-        } else {
-            abt[0 as i32 as usize] = 0.0f64;
-            abtlen = 1 as i32;
-            abtt[0 as i32 as usize] = 0.0f64;
-            abttlen = 1 as i32
+    if cdxtail != 0.0 || cdytail != 0.0 {
+        let mut abtlen = 1;
+        let mut abttlen = 1;
+        let mut abt: [f64; 8] = [0.; 8];
+        let mut abtt: [f64; 4] = [0.; 4];
+        if adxtail != 0.0 || adytail != 0.0 || bdxtail != 0.0 || bdytail != 0.0 {
+            let [ti0, ti1] = Two_Product(adxtail, bdy);
+            let [tj0, tj1] = Two_Product(adx, bdytail);
+            let u = Two_Two_Sum(ti1, ti0, tj1, tj0);
+            let negate = -ady;
+            let [ti0, ti1] = Two_Product(bdxtail, negate);
+            let negate = -adytail;
+            let [tj0, tj1] = Two_Product(bdx, negate);
+            let v = Two_Two_Sum(ti1, ti0, tj1, tj0);
+            abtlen = fast_expansion_sum_zeroelim(&u, &v, &mut abt);
+            let [ti0, ti1] = Two_Product(adxtail, bdytail);
+            let [tj0, tj1] = Two_Product(bdxtail, adytail);
+            abtt = Two_Two_Diff(ti1, ti0, tj1, tj0);
+            abttlen = 4;
         }
-        if cdxtail != 0.0f64 {
-            temp16alen =
-                scale_expansion_zeroelim(cxtablen, cxtab.as_mut_ptr(),
-                                         cdxtail, temp16a.as_mut_ptr());
-            cxtabtlen =
-                scale_expansion_zeroelim(abtlen, abt.as_mut_ptr(), cdxtail,
-                                         cxtabt.as_mut_ptr());
-            temp32alen =
-                scale_expansion_zeroelim(cxtabtlen, cxtabt.as_mut_ptr(),
-                                         2.0f64 * cdx, temp32a.as_mut_ptr());
-            temp48len =
-                fast_expansion_sum_zeroelim(temp16alen, temp16a.as_mut_ptr(),
-                                            temp32alen, temp32a.as_mut_ptr(),
-                                            temp48.as_mut_ptr());
-            finlength =
-                fast_expansion_sum_zeroelim(finlength, finnow, temp48len,
-                                            temp48.as_mut_ptr(), finother);
-            finswap = finnow;
-            finnow = finother;
-            finother = finswap;
-            if adytail != 0.0f64 {
-                temp8len =
-                    scale_expansion_zeroelim(4 as i32,
-                                             bb.as_mut_ptr(), cdxtail,
-                                             temp8.as_mut_ptr());
-                temp16alen =
-                    scale_expansion_zeroelim(temp8len, temp8.as_mut_ptr(),
-                                             adytail, temp16a.as_mut_ptr());
-                finlength =
-                    fast_expansion_sum_zeroelim(finlength, finnow, temp16alen,
-                                                temp16a.as_mut_ptr(),
-                                                finother);
-                finswap = finnow;
-                finnow = finother;
-                finother = finswap
+        if cdxtail != 0.0 {
+            let temp16alen = scale_expansion_zeroelim(&cxtab[..cxtablen], cdxtail, &mut temp16a);
+            let cxtabtlen = scale_expansion_zeroelim(&abt[..abtlen], cdxtail, &mut cxtabt);
+            let temp32alen = scale_expansion_zeroelim(&cxtabt[..cxtabtlen], 2.0 * cdx, &mut temp32a);
+            let temp48len = fast_expansion_sum_zeroelim(&temp16a[..temp16alen], &temp32a[..temp32alen], &mut temp48);
+            finlength = fast_expansion_sum_zeroelim(&finnow[..finlength], &temp48[..temp48len], finother);
+            core::mem::swap(&mut finnow, &mut finother);
+            if adytail != 0.0 {
+                let temp8len = scale_expansion_zeroelim(&bb, cdxtail, &mut temp8);
+                let temp16alen = scale_expansion_zeroelim(&temp8[..temp8len], adytail, &mut temp16a);
+                finlength = fast_expansion_sum_zeroelim(&finnow[..finlength], &temp16a[..temp16alen], finother);
+                core::mem::swap(&mut finnow, &mut finother);
             }
-            if bdytail != 0.0f64 {
-                temp8len =
-                    scale_expansion_zeroelim(4 as i32,
-                                             aa.as_mut_ptr(), -cdxtail,
-                                             temp8.as_mut_ptr());
-                temp16alen =
-                    scale_expansion_zeroelim(temp8len, temp8.as_mut_ptr(),
-                                             bdytail, temp16a.as_mut_ptr());
-                finlength =
-                    fast_expansion_sum_zeroelim(finlength, finnow, temp16alen,
-                                                temp16a.as_mut_ptr(),
-                                                finother);
-                finswap = finnow;
-                finnow = finother;
-                finother = finswap
+            if bdytail != 0.0 {
+                let temp8len = scale_expansion_zeroelim(&aa, -cdxtail, &mut temp8);
+                let temp16alen = scale_expansion_zeroelim(&temp8[..temp8len], bdytail, &mut temp16a);
+                finlength = fast_expansion_sum_zeroelim(&finnow[..finlength], &temp16a[..temp16alen], finother);
+                core::mem::swap(&mut finnow, &mut finother);
             }
-            temp32alen =
-                scale_expansion_zeroelim(cxtabtlen, cxtabt.as_mut_ptr(),
-                                         cdxtail, temp32a.as_mut_ptr());
-            cxtabttlen =
-                scale_expansion_zeroelim(abttlen, abtt.as_mut_ptr(), cdxtail,
-                                         cxtabtt.as_mut_ptr());
-            temp16alen =
-                scale_expansion_zeroelim(cxtabttlen, cxtabtt.as_mut_ptr(),
-                                         2.0f64 * cdx, temp16a.as_mut_ptr());
-            temp16blen =
-                scale_expansion_zeroelim(cxtabttlen, cxtabtt.as_mut_ptr(),
-                                         cdxtail, temp16b.as_mut_ptr());
-            temp32blen =
-                fast_expansion_sum_zeroelim(temp16alen, temp16a.as_mut_ptr(),
-                                            temp16blen, temp16b.as_mut_ptr(),
-                                            temp32b.as_mut_ptr());
-            temp64len =
-                fast_expansion_sum_zeroelim(temp32alen, temp32a.as_mut_ptr(),
-                                            temp32blen, temp32b.as_mut_ptr(),
-                                            temp64.as_mut_ptr());
-            finlength =
-                fast_expansion_sum_zeroelim(finlength, finnow, temp64len,
-                                            temp64.as_mut_ptr(), finother);
-            finswap = finnow;
-            finnow = finother;
-            finother = finswap
+            let temp32alen = scale_expansion_zeroelim(&cxtabt[..cxtabtlen], cdxtail, &mut temp32a);
+            let cxtabttlen = scale_expansion_zeroelim(&abtt[..abttlen], cdxtail, &mut cxtabtt);
+            let temp16alen = scale_expansion_zeroelim(&cxtabtt[..cxtabttlen], 2.0 * cdx, &mut temp16a);
+            let temp16blen = scale_expansion_zeroelim(&cxtabtt[..cxtabttlen], cdxtail, &mut temp16b);
+            let temp32blen = fast_expansion_sum_zeroelim(&temp16a[..temp16alen], &temp16b[..temp16blen], &mut temp32b);
+            let temp64len = fast_expansion_sum_zeroelim(&temp32a[..temp32alen], &temp32b[..temp32blen], &mut temp64);
+            finlength = fast_expansion_sum_zeroelim(&finnow[..finlength], &temp64[..temp64len], finother);
+            core::mem::swap(&mut finnow, &mut finother);
         }
-        if cdytail != 0.0f64 {
-            temp16alen =
-                scale_expansion_zeroelim(cytablen, cytab.as_mut_ptr(),
-                                         cdytail, temp16a.as_mut_ptr());
-            cytabtlen =
-                scale_expansion_zeroelim(abtlen, abt.as_mut_ptr(), cdytail,
-                                         cytabt.as_mut_ptr());
-            temp32alen =
-                scale_expansion_zeroelim(cytabtlen, cytabt.as_mut_ptr(),
-                                         2.0f64 * cdy, temp32a.as_mut_ptr());
-            temp48len =
-                fast_expansion_sum_zeroelim(temp16alen, temp16a.as_mut_ptr(),
-                                            temp32alen, temp32a.as_mut_ptr(),
-                                            temp48.as_mut_ptr());
-            finlength =
-                fast_expansion_sum_zeroelim(finlength, finnow, temp48len,
-                                            temp48.as_mut_ptr(), finother);
-            finswap = finnow;
-            finnow = finother;
-            finother = finswap;
-            temp32alen =
-                scale_expansion_zeroelim(cytabtlen, cytabt.as_mut_ptr(),
-                                         cdytail, temp32a.as_mut_ptr());
-            cytabttlen =
-                scale_expansion_zeroelim(abttlen, abtt.as_mut_ptr(), cdytail,
-                                         cytabtt.as_mut_ptr());
-            temp16alen =
-                scale_expansion_zeroelim(cytabttlen, cytabtt.as_mut_ptr(),
-                                         2.0f64 * cdy, temp16a.as_mut_ptr());
-            temp16blen =
-                scale_expansion_zeroelim(cytabttlen, cytabtt.as_mut_ptr(),
-                                         cdytail, temp16b.as_mut_ptr());
-            temp32blen =
-                fast_expansion_sum_zeroelim(temp16alen, temp16a.as_mut_ptr(),
-                                            temp16blen, temp16b.as_mut_ptr(),
-                                            temp32b.as_mut_ptr());
-            temp64len =
-                fast_expansion_sum_zeroelim(temp32alen, temp32a.as_mut_ptr(),
-                                            temp32blen, temp32b.as_mut_ptr(),
-                                            temp64.as_mut_ptr());
-            finlength =
-                fast_expansion_sum_zeroelim(finlength, finnow, temp64len,
-                                            temp64.as_mut_ptr(), finother);
-            finswap = finnow;
-            finnow = finother;
-            finother = finswap
+        if cdytail != 0.0 {
+            let temp16alen = scale_expansion_zeroelim(&cytab[..cytablen], cdytail, &mut temp16a);
+            let cytabtlen = scale_expansion_zeroelim(&abt[..abtlen], cdytail, &mut cytabt);
+            let temp32alen = scale_expansion_zeroelim(&cytabt[..cytabtlen], 2.0 * cdy, &mut temp32a);
+            let temp48len = fast_expansion_sum_zeroelim(&temp16a[..temp16alen], &temp32a[..temp32alen], &mut temp48);
+            finlength = fast_expansion_sum_zeroelim(&finnow[..finlength], &temp48[..temp48len], finother);
+            core::mem::swap(&mut finnow, &mut finother);
+            let temp32alen = scale_expansion_zeroelim(&cytabt[..cytabtlen], cdytail, &mut temp32a);
+            let cytabttlen = scale_expansion_zeroelim(&abtt[..abttlen], cdytail, &mut cytabtt);
+            let temp16alen = scale_expansion_zeroelim(&cytabtt[..cytabttlen], 2.0 * cdy, &mut temp16a);
+            let temp16blen = scale_expansion_zeroelim(&cytabtt[..cytabttlen], cdytail, &mut temp16b);
+            let temp32blen = fast_expansion_sum_zeroelim(&temp16a[..temp16alen], &temp16b[..temp16blen], &mut temp32b);
+            let temp64len = fast_expansion_sum_zeroelim(&temp32a[..temp32alen], &temp32b[..temp32blen], &mut temp64);
+            finlength = fast_expansion_sum_zeroelim(&finnow[..finlength], &temp64[..temp64len], finother);
+            core::mem::swap(&mut finnow, &mut finother);
         }
     }
-    return *finnow.offset((finlength - 1 as i32) as isize);
+    finnow[finlength - 1]
 }
 
-pub unsafe fn incircle(mut pa: *const f64,
-                                  mut pb: *const f64,
-                                  mut pc: *const f64,
-                                  mut pd: *const f64)
- -> f64 {
-    let mut adx: f64 = 0.;
-    let mut bdx: f64 = 0.;
-    let mut cdx: f64 = 0.;
-    let mut ady: f64 = 0.;
-    let mut bdy: f64 = 0.;
-    let mut cdy: f64 = 0.;
-    let mut bdxcdy: f64 = 0.;
-    let mut cdxbdy: f64 = 0.;
-    let mut cdxady: f64 = 0.;
-    let mut adxcdy: f64 = 0.;
-    let mut adxbdy: f64 = 0.;
-    let mut bdxady: f64 = 0.;
-    let mut alift: f64 = 0.;
-    let mut blift: f64 = 0.;
-    let mut clift: f64 = 0.;
-    let mut det: f64 = 0.;
-    let mut permanent: f64 = 0.;
-    let mut errbound: f64 = 0.;
-    adx =
-        *pa.offset(0 as i32 as isize) -
-            *pd.offset(0 as i32 as isize);
-    bdx =
-        *pb.offset(0 as i32 as isize) -
-            *pd.offset(0 as i32 as isize);
-    cdx =
-        *pc.offset(0 as i32 as isize) -
-            *pd.offset(0 as i32 as isize);
-    ady =
-        *pa.offset(1 as i32 as isize) -
-            *pd.offset(1 as i32 as isize);
-    bdy =
-        *pb.offset(1 as i32 as isize) -
-            *pd.offset(1 as i32 as isize);
-    cdy =
-        *pc.offset(1 as i32 as isize) -
-            *pd.offset(1 as i32 as isize);
-    bdxcdy = bdx * cdy;
-    cdxbdy = cdx * bdy;
-    alift = adx * adx + ady * ady;
-    cdxady = cdx * ady;
-    adxcdy = adx * cdy;
-    blift = bdx * bdx + bdy * bdy;
-    adxbdy = adx * bdy;
-    bdxady = bdx * ady;
-    clift = cdx * cdx + cdy * cdy;
-    det =
+/**
+ * Adaptive exaact 2D incircle test. Robust.
+ *
+ * Return a positive value if the point `pd` lies inside the
+ * circle passing through `pa`, `pb`, and `pc`; a negative value if
+ * it lies outside; and zero if the four points are cocircular.
+ * The points `pa`, `pb`, and `pc` must be in counterclockwise
+ * order, or the sign of the result will be reversed.
+ *
+ * The result returned is the determinant of a matrix.
+ * This determinant is computed adaptively, in the sense that exact
+ * arithmetic is used only to the degree it is needed to ensure that the
+ * returned value has the correct sign.  Hence, `incircle()` is usually quite
+ * fast, but will run more slowly when the input points are cocircular or
+ * nearly so.
+ */
+#[inline]
+pub fn incircle(pa: [f64; 2], pb: [f64; 2], pc: [f64; 2], pd: [f64; 2]) -> f64 {
+    let adx = pa[0] - pd[0];
+    let bdx = pb[0] - pd[0];
+    let cdx = pc[0] - pd[0];
+    let ady = pa[1] - pd[1];
+    let bdy = pb[1] - pd[1];
+    let cdy = pc[1] - pd[1];
+    let bdxcdy = bdx * cdy;
+    let cdxbdy = cdx * bdy;
+    let alift = adx * adx + ady * ady;
+    let cdxady = cdx * ady;
+    let adxcdy = adx * cdy;
+    let blift = bdx * bdx + bdy * bdy;
+    let adxbdy = adx * bdy;
+    let bdxady = bdx * ady;
+    let clift = cdx * cdx + cdy * cdy;
+    let det =
         alift * (bdxcdy - cdxbdy) + blift * (cdxady - adxcdy) +
             clift * (adxbdy - bdxady);
-    permanent =
+    let permanent =
         (Absolute(bdxcdy) + Absolute(cdxbdy)) * alift +
             (Absolute(cdxady) + Absolute(adxcdy)) * blift +
             (Absolute(adxbdy) + Absolute(bdxady)) * clift;
-    errbound = PARAMS.iccerrboundA * permanent;
+    let errbound = PARAMS.iccerrboundA * permanent;
     if det > errbound || -det > errbound { return det }
-    return incircleadapt(pa, pb, pc, pd, permanent);
+    incircleadapt(pa, pb, pc, pd, permanent)
 }
+
 /* ****************************************************************************/
 /*                                                                           */
-/*  inspherefast()   Approximate 3D insphere test.  Nonrobust.               */
-/*  insphereexact()   Exact 3D insphere test.  Robust.                       */
-/*  insphereslow()   Another exact 3D insphere test.  Robust.                */
+/*  insphere_fast()   Approximate 3D insphere test.  Nonrobust.               */
+/*  insphere_exact()   Exact 3D insphere test.  Robust.                       */
+/*  insphere_slow()   Another exact 3D insphere test.  Robust.                */
 /*  insphere()   Adaptive exact 3D insphere test.  Robust.                   */
 /*                                                                           */
 /*               Return a positive value if the point pe lies inside the     */
@@ -4550,1984 +2606,694 @@ pub unsafe fn incircle(mut pa: *const f64,
 /*                                                                           */
 /* ****************************************************************************/
 
-pub unsafe fn inspherefast(mut pa: *const f64,
-                                      mut pb: *const f64,
-                                      mut pc: *const f64,
-                                      mut pd: *const f64,
-                                      mut pe: *const f64)
- -> f64 {
-    let mut aex: f64 = 0.;
-    let mut bex: f64 = 0.;
-    let mut cex: f64 = 0.;
-    let mut dex: f64 = 0.;
-    let mut aey: f64 = 0.;
-    let mut bey: f64 = 0.;
-    let mut cey: f64 = 0.;
-    let mut dey: f64 = 0.;
-    let mut aez: f64 = 0.;
-    let mut bez: f64 = 0.;
-    let mut cez: f64 = 0.;
-    let mut dez: f64 = 0.;
-    let mut alift: f64 = 0.;
-    let mut blift: f64 = 0.;
-    let mut clift: f64 = 0.;
-    let mut dlift: f64 = 0.;
-    let mut ab: f64 = 0.;
-    let mut bc: f64 = 0.;
-    let mut cd: f64 = 0.;
-    let mut da: f64 = 0.;
-    let mut ac: f64 = 0.;
-    let mut bd: f64 = 0.;
-    let mut abc: f64 = 0.;
-    let mut bcd: f64 = 0.;
-    let mut cda: f64 = 0.;
-    let mut dab: f64 = 0.;
-    aex =
-        *pa.offset(0 as i32 as isize) -
-            *pe.offset(0 as i32 as isize);
-    bex =
-        *pb.offset(0 as i32 as isize) -
-            *pe.offset(0 as i32 as isize);
-    cex =
-        *pc.offset(0 as i32 as isize) -
-            *pe.offset(0 as i32 as isize);
-    dex =
-        *pd.offset(0 as i32 as isize) -
-            *pe.offset(0 as i32 as isize);
-    aey =
-        *pa.offset(1 as i32 as isize) -
-            *pe.offset(1 as i32 as isize);
-    bey =
-        *pb.offset(1 as i32 as isize) -
-            *pe.offset(1 as i32 as isize);
-    cey =
-        *pc.offset(1 as i32 as isize) -
-            *pe.offset(1 as i32 as isize);
-    dey =
-        *pd.offset(1 as i32 as isize) -
-            *pe.offset(1 as i32 as isize);
-    aez =
-        *pa.offset(2 as i32 as isize) -
-            *pe.offset(2 as i32 as isize);
-    bez =
-        *pb.offset(2 as i32 as isize) -
-            *pe.offset(2 as i32 as isize);
-    cez =
-        *pc.offset(2 as i32 as isize) -
-            *pe.offset(2 as i32 as isize);
-    dez =
-        *pd.offset(2 as i32 as isize) -
-            *pe.offset(2 as i32 as isize);
-    ab = aex * bey - bex * aey;
-    bc = bex * cey - cex * bey;
-    cd = cex * dey - dex * cey;
-    da = dex * aey - aex * dey;
-    ac = aex * cey - cex * aey;
-    bd = bex * dey - dex * bey;
-    abc = aez * bc - bez * ac + cez * ab;
-    bcd = bez * cd - cez * bd + dez * bc;
-    cda = cez * da + dez * ac + aez * cd;
-    dab = dez * ab + aez * bd + bez * da;
-    alift = aex * aex + aey * aey + aez * aez;
-    blift = bex * bex + bey * bey + bez * bez;
-    clift = cex * cex + cey * cey + cez * cez;
-    dlift = dex * dex + dey * dey + dez * dez;
-    return dlift * abc - clift * dab + (blift * cda - alift * bcd);
+/// Approximate 3D insphere test. Non-robust version of `insphere`
+#[inline]
+pub fn insphere_fast(pa: [f64; 3], pb: [f64; 3], pc: [f64; 3], pd: [f64; 3], pe: [f64; 3]) -> f64 {
+    let aex = pa[0] - pe[0];
+    let bex = pb[0] - pe[0];
+    let cex = pc[0] - pe[0];
+    let dex = pd[0] - pe[0];
+    let aey = pa[1] - pe[1];
+    let bey = pb[1] - pe[1];
+    let cey = pc[1] - pe[1];
+    let dey = pd[1] - pe[1];
+    let aez = pa[2] - pe[2];
+    let bez = pb[2] - pe[2];
+    let cez = pc[2] - pe[2];
+    let dez = pd[2] - pe[2];
+    let ab = aex * bey - bex * aey;
+    let bc = bex * cey - cex * bey;
+    let cd = cex * dey - dex * cey;
+    let da = dex * aey - aex * dey;
+    let ac = aex * cey - cex * aey;
+    let bd = bex * dey - dex * bey;
+    let abc = aez * bc - bez * ac + cez * ab;
+    let bcd = bez * cd - cez * bd + dez * bc;
+    let cda = cez * da + dez * ac + aez * cd;
+    let dab = dez * ab + aez * bd + bez * da;
+    let alift = aex * aex + aey * aey + aez * aez;
+    let blift = bex * bex + bey * bey + bez * bez;
+    let clift = cex * cex + cey * cey + cez * cez;
+    let dlift = dex * dex + dey * dey + dez * dez;
+    dlift * abc - clift * dab + (blift * cda - alift * bcd)
 }
 
-pub unsafe fn insphereexact(mut pa: *const f64,
-                                       mut pb: *const f64,
-                                       mut pc: *const f64,
-                                       mut pd: *const f64,
-                                       mut pe: *const f64)
- -> f64 {
-    let mut axby1: f64 = 0.;
-    let mut bxcy1: f64 = 0.;
-    let mut cxdy1: f64 = 0.;
-    let mut dxey1: f64 = 0.;
-    let mut exay1: f64 = 0.;
-    let mut bxay1: f64 = 0.;
-    let mut cxby1: f64 = 0.;
-    let mut dxcy1: f64 = 0.;
-    let mut exdy1: f64 = 0.;
-    let mut axey1: f64 = 0.;
-    let mut axcy1: f64 = 0.;
-    let mut bxdy1: f64 = 0.;
-    let mut cxey1: f64 = 0.;
-    let mut dxay1: f64 = 0.;
-    let mut exby1: f64 = 0.;
-    let mut cxay1: f64 = 0.;
-    let mut dxby1: f64 = 0.;
-    let mut excy1: f64 = 0.;
-    let mut axdy1: f64 = 0.;
-    let mut bxey1: f64 = 0.;
-    let mut axby0: f64 = 0.;
-    let mut bxcy0: f64 = 0.;
-    let mut cxdy0: f64 = 0.;
-    let mut dxey0: f64 = 0.;
-    let mut exay0: f64 = 0.;
-    let mut bxay0: f64 = 0.;
-    let mut cxby0: f64 = 0.;
-    let mut dxcy0: f64 = 0.;
-    let mut exdy0: f64 = 0.;
-    let mut axey0: f64 = 0.;
-    let mut axcy0: f64 = 0.;
-    let mut bxdy0: f64 = 0.;
-    let mut cxey0: f64 = 0.;
-    let mut dxay0: f64 = 0.;
-    let mut exby0: f64 = 0.;
-    let mut cxay0: f64 = 0.;
-    let mut dxby0: f64 = 0.;
-    let mut excy0: f64 = 0.;
-    let mut axdy0: f64 = 0.;
-    let mut bxey0: f64 = 0.;
-    let mut ab: [f64; 4] = [0.; 4];
-    let mut bc: [f64; 4] = [0.; 4];
-    let mut cd: [f64; 4] = [0.; 4];
-    let mut de: [f64; 4] = [0.; 4];
-    let mut ea: [f64; 4] = [0.; 4];
-    let mut ac: [f64; 4] = [0.; 4];
-    let mut bd: [f64; 4] = [0.; 4];
-    let mut ce: [f64; 4] = [0.; 4];
-    let mut da: [f64; 4] = [0.; 4];
-    let mut eb: [f64; 4] = [0.; 4];
-    let mut temp8a: [f64; 8] = [0.; 8];
-    let mut temp8b: [f64; 8] = [0.; 8];
-    let mut temp16: [f64; 16] = [0.; 16];
-    let mut temp8alen: i32 = 0;
-    let mut temp8blen: i32 = 0;
-    let mut temp16len: i32 = 0;
-    let mut abc: [f64; 24] = [0.; 24];
-    let mut bcd: [f64; 24] = [0.; 24];
-    let mut cde: [f64; 24] = [0.; 24];
-    let mut dea: [f64; 24] = [0.; 24];
-    let mut eab: [f64; 24] = [0.; 24];
-    let mut abd: [f64; 24] = [0.; 24];
-    let mut bce: [f64; 24] = [0.; 24];
-    let mut cda: [f64; 24] = [0.; 24];
-    let mut deb: [f64; 24] = [0.; 24];
-    let mut eac: [f64; 24] = [0.; 24];
-    let mut abclen: i32 = 0;
-    let mut bcdlen: i32 = 0;
-    let mut cdelen: i32 = 0;
-    let mut dealen: i32 = 0;
-    let mut eablen: i32 = 0;
-    let mut abdlen: i32 = 0;
-    let mut bcelen: i32 = 0;
-    let mut cdalen: i32 = 0;
-    let mut deblen: i32 = 0;
-    let mut eaclen: i32 = 0;
-    let mut temp48a: [f64; 48] = [0.; 48];
-    let mut temp48b: [f64; 48] = [0.; 48];
-    let mut temp48alen: i32 = 0;
-    let mut temp48blen: i32 = 0;
-    let mut abcd: [f64; 96] = [0.; 96];
-    let mut bcde: [f64; 96] = [0.; 96];
-    let mut cdea: [f64; 96] = [0.; 96];
-    let mut deab: [f64; 96] = [0.; 96];
-    let mut eabc: [f64; 96] = [0.; 96];
-    let mut abcdlen: i32 = 0;
-    let mut bcdelen: i32 = 0;
-    let mut cdealen: i32 = 0;
-    let mut deablen: i32 = 0;
-    let mut eabclen: i32 = 0;
-    let mut temp192: [f64; 192] = [0.; 192];
-    let mut det384x: [f64; 384] = [0.; 384];
-    let mut det384y: [f64; 384] = [0.; 384];
-    let mut det384z: [f64; 384] = [0.; 384];
-    let mut xlen: i32 = 0;
-    let mut ylen: i32 = 0;
-    let mut zlen: i32 = 0;
-    let mut detxy: [f64; 768] = [0.; 768];
-    let mut xylen: i32 = 0;
-    let mut adet: [f64; 1152] = [0.; 1152];
-    let mut bdet: [f64; 1152] = [0.; 1152];
-    let mut cdet: [f64; 1152] = [0.; 1152];
-    let mut ddet: [f64; 1152] = [0.; 1152];
-    let mut edet: [f64; 1152] = [0.; 1152];
-    let mut alen: i32 = 0;
-    let mut blen: i32 = 0;
-    let mut clen: i32 = 0;
-    let mut dlen: i32 = 0;
-    let mut elen: i32 = 0;
-    let mut abdet: [f64; 2304] = [0.; 2304];
-    let mut cddet: [f64; 2304] = [0.; 2304];
-    let mut cdedet: [f64; 3456] = [0.; 3456];
-    let mut ablen: i32 = 0;
-    let mut cdlen: i32 = 0;
-    let mut deter: [f64; 5760] = [0.; 5760];
-    let mut deterlen: i32 = 0;
-    let mut i: i32 = 0;
-    let mut bvirt: f64 = 0.;
-    let mut avirt: f64 = 0.;
-    let mut bround: f64 = 0.;
-    let mut around: f64 = 0.;
-    let mut c: f64 = 0.;
-    let mut abig: f64 = 0.;
-    let mut ahi: f64 = 0.;
-    let mut alo: f64 = 0.;
-    let mut bhi: f64 = 0.;
-    let mut blo: f64 = 0.;
-    let mut err1: f64 = 0.;
-    let mut err2: f64 = 0.;
-    let mut err3: f64 = 0.;
-    let mut _i: f64 = 0.;
-    let mut _j: f64 = 0.;
-    let mut _0: f64 = 0.;
-    Two_Product(*pa.offset(0 as i32 as isize),
-                *pb.offset(1 as i32 as isize), &mut axby1,
-                &mut axby0);
-    Two_Product(*pb.offset(0 as i32 as isize),
-                *pa.offset(1 as i32 as isize), &mut bxay1,
-                &mut bxay0);
-    Two_Two_Diff(axby1, axby0, bxay1, bxay0, ab.as_mut_ptr());
-    Two_Product(*pb.offset(0 as i32 as isize),
-                *pc.offset(1 as i32 as isize), &mut bxcy1,
-                &mut bxcy0);
-    Two_Product(*pc.offset(0 as i32 as isize),
-                *pb.offset(1 as i32 as isize), &mut cxby1,
-                &mut cxby0);
-    Two_Two_Diff(bxcy1, bxcy0, cxby1, cxby0, bc.as_mut_ptr());
-    Two_Product(*pc.offset(0 as i32 as isize),
-                *pd.offset(1 as i32 as isize), &mut cxdy1,
-                &mut cxdy0);
-    Two_Product(*pd.offset(0 as i32 as isize),
-                *pc.offset(1 as i32 as isize), &mut dxcy1,
-                &mut dxcy0);
-    Two_Two_Diff(cxdy1, cxdy0, dxcy1, dxcy0, cd.as_mut_ptr());
-    Two_Product(*pd.offset(0 as i32 as isize),
-                *pe.offset(1 as i32 as isize), &mut dxey1,
-                &mut dxey0);
-    Two_Product(*pe.offset(0 as i32 as isize),
-                *pd.offset(1 as i32 as isize), &mut exdy1,
-                &mut exdy0);
-    Two_Two_Diff(dxey1, dxey0, exdy1, exdy0, de.as_mut_ptr());
-    Two_Product(*pe.offset(0 as i32 as isize),
-                *pa.offset(1 as i32 as isize), &mut exay1,
-                &mut exay0);
-    Two_Product(*pa.offset(0 as i32 as isize),
-                *pe.offset(1 as i32 as isize), &mut axey1,
-                &mut axey0);
-    Two_Two_Diff(exay1, exay0, axey1, axey0, ea.as_mut_ptr());
-    Two_Product(*pa.offset(0 as i32 as isize),
-                *pc.offset(1 as i32 as isize), &mut axcy1,
-                &mut axcy0);
-    Two_Product(*pc.offset(0 as i32 as isize),
-                *pa.offset(1 as i32 as isize), &mut cxay1,
-                &mut cxay0);
-    Two_Two_Diff(axcy1, axcy0, cxay1, cxay0, ac.as_mut_ptr());
-    Two_Product(*pb.offset(0 as i32 as isize),
-                *pd.offset(1 as i32 as isize), &mut bxdy1,
-                &mut bxdy0);
-    Two_Product(*pd.offset(0 as i32 as isize),
-                *pb.offset(1 as i32 as isize), &mut dxby1,
-                &mut dxby0);
-    Two_Two_Diff(bxdy1, bxdy0, dxby1, dxby0, bd.as_mut_ptr());
-    Two_Product(*pc.offset(0 as i32 as isize),
-                *pe.offset(1 as i32 as isize), &mut cxey1,
-                &mut cxey0);
-    Two_Product(*pe.offset(0 as i32 as isize),
-                *pc.offset(1 as i32 as isize), &mut excy1,
-                &mut excy0);
-    Two_Two_Diff(cxey1, cxey0, excy1, excy0, ce.as_mut_ptr());
-    Two_Product(*pd.offset(0 as i32 as isize),
-                *pa.offset(1 as i32 as isize), &mut dxay1,
-                &mut dxay0);
-    Two_Product(*pa.offset(0 as i32 as isize),
-                *pd.offset(1 as i32 as isize), &mut axdy1,
-                &mut axdy0);
-    Two_Two_Diff(dxay1, dxay0, axdy1, axdy0, da.as_mut_ptr());
-    Two_Product(*pe.offset(0 as i32 as isize),
-                *pb.offset(1 as i32 as isize), &mut exby1,
-                &mut exby0);
-    Two_Product(*pb.offset(0 as i32 as isize),
-                *pe.offset(1 as i32 as isize), &mut bxey1,
-                &mut bxey0);
-    Two_Two_Diff(exby1, exby0, bxey1, bxey0, eb.as_mut_ptr());
-    temp8alen =
-        scale_expansion_zeroelim(4 as i32, bc.as_mut_ptr(),
-                                 *pa.offset(2 as i32 as isize),
-                                 temp8a.as_mut_ptr());
-    temp8blen =
-        scale_expansion_zeroelim(4 as i32, ac.as_mut_ptr(),
-                                 -*pb.offset(2 as i32 as isize),
-                                 temp8b.as_mut_ptr());
-    temp16len =
-        fast_expansion_sum_zeroelim(temp8alen, temp8a.as_mut_ptr(), temp8blen,
-                                    temp8b.as_mut_ptr(), temp16.as_mut_ptr());
-    temp8alen =
-        scale_expansion_zeroelim(4 as i32, ab.as_mut_ptr(),
-                                 *pc.offset(2 as i32 as isize),
-                                 temp8a.as_mut_ptr());
-    abclen =
-        fast_expansion_sum_zeroelim(temp8alen, temp8a.as_mut_ptr(), temp16len,
-                                    temp16.as_mut_ptr(), abc.as_mut_ptr());
-    temp8alen =
-        scale_expansion_zeroelim(4 as i32, cd.as_mut_ptr(),
-                                 *pb.offset(2 as i32 as isize),
-                                 temp8a.as_mut_ptr());
-    temp8blen =
-        scale_expansion_zeroelim(4 as i32, bd.as_mut_ptr(),
-                                 -*pc.offset(2 as i32 as isize),
-                                 temp8b.as_mut_ptr());
-    temp16len =
-        fast_expansion_sum_zeroelim(temp8alen, temp8a.as_mut_ptr(), temp8blen,
-                                    temp8b.as_mut_ptr(), temp16.as_mut_ptr());
-    temp8alen =
-        scale_expansion_zeroelim(4 as i32, bc.as_mut_ptr(),
-                                 *pd.offset(2 as i32 as isize),
-                                 temp8a.as_mut_ptr());
-    bcdlen =
-        fast_expansion_sum_zeroelim(temp8alen, temp8a.as_mut_ptr(), temp16len,
-                                    temp16.as_mut_ptr(), bcd.as_mut_ptr());
-    temp8alen =
-        scale_expansion_zeroelim(4 as i32, de.as_mut_ptr(),
-                                 *pc.offset(2 as i32 as isize),
-                                 temp8a.as_mut_ptr());
-    temp8blen =
-        scale_expansion_zeroelim(4 as i32, ce.as_mut_ptr(),
-                                 -*pd.offset(2 as i32 as isize),
-                                 temp8b.as_mut_ptr());
-    temp16len =
-        fast_expansion_sum_zeroelim(temp8alen, temp8a.as_mut_ptr(), temp8blen,
-                                    temp8b.as_mut_ptr(), temp16.as_mut_ptr());
-    temp8alen =
-        scale_expansion_zeroelim(4 as i32, cd.as_mut_ptr(),
-                                 *pe.offset(2 as i32 as isize),
-                                 temp8a.as_mut_ptr());
-    cdelen =
-        fast_expansion_sum_zeroelim(temp8alen, temp8a.as_mut_ptr(), temp16len,
-                                    temp16.as_mut_ptr(), cde.as_mut_ptr());
-    temp8alen =
-        scale_expansion_zeroelim(4 as i32, ea.as_mut_ptr(),
-                                 *pd.offset(2 as i32 as isize),
-                                 temp8a.as_mut_ptr());
-    temp8blen =
-        scale_expansion_zeroelim(4 as i32, da.as_mut_ptr(),
-                                 -*pe.offset(2 as i32 as isize),
-                                 temp8b.as_mut_ptr());
-    temp16len =
-        fast_expansion_sum_zeroelim(temp8alen, temp8a.as_mut_ptr(), temp8blen,
-                                    temp8b.as_mut_ptr(), temp16.as_mut_ptr());
-    temp8alen =
-        scale_expansion_zeroelim(4 as i32, de.as_mut_ptr(),
-                                 *pa.offset(2 as i32 as isize),
-                                 temp8a.as_mut_ptr());
-    dealen =
-        fast_expansion_sum_zeroelim(temp8alen, temp8a.as_mut_ptr(), temp16len,
-                                    temp16.as_mut_ptr(), dea.as_mut_ptr());
-    temp8alen =
-        scale_expansion_zeroelim(4 as i32, ab.as_mut_ptr(),
-                                 *pe.offset(2 as i32 as isize),
-                                 temp8a.as_mut_ptr());
-    temp8blen =
-        scale_expansion_zeroelim(4 as i32, eb.as_mut_ptr(),
-                                 -*pa.offset(2 as i32 as isize),
-                                 temp8b.as_mut_ptr());
-    temp16len =
-        fast_expansion_sum_zeroelim(temp8alen, temp8a.as_mut_ptr(), temp8blen,
-                                    temp8b.as_mut_ptr(), temp16.as_mut_ptr());
-    temp8alen =
-        scale_expansion_zeroelim(4 as i32, ea.as_mut_ptr(),
-                                 *pb.offset(2 as i32 as isize),
-                                 temp8a.as_mut_ptr());
-    eablen =
-        fast_expansion_sum_zeroelim(temp8alen, temp8a.as_mut_ptr(), temp16len,
-                                    temp16.as_mut_ptr(), eab.as_mut_ptr());
-    temp8alen =
-        scale_expansion_zeroelim(4 as i32, bd.as_mut_ptr(),
-                                 *pa.offset(2 as i32 as isize),
-                                 temp8a.as_mut_ptr());
-    temp8blen =
-        scale_expansion_zeroelim(4 as i32, da.as_mut_ptr(),
-                                 *pb.offset(2 as i32 as isize),
-                                 temp8b.as_mut_ptr());
-    temp16len =
-        fast_expansion_sum_zeroelim(temp8alen, temp8a.as_mut_ptr(), temp8blen,
-                                    temp8b.as_mut_ptr(), temp16.as_mut_ptr());
-    temp8alen =
-        scale_expansion_zeroelim(4 as i32, ab.as_mut_ptr(),
-                                 *pd.offset(2 as i32 as isize),
-                                 temp8a.as_mut_ptr());
-    abdlen =
-        fast_expansion_sum_zeroelim(temp8alen, temp8a.as_mut_ptr(), temp16len,
-                                    temp16.as_mut_ptr(), abd.as_mut_ptr());
-    temp8alen =
-        scale_expansion_zeroelim(4 as i32, ce.as_mut_ptr(),
-                                 *pb.offset(2 as i32 as isize),
-                                 temp8a.as_mut_ptr());
-    temp8blen =
-        scale_expansion_zeroelim(4 as i32, eb.as_mut_ptr(),
-                                 *pc.offset(2 as i32 as isize),
-                                 temp8b.as_mut_ptr());
-    temp16len =
-        fast_expansion_sum_zeroelim(temp8alen, temp8a.as_mut_ptr(), temp8blen,
-                                    temp8b.as_mut_ptr(), temp16.as_mut_ptr());
-    temp8alen =
-        scale_expansion_zeroelim(4 as i32, bc.as_mut_ptr(),
-                                 *pe.offset(2 as i32 as isize),
-                                 temp8a.as_mut_ptr());
-    bcelen =
-        fast_expansion_sum_zeroelim(temp8alen, temp8a.as_mut_ptr(), temp16len,
-                                    temp16.as_mut_ptr(), bce.as_mut_ptr());
-    temp8alen =
-        scale_expansion_zeroelim(4 as i32, da.as_mut_ptr(),
-                                 *pc.offset(2 as i32 as isize),
-                                 temp8a.as_mut_ptr());
-    temp8blen =
-        scale_expansion_zeroelim(4 as i32, ac.as_mut_ptr(),
-                                 *pd.offset(2 as i32 as isize),
-                                 temp8b.as_mut_ptr());
-    temp16len =
-        fast_expansion_sum_zeroelim(temp8alen, temp8a.as_mut_ptr(), temp8blen,
-                                    temp8b.as_mut_ptr(), temp16.as_mut_ptr());
-    temp8alen =
-        scale_expansion_zeroelim(4 as i32, cd.as_mut_ptr(),
-                                 *pa.offset(2 as i32 as isize),
-                                 temp8a.as_mut_ptr());
-    cdalen =
-        fast_expansion_sum_zeroelim(temp8alen, temp8a.as_mut_ptr(), temp16len,
-                                    temp16.as_mut_ptr(), cda.as_mut_ptr());
-    temp8alen =
-        scale_expansion_zeroelim(4 as i32, eb.as_mut_ptr(),
-                                 *pd.offset(2 as i32 as isize),
-                                 temp8a.as_mut_ptr());
-    temp8blen =
-        scale_expansion_zeroelim(4 as i32, bd.as_mut_ptr(),
-                                 *pe.offset(2 as i32 as isize),
-                                 temp8b.as_mut_ptr());
-    temp16len =
-        fast_expansion_sum_zeroelim(temp8alen, temp8a.as_mut_ptr(), temp8blen,
-                                    temp8b.as_mut_ptr(), temp16.as_mut_ptr());
-    temp8alen =
-        scale_expansion_zeroelim(4 as i32, de.as_mut_ptr(),
-                                 *pb.offset(2 as i32 as isize),
-                                 temp8a.as_mut_ptr());
-    deblen =
-        fast_expansion_sum_zeroelim(temp8alen, temp8a.as_mut_ptr(), temp16len,
-                                    temp16.as_mut_ptr(), deb.as_mut_ptr());
-    temp8alen =
-        scale_expansion_zeroelim(4 as i32, ac.as_mut_ptr(),
-                                 *pe.offset(2 as i32 as isize),
-                                 temp8a.as_mut_ptr());
-    temp8blen =
-        scale_expansion_zeroelim(4 as i32, ce.as_mut_ptr(),
-                                 *pa.offset(2 as i32 as isize),
-                                 temp8b.as_mut_ptr());
-    temp16len =
-        fast_expansion_sum_zeroelim(temp8alen, temp8a.as_mut_ptr(), temp8blen,
-                                    temp8b.as_mut_ptr(), temp16.as_mut_ptr());
-    temp8alen =
-        scale_expansion_zeroelim(4 as i32, ea.as_mut_ptr(),
-                                 *pc.offset(2 as i32 as isize),
-                                 temp8a.as_mut_ptr());
-    eaclen =
-        fast_expansion_sum_zeroelim(temp8alen, temp8a.as_mut_ptr(), temp16len,
-                                    temp16.as_mut_ptr(), eac.as_mut_ptr());
-    temp48alen =
-        fast_expansion_sum_zeroelim(cdelen, cde.as_mut_ptr(), bcelen,
-                                    bce.as_mut_ptr(), temp48a.as_mut_ptr());
-    temp48blen =
-        fast_expansion_sum_zeroelim(deblen, deb.as_mut_ptr(), bcdlen,
-                                    bcd.as_mut_ptr(), temp48b.as_mut_ptr());
-    i = 0 as i32;
-    while i < temp48blen {
-        temp48b[i as usize] = -temp48b[i as usize];
-        i += 1
-    }
-    bcdelen =
-        fast_expansion_sum_zeroelim(temp48alen, temp48a.as_mut_ptr(),
-                                    temp48blen, temp48b.as_mut_ptr(),
-                                    bcde.as_mut_ptr());
-    xlen =
-        scale_expansion_zeroelim(bcdelen, bcde.as_mut_ptr(),
-                                 *pa.offset(0 as i32 as isize),
-                                 temp192.as_mut_ptr());
-    xlen =
-        scale_expansion_zeroelim(xlen, temp192.as_mut_ptr(),
-                                 *pa.offset(0 as i32 as isize),
-                                 det384x.as_mut_ptr());
-    ylen =
-        scale_expansion_zeroelim(bcdelen, bcde.as_mut_ptr(),
-                                 *pa.offset(1 as i32 as isize),
-                                 temp192.as_mut_ptr());
-    ylen =
-        scale_expansion_zeroelim(ylen, temp192.as_mut_ptr(),
-                                 *pa.offset(1 as i32 as isize),
-                                 det384y.as_mut_ptr());
-    zlen =
-        scale_expansion_zeroelim(bcdelen, bcde.as_mut_ptr(),
-                                 *pa.offset(2 as i32 as isize),
-                                 temp192.as_mut_ptr());
-    zlen =
-        scale_expansion_zeroelim(zlen, temp192.as_mut_ptr(),
-                                 *pa.offset(2 as i32 as isize),
-                                 det384z.as_mut_ptr());
-    xylen =
-        fast_expansion_sum_zeroelim(xlen, det384x.as_mut_ptr(), ylen,
-                                    det384y.as_mut_ptr(), detxy.as_mut_ptr());
-    alen =
-        fast_expansion_sum_zeroelim(xylen, detxy.as_mut_ptr(), zlen,
-                                    det384z.as_mut_ptr(), adet.as_mut_ptr());
-    temp48alen =
-        fast_expansion_sum_zeroelim(dealen, dea.as_mut_ptr(), cdalen,
-                                    cda.as_mut_ptr(), temp48a.as_mut_ptr());
-    temp48blen =
-        fast_expansion_sum_zeroelim(eaclen, eac.as_mut_ptr(), cdelen,
-                                    cde.as_mut_ptr(), temp48b.as_mut_ptr());
-    i = 0 as i32;
-    while i < temp48blen {
-        temp48b[i as usize] = -temp48b[i as usize];
-        i += 1
-    }
-    cdealen =
-        fast_expansion_sum_zeroelim(temp48alen, temp48a.as_mut_ptr(),
-                                    temp48blen, temp48b.as_mut_ptr(),
-                                    cdea.as_mut_ptr());
-    xlen =
-        scale_expansion_zeroelim(cdealen, cdea.as_mut_ptr(),
-                                 *pb.offset(0 as i32 as isize),
-                                 temp192.as_mut_ptr());
-    xlen =
-        scale_expansion_zeroelim(xlen, temp192.as_mut_ptr(),
-                                 *pb.offset(0 as i32 as isize),
-                                 det384x.as_mut_ptr());
-    ylen =
-        scale_expansion_zeroelim(cdealen, cdea.as_mut_ptr(),
-                                 *pb.offset(1 as i32 as isize),
-                                 temp192.as_mut_ptr());
-    ylen =
-        scale_expansion_zeroelim(ylen, temp192.as_mut_ptr(),
-                                 *pb.offset(1 as i32 as isize),
-                                 det384y.as_mut_ptr());
-    zlen =
-        scale_expansion_zeroelim(cdealen, cdea.as_mut_ptr(),
-                                 *pb.offset(2 as i32 as isize),
-                                 temp192.as_mut_ptr());
-    zlen =
-        scale_expansion_zeroelim(zlen, temp192.as_mut_ptr(),
-                                 *pb.offset(2 as i32 as isize),
-                                 det384z.as_mut_ptr());
-    xylen =
-        fast_expansion_sum_zeroelim(xlen, det384x.as_mut_ptr(), ylen,
-                                    det384y.as_mut_ptr(), detxy.as_mut_ptr());
-    blen =
-        fast_expansion_sum_zeroelim(xylen, detxy.as_mut_ptr(), zlen,
-                                    det384z.as_mut_ptr(), bdet.as_mut_ptr());
-    temp48alen =
-        fast_expansion_sum_zeroelim(eablen, eab.as_mut_ptr(), deblen,
-                                    deb.as_mut_ptr(), temp48a.as_mut_ptr());
-    temp48blen =
-        fast_expansion_sum_zeroelim(abdlen, abd.as_mut_ptr(), dealen,
-                                    dea.as_mut_ptr(), temp48b.as_mut_ptr());
-    i = 0 as i32;
-    while i < temp48blen {
-        temp48b[i as usize] = -temp48b[i as usize];
-        i += 1
-    }
-    deablen =
-        fast_expansion_sum_zeroelim(temp48alen, temp48a.as_mut_ptr(),
-                                    temp48blen, temp48b.as_mut_ptr(),
-                                    deab.as_mut_ptr());
-    xlen =
-        scale_expansion_zeroelim(deablen, deab.as_mut_ptr(),
-                                 *pc.offset(0 as i32 as isize),
-                                 temp192.as_mut_ptr());
-    xlen =
-        scale_expansion_zeroelim(xlen, temp192.as_mut_ptr(),
-                                 *pc.offset(0 as i32 as isize),
-                                 det384x.as_mut_ptr());
-    ylen =
-        scale_expansion_zeroelim(deablen, deab.as_mut_ptr(),
-                                 *pc.offset(1 as i32 as isize),
-                                 temp192.as_mut_ptr());
-    ylen =
-        scale_expansion_zeroelim(ylen, temp192.as_mut_ptr(),
-                                 *pc.offset(1 as i32 as isize),
-                                 det384y.as_mut_ptr());
-    zlen =
-        scale_expansion_zeroelim(deablen, deab.as_mut_ptr(),
-                                 *pc.offset(2 as i32 as isize),
-                                 temp192.as_mut_ptr());
-    zlen =
-        scale_expansion_zeroelim(zlen, temp192.as_mut_ptr(),
-                                 *pc.offset(2 as i32 as isize),
-                                 det384z.as_mut_ptr());
-    xylen =
-        fast_expansion_sum_zeroelim(xlen, det384x.as_mut_ptr(), ylen,
-                                    det384y.as_mut_ptr(), detxy.as_mut_ptr());
-    clen =
-        fast_expansion_sum_zeroelim(xylen, detxy.as_mut_ptr(), zlen,
-                                    det384z.as_mut_ptr(), cdet.as_mut_ptr());
-    temp48alen =
-        fast_expansion_sum_zeroelim(abclen, abc.as_mut_ptr(), eaclen,
-                                    eac.as_mut_ptr(), temp48a.as_mut_ptr());
-    temp48blen =
-        fast_expansion_sum_zeroelim(bcelen, bce.as_mut_ptr(), eablen,
-                                    eab.as_mut_ptr(), temp48b.as_mut_ptr());
-    i = 0 as i32;
-    while i < temp48blen {
-        temp48b[i as usize] = -temp48b[i as usize];
-        i += 1
-    }
-    eabclen =
-        fast_expansion_sum_zeroelim(temp48alen, temp48a.as_mut_ptr(),
-                                    temp48blen, temp48b.as_mut_ptr(),
-                                    eabc.as_mut_ptr());
-    xlen =
-        scale_expansion_zeroelim(eabclen, eabc.as_mut_ptr(),
-                                 *pd.offset(0 as i32 as isize),
-                                 temp192.as_mut_ptr());
-    xlen =
-        scale_expansion_zeroelim(xlen, temp192.as_mut_ptr(),
-                                 *pd.offset(0 as i32 as isize),
-                                 det384x.as_mut_ptr());
-    ylen =
-        scale_expansion_zeroelim(eabclen, eabc.as_mut_ptr(),
-                                 *pd.offset(1 as i32 as isize),
-                                 temp192.as_mut_ptr());
-    ylen =
-        scale_expansion_zeroelim(ylen, temp192.as_mut_ptr(),
-                                 *pd.offset(1 as i32 as isize),
-                                 det384y.as_mut_ptr());
-    zlen =
-        scale_expansion_zeroelim(eabclen, eabc.as_mut_ptr(),
-                                 *pd.offset(2 as i32 as isize),
-                                 temp192.as_mut_ptr());
-    zlen =
-        scale_expansion_zeroelim(zlen, temp192.as_mut_ptr(),
-                                 *pd.offset(2 as i32 as isize),
-                                 det384z.as_mut_ptr());
-    xylen =
-        fast_expansion_sum_zeroelim(xlen, det384x.as_mut_ptr(), ylen,
-                                    det384y.as_mut_ptr(), detxy.as_mut_ptr());
-    dlen =
-        fast_expansion_sum_zeroelim(xylen, detxy.as_mut_ptr(), zlen,
-                                    det384z.as_mut_ptr(), ddet.as_mut_ptr());
-    temp48alen =
-        fast_expansion_sum_zeroelim(bcdlen, bcd.as_mut_ptr(), abdlen,
-                                    abd.as_mut_ptr(), temp48a.as_mut_ptr());
-    temp48blen =
-        fast_expansion_sum_zeroelim(cdalen, cda.as_mut_ptr(), abclen,
-                                    abc.as_mut_ptr(), temp48b.as_mut_ptr());
-    i = 0 as i32;
-    while i < temp48blen {
-        temp48b[i as usize] = -temp48b[i as usize];
-        i += 1
-    }
-    abcdlen =
-        fast_expansion_sum_zeroelim(temp48alen, temp48a.as_mut_ptr(),
-                                    temp48blen, temp48b.as_mut_ptr(),
-                                    abcd.as_mut_ptr());
-    xlen =
-        scale_expansion_zeroelim(abcdlen, abcd.as_mut_ptr(),
-                                 *pe.offset(0 as i32 as isize),
-                                 temp192.as_mut_ptr());
-    xlen =
-        scale_expansion_zeroelim(xlen, temp192.as_mut_ptr(),
-                                 *pe.offset(0 as i32 as isize),
-                                 det384x.as_mut_ptr());
-    ylen =
-        scale_expansion_zeroelim(abcdlen, abcd.as_mut_ptr(),
-                                 *pe.offset(1 as i32 as isize),
-                                 temp192.as_mut_ptr());
-    ylen =
-        scale_expansion_zeroelim(ylen, temp192.as_mut_ptr(),
-                                 *pe.offset(1 as i32 as isize),
-                                 det384y.as_mut_ptr());
-    zlen =
-        scale_expansion_zeroelim(abcdlen, abcd.as_mut_ptr(),
-                                 *pe.offset(2 as i32 as isize),
-                                 temp192.as_mut_ptr());
-    zlen =
-        scale_expansion_zeroelim(zlen, temp192.as_mut_ptr(),
-                                 *pe.offset(2 as i32 as isize),
-                                 det384z.as_mut_ptr());
-    xylen =
-        fast_expansion_sum_zeroelim(xlen, det384x.as_mut_ptr(), ylen,
-                                    det384y.as_mut_ptr(), detxy.as_mut_ptr());
-    elen =
-        fast_expansion_sum_zeroelim(xylen, detxy.as_mut_ptr(), zlen,
-                                    det384z.as_mut_ptr(), edet.as_mut_ptr());
-    ablen =
-        fast_expansion_sum_zeroelim(alen, adet.as_mut_ptr(), blen,
-                                    bdet.as_mut_ptr(), abdet.as_mut_ptr());
-    cdlen =
-        fast_expansion_sum_zeroelim(clen, cdet.as_mut_ptr(), dlen,
-                                    ddet.as_mut_ptr(), cddet.as_mut_ptr());
-    cdelen =
-        fast_expansion_sum_zeroelim(cdlen, cddet.as_mut_ptr(), elen,
-                                    edet.as_mut_ptr(), cdedet.as_mut_ptr());
-    deterlen =
-        fast_expansion_sum_zeroelim(ablen, abdet.as_mut_ptr(), cdelen,
-                                    cdedet.as_mut_ptr(), deter.as_mut_ptr());
-    return deter[(deterlen - 1 as i32) as usize];
+#[inline]
+pub fn insphere_exact(pa: [f64; 3], pb: [f64; 3], pc: [f64; 3], pd: [f64; 3], pe: [f64; 3]) -> f64 {
+    let mut temp8a = [0.; 8];
+    let mut temp8b = [0.; 8];
+    let mut temp16 = [0.; 16];
+    let mut abc = [0.; 24];
+    let mut bcd = [0.; 24];
+    let mut cde = [0.; 24];
+    let mut dea = [0.; 24];
+    let mut eab = [0.; 24];
+    let mut abd = [0.; 24];
+    let mut bce = [0.; 24];
+    let mut cda = [0.; 24];
+    let mut deb = [0.; 24];
+    let mut eac = [0.; 24];
+    let mut temp48a = [0.; 48];
+    let mut temp48b = [0.; 48];
+    let mut abcd = [0.; 96];
+    let mut bcde = [0.; 96];
+    let mut cdea = [0.; 96];
+    let mut deab = [0.; 96];
+    let mut eabc = [0.; 96];
+    let mut temp192 = [0.; 192];
+    let mut det384x = [0.; 384];
+    let mut det384y = [0.; 384];
+    let mut det384z = [0.; 384];
+    let mut detxy = [0.; 768];
+    let mut adet = [0.; 1152];
+    let mut bdet = [0.; 1152];
+    let mut cdet = [0.; 1152];
+    let mut ddet = [0.; 1152];
+    let mut edet = [0.; 1152];
+    let mut abdet = [0.; 2304];
+    let mut cddet = [0.; 2304];
+    let mut cdedet = [0.; 3456];
+    let [axby0, axby1] = Two_Product(pa[0], pb[1]);
+    let [bxay0, bxay1] = Two_Product(pb[0], pa[1]);
+    let ab = Two_Two_Diff(axby1, axby0, bxay1, bxay0);
+    let [bxcy0, bxcy1] = Two_Product(pb[0], pc[1]);
+    let [cxby0, cxby1] = Two_Product(pc[0], pb[1]);
+    let bc = Two_Two_Diff(bxcy1, bxcy0, cxby1, cxby0);
+    let [cxdy0, cxdy1] = Two_Product(pc[0], pd[1]);
+    let [dxcy0, dxcy1] = Two_Product(pd[0], pc[1]);
+    let cd = Two_Two_Diff(cxdy1, cxdy0, dxcy1, dxcy0);
+    let [dxey0, dxey1] = Two_Product(pd[0], pe[1]);
+    let [exdy0, exdy1] = Two_Product(pe[0], pd[1]);
+    let de = Two_Two_Diff(dxey1, dxey0, exdy1, exdy0);
+    let [exay0, exay1] = Two_Product(pe[0], pa[1]);
+    let [axey0, axey1] = Two_Product(pa[0], pe[1]);
+    let ea = Two_Two_Diff(exay1, exay0, axey1, axey0);
+    let [axcy0, axcy1] = Two_Product(pa[0], pc[1]);
+    let [cxay0, cxay1] = Two_Product(pc[0], pa[1]);
+    let ac = Two_Two_Diff(axcy1, axcy0, cxay1, cxay0);
+    let [bxdy0, bxdy1] = Two_Product(pb[0], pd[1]);
+    let [dxby0, dxby1] = Two_Product(pd[0], pb[1]);
+    let bd = Two_Two_Diff(bxdy1, bxdy0, dxby1, dxby0);
+    let [cxey0, cxey1] = Two_Product(pc[0], pe[1]);
+    let [excy0, excy1] = Two_Product(pe[0], pc[1]);
+    let ce = Two_Two_Diff(cxey1, cxey0, excy1, excy0);
+    let [dxay0, dxay1] = Two_Product(pd[0], pa[1]);
+    let [axdy0, axdy1] = Two_Product(pa[0], pd[1]);
+    let da = Two_Two_Diff(dxay1, dxay0, axdy1, axdy0);
+    let [exby0, exby1] = Two_Product(pe[0], pb[1]);
+    let [bxey0, bxey1] = Two_Product(pb[0], pe[1]);
+    let eb = Two_Two_Diff(exby1, exby0, bxey1, bxey0);
+    let temp8alen = scale_expansion_zeroelim(&bc, pa[2], &mut temp8a);
+    let temp8blen = scale_expansion_zeroelim(&ac, -pb[2], &mut temp8b);
+    let temp16len = fast_expansion_sum_zeroelim(&temp8a[..temp8alen], &temp8b[..temp8blen], &mut temp16);
+    let temp8alen = scale_expansion_zeroelim(&ab, pc[2], &mut temp8a);
+    let abclen = fast_expansion_sum_zeroelim(&temp8a[..temp8alen], &temp16[..temp16len], &mut abc);
+    let temp8alen = scale_expansion_zeroelim(&cd, pb[2], &mut temp8a);
+    let temp8blen = scale_expansion_zeroelim(&bd, -pc[2], &mut temp8b);
+    let temp16len = fast_expansion_sum_zeroelim(&temp8a[..temp8alen], &temp8b[..temp8blen], &mut temp16);
+    let temp8alen = scale_expansion_zeroelim(&bc, pd[2], &mut temp8a);
+    let bcdlen = fast_expansion_sum_zeroelim(&temp8a[..temp8alen], &temp16[..temp16len], &mut bcd);
+    let temp8alen = scale_expansion_zeroelim(&de, pc[2], &mut temp8a);
+    let temp8blen = scale_expansion_zeroelim(&ce, -pd[2], &mut temp8b);
+    let temp16len = fast_expansion_sum_zeroelim(&temp8a[..temp8alen], &temp8b[..temp8blen], &mut temp16);
+    let temp8alen = scale_expansion_zeroelim(&cd, pe[2], &mut temp8a);
+    let cdelen = fast_expansion_sum_zeroelim(&temp8a[..temp8alen], &temp16[..temp16len], &mut cde);
+    let temp8alen = scale_expansion_zeroelim(&ea, pd[2], &mut temp8a);
+    let temp8blen = scale_expansion_zeroelim(&da, -pe[2], &mut temp8b);
+    let temp16len = fast_expansion_sum_zeroelim(&temp8a[..temp8alen], &temp8b[..temp8blen], &mut temp16);
+    let temp8alen = scale_expansion_zeroelim(&de, pa[2], &mut temp8a);
+    let dealen = fast_expansion_sum_zeroelim(&temp8a[..temp8alen], &temp16[..temp16len], &mut dea);
+    let temp8alen = scale_expansion_zeroelim(&ab, pe[2], &mut temp8a);
+    let temp8blen = scale_expansion_zeroelim(&eb, -pa[2], &mut temp8b);
+    let temp16len = fast_expansion_sum_zeroelim(&temp8a[..temp8alen], &temp8b[..temp8blen], &mut temp16);
+    let temp8alen = scale_expansion_zeroelim(&ea, pb[2], &mut temp8a);
+    let eablen = fast_expansion_sum_zeroelim(&temp8a[..temp8alen], &temp16[..temp16len], &mut eab);
+    let temp8alen = scale_expansion_zeroelim(&bd, pa[2], &mut temp8a);
+    let temp8blen = scale_expansion_zeroelim(&da, pb[2], &mut temp8b);
+    let temp16len = fast_expansion_sum_zeroelim(&temp8a[..temp8alen], &temp8b[..temp8blen], &mut temp16);
+    let temp8alen = scale_expansion_zeroelim(&ab, pd[2], &mut temp8a);
+    let abdlen = fast_expansion_sum_zeroelim(&temp8a[..temp8alen], &temp16[..temp16len], &mut abd);
+    let temp8alen = scale_expansion_zeroelim(&ce, pb[2], &mut temp8a);
+    let temp8blen = scale_expansion_zeroelim(&eb, pc[2], &mut temp8b);
+    let temp16len = fast_expansion_sum_zeroelim(&temp8a[..temp8alen], &temp8b[..temp8blen], &mut temp16);
+    let temp8alen = scale_expansion_zeroelim(&bc, pe[2], &mut temp8a);
+    let bcelen = fast_expansion_sum_zeroelim(&temp8a[..temp8alen], &temp16[..temp16len], &mut bce);
+    let temp8alen = scale_expansion_zeroelim(&da, pc[2], &mut temp8a);
+    let temp8blen = scale_expansion_zeroelim(&ac, pd[2], &mut temp8b);
+    let temp16len = fast_expansion_sum_zeroelim(&temp8a[..temp8alen], &temp8b[..temp8blen], &mut temp16);
+    let temp8alen = scale_expansion_zeroelim(&cd, pa[2], &mut temp8a);
+    let cdalen = fast_expansion_sum_zeroelim(&temp8a[..temp8alen], &temp16[..temp16len], &mut cda);
+    let temp8alen = scale_expansion_zeroelim(&eb, pd[2], &mut temp8a);
+    let temp8blen = scale_expansion_zeroelim(&bd, pe[2], &mut temp8b);
+    let temp16len = fast_expansion_sum_zeroelim(&temp8a[..temp8alen], &temp8b[..temp8blen], &mut temp16);
+    let temp8alen = scale_expansion_zeroelim(&de, pb[2], &mut temp8a);
+    let deblen = fast_expansion_sum_zeroelim(&temp8a[..temp8alen], &temp16[..temp16len], &mut deb);
+    let temp8alen = scale_expansion_zeroelim(&ac, pe[2], &mut temp8a);
+    let temp8blen = scale_expansion_zeroelim(&ce, pa[2], &mut temp8b);
+    let temp16len = fast_expansion_sum_zeroelim(&temp8a[..temp8alen], &temp8b[..temp8blen], &mut temp16);
+    let temp8alen = scale_expansion_zeroelim(&ea, pc[2], &mut temp8a);
+    let eaclen = fast_expansion_sum_zeroelim(&temp8a[..temp8alen], &temp16[..temp16len], &mut eac);
+    let temp48alen = fast_expansion_sum_zeroelim(&cde[..cdelen], &bce[..bcelen], &mut temp48a);
+    let temp48blen = fast_expansion_sum_zeroelim(&deb[..deblen], &bcd[..bcdlen], &mut temp48b);
+    temp48b[..temp48blen].iter_mut().for_each(|x| *x = -*x);
+    let bcdelen = fast_expansion_sum_zeroelim(&temp48a[..temp48alen], &temp48b[..temp48blen], &mut bcde);
+    let xlen = scale_expansion_zeroelim(&bcde[..bcdelen], pa[0], &mut temp192);
+    let xlen = scale_expansion_zeroelim(&temp192[..xlen], pa[0], &mut det384x);
+    let ylen = scale_expansion_zeroelim(&bcde[..bcdelen], pa[1], &mut temp192);
+    let ylen = scale_expansion_zeroelim(&temp192[..ylen], pa[1], &mut det384y);
+    let zlen = scale_expansion_zeroelim(&bcde[..bcdelen], pa[2], &mut temp192);
+    let zlen = scale_expansion_zeroelim(&temp192[..zlen], pa[2], &mut det384z);
+    let xylen = fast_expansion_sum_zeroelim(&det384x[..xlen], &det384y[..ylen], &mut detxy);
+    let alen = fast_expansion_sum_zeroelim(&detxy[..xylen], &det384z[..zlen], &mut adet);
+    let temp48alen = fast_expansion_sum_zeroelim(&dea[..dealen], &cda[..cdalen], &mut temp48a);
+    let temp48blen = fast_expansion_sum_zeroelim(&eac[..eaclen], &cde[..cdelen], &mut temp48b);
+    temp48b[..temp48blen].iter_mut().for_each(|x| *x = -*x);
+    let cdealen = fast_expansion_sum_zeroelim(&temp48a[..temp48alen], &temp48b[..temp48blen], &mut cdea);
+    let xlen = scale_expansion_zeroelim(&cdea[..cdealen], pb[0], &mut temp192);
+    let xlen = scale_expansion_zeroelim(&temp192[..xlen], pb[0], &mut det384x);
+    let ylen = scale_expansion_zeroelim(&cdea[..cdealen], pb[1], &mut temp192);
+    let ylen = scale_expansion_zeroelim(&temp192[..ylen], pb[1], &mut det384y);
+    let zlen = scale_expansion_zeroelim(&cdea[..cdealen], pb[2], &mut temp192);
+    let zlen = scale_expansion_zeroelim(&temp192[..zlen], pb[2], &mut det384z);
+    let xylen = fast_expansion_sum_zeroelim(&det384x[..xlen], &det384y[..ylen], &mut detxy);
+    let blen = fast_expansion_sum_zeroelim(&detxy[..xylen], &det384z[..zlen], &mut bdet);
+    let temp48alen = fast_expansion_sum_zeroelim(&eab[..eablen], &deb[..deblen], &mut temp48a);
+    let temp48blen = fast_expansion_sum_zeroelim(&abd[..abdlen], &dea[..dealen], &mut temp48b);
+    temp48b[..temp48blen].iter_mut().for_each(|x| *x = -*x);
+    let deablen = fast_expansion_sum_zeroelim(&temp48a[..temp48alen], &temp48b[..temp48blen], &mut deab);
+    let xlen = scale_expansion_zeroelim(&deab[..deablen], pc[0], &mut temp192);
+    let xlen = scale_expansion_zeroelim(&temp192[..xlen], pc[0], &mut det384x);
+    let ylen = scale_expansion_zeroelim(&deab[..deablen], pc[1], &mut temp192);
+    let ylen = scale_expansion_zeroelim(&temp192[..ylen], pc[1], &mut det384y);
+    let zlen = scale_expansion_zeroelim(&deab[..deablen], pc[2], &mut temp192);
+    let zlen = scale_expansion_zeroelim(&temp192[..zlen], pc[2], &mut det384z);
+    let xylen = fast_expansion_sum_zeroelim(&det384x[..xlen], &det384y[..ylen], &mut detxy);
+    let clen = fast_expansion_sum_zeroelim(&detxy[..xylen], &det384z[..zlen], &mut cdet);
+    let temp48alen = fast_expansion_sum_zeroelim(&abc[..abclen], &eac[..eaclen], &mut temp48a);
+    let temp48blen = fast_expansion_sum_zeroelim(&bce[..bcelen], &eab[..eablen], &mut temp48b);
+    temp48b[..temp48blen].iter_mut().for_each(|x| *x = -*x);
+    let eabclen = fast_expansion_sum_zeroelim(&temp48a[..temp48alen], &temp48b[..temp48blen], &mut eabc);
+    let xlen = scale_expansion_zeroelim(&eabc[..eabclen], pd[0], &mut temp192);
+    let xlen = scale_expansion_zeroelim(&temp192[..xlen], pd[0], &mut det384x);
+    let ylen = scale_expansion_zeroelim(&eabc[..eabclen], pd[1], &mut temp192);
+    let ylen = scale_expansion_zeroelim(&temp192[..ylen], pd[1], &mut det384y);
+    let zlen = scale_expansion_zeroelim(&eabc[..eabclen], pd[2], &mut temp192);
+    let zlen = scale_expansion_zeroelim(&temp192[..zlen], pd[2], &mut det384z);
+    let xylen = fast_expansion_sum_zeroelim(&det384x[..xlen], &det384y[..ylen], &mut detxy);
+    let dlen = fast_expansion_sum_zeroelim(&detxy[..xylen], &det384z[..zlen], &mut ddet);
+    let temp48alen = fast_expansion_sum_zeroelim(&bcd[..bcdlen], &abd[..abdlen], &mut temp48a);
+    let temp48blen = fast_expansion_sum_zeroelim(&cda[..cdalen], &abc[..abclen], &mut temp48b);
+    temp48b[..temp48blen].iter_mut().for_each(|x| *x = -*x);
+    let abcdlen = fast_expansion_sum_zeroelim(&temp48a[..temp48alen], &temp48b[..temp48blen], &mut abcd);
+    let xlen = scale_expansion_zeroelim(&abcd[..abcdlen], pe[0], &mut temp192);
+    let xlen = scale_expansion_zeroelim(&temp192[..xlen], pe[0], &mut det384x);
+    let ylen = scale_expansion_zeroelim(&abcd[..abcdlen], pe[1], &mut temp192);
+    let ylen = scale_expansion_zeroelim(&temp192[..ylen], pe[1], &mut det384y);
+    let zlen = scale_expansion_zeroelim(&abcd[..abcdlen], pe[2], &mut temp192);
+    let zlen = scale_expansion_zeroelim(&temp192[..zlen], pe[2], &mut det384z);
+    let xylen = fast_expansion_sum_zeroelim(&det384x[..xlen], &det384y[..ylen], &mut detxy);
+    let elen = fast_expansion_sum_zeroelim(&detxy[..xylen], &det384z[..zlen], &mut edet);
+    let ablen = fast_expansion_sum_zeroelim(&adet[..alen], &bdet[..blen], &mut abdet);
+    let cdlen = fast_expansion_sum_zeroelim(&cdet[..clen], &ddet[..dlen], &mut cddet);
+    let cdelen = fast_expansion_sum_zeroelim(&cddet[..cdlen], &edet[..elen], &mut cdedet);
+    let mut deter = [0.; 5760];
+    let deterlen = fast_expansion_sum_zeroelim(&abdet[..ablen], &cdedet[..cdelen], &mut deter);
+    deter[deterlen - 1]
 }
 
-pub unsafe fn insphereslow(mut pa: *const f64,
-                                      mut pb: *const f64,
-                                      mut pc: *const f64,
-                                      mut pd: *const f64,
-                                      mut pe: *const f64)
- -> f64 {
-    let mut aex: f64 = 0.;
-    let mut bex: f64 = 0.;
-    let mut cex: f64 = 0.;
-    let mut dex: f64 = 0.;
-    let mut aey: f64 = 0.;
-    let mut bey: f64 = 0.;
-    let mut cey: f64 = 0.;
-    let mut dey: f64 = 0.;
-    let mut aez: f64 = 0.;
-    let mut bez: f64 = 0.;
-    let mut cez: f64 = 0.;
-    let mut dez: f64 = 0.;
-    let mut aextail: f64 = 0.;
-    let mut bextail: f64 = 0.;
-    let mut cextail: f64 = 0.;
-    let mut dextail: f64 = 0.;
-    let mut aeytail: f64 = 0.;
-    let mut beytail: f64 = 0.;
-    let mut ceytail: f64 = 0.;
-    let mut deytail: f64 = 0.;
-    let mut aeztail: f64 = 0.;
-    let mut beztail: f64 = 0.;
-    let mut ceztail: f64 = 0.;
-    let mut deztail: f64 = 0.;
-    let mut negate: f64 = 0.;
-    let mut negatetail: f64 = 0.;
-    let mut axby7: f64 = 0.;
-    let mut bxcy7: f64 = 0.;
-    let mut cxdy7: f64 = 0.;
-    let mut dxay7: f64 = 0.;
-    let mut axcy7: f64 = 0.;
-    let mut bxdy7: f64 = 0.;
-    let mut bxay7: f64 = 0.;
-    let mut cxby7: f64 = 0.;
-    let mut dxcy7: f64 = 0.;
-    let mut axdy7: f64 = 0.;
-    let mut cxay7: f64 = 0.;
-    let mut dxby7: f64 = 0.;
-    let mut axby: [f64; 8] = [0.; 8];
-    let mut bxcy: [f64; 8] = [0.; 8];
-    let mut cxdy: [f64; 8] = [0.; 8];
-    let mut dxay: [f64; 8] = [0.; 8];
-    let mut axcy: [f64; 8] = [0.; 8];
-    let mut bxdy: [f64; 8] = [0.; 8];
-    let mut bxay: [f64; 8] = [0.; 8];
-    let mut cxby: [f64; 8] = [0.; 8];
-    let mut dxcy: [f64; 8] = [0.; 8];
-    let mut axdy: [f64; 8] = [0.; 8];
-    let mut cxay: [f64; 8] = [0.; 8];
-    let mut dxby: [f64; 8] = [0.; 8];
-    let mut ab: [f64; 16] = [0.; 16];
-    let mut bc: [f64; 16] = [0.; 16];
-    let mut cd: [f64; 16] = [0.; 16];
-    let mut da: [f64; 16] = [0.; 16];
-    let mut ac: [f64; 16] = [0.; 16];
-    let mut bd: [f64; 16] = [0.; 16];
-    let mut ablen: i32 = 0;
-    let mut bclen: i32 = 0;
-    let mut cdlen: i32 = 0;
-    let mut dalen: i32 = 0;
-    let mut aclen: i32 = 0;
-    let mut bdlen: i32 = 0;
-    let mut temp32a: [f64; 32] = [0.; 32];
-    let mut temp32b: [f64; 32] = [0.; 32];
-    let mut temp64a: [f64; 64] = [0.; 64];
-    let mut temp64b: [f64; 64] = [0.; 64];
-    let mut temp64c: [f64; 64] = [0.; 64];
-    let mut temp32alen: i32 = 0;
-    let mut temp32blen: i32 = 0;
-    let mut temp64alen: i32 = 0;
-    let mut temp64blen: i32 = 0;
-    let mut temp64clen: i32 = 0;
-    let mut temp128: [f64; 128] = [0.; 128];
-    let mut temp192: [f64; 192] = [0.; 192];
-    let mut temp128len: i32 = 0;
-    let mut temp192len: i32 = 0;
-    let mut detx: [f64; 384] = [0.; 384];
-    let mut detxx: [f64; 768] = [0.; 768];
-    let mut detxt: [f64; 384] = [0.; 384];
-    let mut detxxt: [f64; 768] = [0.; 768];
-    let mut detxtxt: [f64; 768] = [0.; 768];
-    let mut xlen: i32 = 0;
-    let mut xxlen: i32 = 0;
-    let mut xtlen: i32 = 0;
-    let mut xxtlen: i32 = 0;
-    let mut xtxtlen: i32 = 0;
-    let mut x1: [f64; 1536] = [0.; 1536];
-    let mut x2: [f64; 2304] = [0.; 2304];
-    let mut x1len: i32 = 0;
-    let mut x2len: i32 = 0;
-    let mut dety: [f64; 384] = [0.; 384];
-    let mut detyy: [f64; 768] = [0.; 768];
-    let mut detyt: [f64; 384] = [0.; 384];
-    let mut detyyt: [f64; 768] = [0.; 768];
-    let mut detytyt: [f64; 768] = [0.; 768];
-    let mut ylen: i32 = 0;
-    let mut yylen: i32 = 0;
-    let mut ytlen: i32 = 0;
-    let mut yytlen: i32 = 0;
-    let mut ytytlen: i32 = 0;
-    let mut y1: [f64; 1536] = [0.; 1536];
-    let mut y2: [f64; 2304] = [0.; 2304];
-    let mut y1len: i32 = 0;
-    let mut y2len: i32 = 0;
-    let mut detz: [f64; 384] = [0.; 384];
-    let mut detzz: [f64; 768] = [0.; 768];
-    let mut detzt: [f64; 384] = [0.; 384];
-    let mut detzzt: [f64; 768] = [0.; 768];
-    let mut detztzt: [f64; 768] = [0.; 768];
-    let mut zlen: i32 = 0;
-    let mut zzlen: i32 = 0;
-    let mut ztlen: i32 = 0;
-    let mut zztlen: i32 = 0;
-    let mut ztztlen: i32 = 0;
-    let mut z1: [f64; 1536] = [0.; 1536];
-    let mut z2: [f64; 2304] = [0.; 2304];
-    let mut z1len: i32 = 0;
-    let mut z2len: i32 = 0;
-    let mut detxy: [f64; 4608] = [0.; 4608];
-    let mut xylen: i32 = 0;
-    let mut adet: [f64; 6912] = [0.; 6912];
-    let mut bdet: [f64; 6912] = [0.; 6912];
-    let mut cdet: [f64; 6912] = [0.; 6912];
-    let mut ddet: [f64; 6912] = [0.; 6912];
-    let mut alen: i32 = 0;
-    let mut blen: i32 = 0;
-    let mut clen: i32 = 0;
-    let mut dlen: i32 = 0;
-    let mut abdet: [f64; 13824] = [0.; 13824];
-    let mut cddet: [f64; 13824] = [0.; 13824];
-    let mut deter: [f64; 27648] = [0.; 27648];
-    let mut deterlen: i32 = 0;
-    let mut i: i32 = 0;
-    let mut bvirt: f64 = 0.;
-    let mut avirt: f64 = 0.;
-    let mut bround: f64 = 0.;
-    let mut around: f64 = 0.;
-    let mut c: f64 = 0.;
-    let mut abig: f64 = 0.;
-    let mut a0hi: f64 = 0.;
-    let mut a0lo: f64 = 0.;
-    let mut a1hi: f64 = 0.;
-    let mut a1lo: f64 = 0.;
-    let mut bhi: f64 = 0.;
-    let mut blo: f64 = 0.;
-    let mut err1: f64 = 0.;
-    let mut err2: f64 = 0.;
-    let mut err3: f64 = 0.;
-    let mut _i: f64 = 0.;
-    let mut _j: f64 = 0.;
-    let mut _k: f64 = 0.;
-    let mut _l: f64 = 0.;
-    let mut _m: f64 = 0.;
-    let mut _n: f64 = 0.;
-    let mut _0: f64 = 0.;
-    let mut _1: f64 = 0.;
-    let mut _2: f64 = 0.;
-    Two_Diff(*pa.offset(0 as i32 as isize),
-             *pe.offset(0 as i32 as isize), &mut aex, &mut aextail);
-    Two_Diff(*pa.offset(1 as i32 as isize),
-             *pe.offset(1 as i32 as isize), &mut aey, &mut aeytail);
-    Two_Diff(*pa.offset(2 as i32 as isize),
-             *pe.offset(2 as i32 as isize), &mut aez, &mut aeztail);
-    Two_Diff(*pb.offset(0 as i32 as isize),
-             *pe.offset(0 as i32 as isize), &mut bex, &mut bextail);
-    Two_Diff(*pb.offset(1 as i32 as isize),
-             *pe.offset(1 as i32 as isize), &mut bey, &mut beytail);
-    Two_Diff(*pb.offset(2 as i32 as isize),
-             *pe.offset(2 as i32 as isize), &mut bez, &mut beztail);
-    Two_Diff(*pc.offset(0 as i32 as isize),
-             *pe.offset(0 as i32 as isize), &mut cex, &mut cextail);
-    Two_Diff(*pc.offset(1 as i32 as isize),
-             *pe.offset(1 as i32 as isize), &mut cey, &mut ceytail);
-    Two_Diff(*pc.offset(2 as i32 as isize),
-             *pe.offset(2 as i32 as isize), &mut cez, &mut ceztail);
-    Two_Diff(*pd.offset(0 as i32 as isize),
-             *pe.offset(0 as i32 as isize), &mut dex, &mut dextail);
-    Two_Diff(*pd.offset(1 as i32 as isize),
-             *pe.offset(1 as i32 as isize), &mut dey, &mut deytail);
-    Two_Diff(*pd.offset(2 as i32 as isize),
-             *pe.offset(2 as i32 as isize), &mut dez, &mut deztail);
-    Two_Two_Product(aex, aextail, bey, beytail, axby.as_mut_ptr());
-    negate = -aey;
-    negatetail = -aeytail;
-    Two_Two_Product(bex, bextail, negate, negatetail, bxay.as_mut_ptr());
-    ablen =
-        fast_expansion_sum_zeroelim(8 as i32, axby.as_mut_ptr(),
-                                    8 as i32, bxay.as_mut_ptr(),
-                                    ab.as_mut_ptr());
-    Two_Two_Product(bex, bextail, cey, ceytail, bxcy.as_mut_ptr());
-    negate = -bey;
-    negatetail = -beytail;
-    Two_Two_Product(cex, cextail, negate, negatetail, cxby.as_mut_ptr());
-    bclen =
-        fast_expansion_sum_zeroelim(8 as i32, bxcy.as_mut_ptr(),
-                                    8 as i32, cxby.as_mut_ptr(),
-                                    bc.as_mut_ptr());
-    Two_Two_Product(cex, cextail, dey, deytail, cxdy.as_mut_ptr());
-    negate = -cey;
-    negatetail = -ceytail;
-    Two_Two_Product(dex, dextail, negate, negatetail, dxcy.as_mut_ptr());
-    cdlen =
-        fast_expansion_sum_zeroelim(8 as i32, cxdy.as_mut_ptr(),
-                                    8 as i32, dxcy.as_mut_ptr(),
-                                    cd.as_mut_ptr());
-    Two_Two_Product(dex, dextail, aey, aeytail, dxay.as_mut_ptr());
-    negate = -dey;
-    negatetail = -deytail;
-    Two_Two_Product(aex, aextail, negate, negatetail, axdy.as_mut_ptr());
-    dalen =
-        fast_expansion_sum_zeroelim(8 as i32, dxay.as_mut_ptr(),
-                                    8 as i32, axdy.as_mut_ptr(),
-                                    da.as_mut_ptr());
-    Two_Two_Product(aex, aextail, cey, ceytail, axcy.as_mut_ptr());
-    negate = -aey;
-    negatetail = -aeytail;
-    Two_Two_Product(cex, cextail, negate, negatetail, cxay.as_mut_ptr());
-    aclen =
-        fast_expansion_sum_zeroelim(8 as i32, axcy.as_mut_ptr(),
-                                    8 as i32, cxay.as_mut_ptr(),
-                                    ac.as_mut_ptr());
-    Two_Two_Product(bex, bextail, dey, deytail, bxdy.as_mut_ptr());
-    negate = -bey;
-    negatetail = -beytail;
-    Two_Two_Product(dex, dextail, negate, negatetail, dxby.as_mut_ptr());
-    bdlen =
-        fast_expansion_sum_zeroelim(8 as i32, bxdy.as_mut_ptr(),
-                                    8 as i32, dxby.as_mut_ptr(),
-                                    bd.as_mut_ptr());
-    temp32alen =
-        scale_expansion_zeroelim(cdlen, cd.as_mut_ptr(), -bez,
-                                 temp32a.as_mut_ptr());
-    temp32blen =
-        scale_expansion_zeroelim(cdlen, cd.as_mut_ptr(), -beztail,
-                                 temp32b.as_mut_ptr());
-    temp64alen =
-        fast_expansion_sum_zeroelim(temp32alen, temp32a.as_mut_ptr(),
-                                    temp32blen, temp32b.as_mut_ptr(),
-                                    temp64a.as_mut_ptr());
-    temp32alen =
-        scale_expansion_zeroelim(bdlen, bd.as_mut_ptr(), cez,
-                                 temp32a.as_mut_ptr());
-    temp32blen =
-        scale_expansion_zeroelim(bdlen, bd.as_mut_ptr(), ceztail,
-                                 temp32b.as_mut_ptr());
-    temp64blen =
-        fast_expansion_sum_zeroelim(temp32alen, temp32a.as_mut_ptr(),
-                                    temp32blen, temp32b.as_mut_ptr(),
-                                    temp64b.as_mut_ptr());
-    temp32alen =
-        scale_expansion_zeroelim(bclen, bc.as_mut_ptr(), -dez,
-                                 temp32a.as_mut_ptr());
-    temp32blen =
-        scale_expansion_zeroelim(bclen, bc.as_mut_ptr(), -deztail,
-                                 temp32b.as_mut_ptr());
-    temp64clen =
-        fast_expansion_sum_zeroelim(temp32alen, temp32a.as_mut_ptr(),
-                                    temp32blen, temp32b.as_mut_ptr(),
-                                    temp64c.as_mut_ptr());
-    temp128len =
-        fast_expansion_sum_zeroelim(temp64alen, temp64a.as_mut_ptr(),
-                                    temp64blen, temp64b.as_mut_ptr(),
-                                    temp128.as_mut_ptr());
-    temp192len =
-        fast_expansion_sum_zeroelim(temp64clen, temp64c.as_mut_ptr(),
-                                    temp128len, temp128.as_mut_ptr(),
-                                    temp192.as_mut_ptr());
-    xlen =
-        scale_expansion_zeroelim(temp192len, temp192.as_mut_ptr(), aex,
-                                 detx.as_mut_ptr());
-    xxlen =
-        scale_expansion_zeroelim(xlen, detx.as_mut_ptr(), aex,
-                                 detxx.as_mut_ptr());
-    xtlen =
-        scale_expansion_zeroelim(temp192len, temp192.as_mut_ptr(), aextail,
-                                 detxt.as_mut_ptr());
-    xxtlen =
-        scale_expansion_zeroelim(xtlen, detxt.as_mut_ptr(), aex,
-                                 detxxt.as_mut_ptr());
-    i = 0 as i32;
-    while i < xxtlen { detxxt[i as usize] *= 2.0f64; i += 1 }
-    xtxtlen =
-        scale_expansion_zeroelim(xtlen, detxt.as_mut_ptr(), aextail,
-                                 detxtxt.as_mut_ptr());
-    x1len =
-        fast_expansion_sum_zeroelim(xxlen, detxx.as_mut_ptr(), xxtlen,
-                                    detxxt.as_mut_ptr(), x1.as_mut_ptr());
-    x2len =
-        fast_expansion_sum_zeroelim(x1len, x1.as_mut_ptr(), xtxtlen,
-                                    detxtxt.as_mut_ptr(), x2.as_mut_ptr());
-    ylen =
-        scale_expansion_zeroelim(temp192len, temp192.as_mut_ptr(), aey,
-                                 dety.as_mut_ptr());
-    yylen =
-        scale_expansion_zeroelim(ylen, dety.as_mut_ptr(), aey,
-                                 detyy.as_mut_ptr());
-    ytlen =
-        scale_expansion_zeroelim(temp192len, temp192.as_mut_ptr(), aeytail,
-                                 detyt.as_mut_ptr());
-    yytlen =
-        scale_expansion_zeroelim(ytlen, detyt.as_mut_ptr(), aey,
-                                 detyyt.as_mut_ptr());
-    i = 0 as i32;
-    while i < yytlen { detyyt[i as usize] *= 2.0f64; i += 1 }
-    ytytlen =
-        scale_expansion_zeroelim(ytlen, detyt.as_mut_ptr(), aeytail,
-                                 detytyt.as_mut_ptr());
-    y1len =
-        fast_expansion_sum_zeroelim(yylen, detyy.as_mut_ptr(), yytlen,
-                                    detyyt.as_mut_ptr(), y1.as_mut_ptr());
-    y2len =
-        fast_expansion_sum_zeroelim(y1len, y1.as_mut_ptr(), ytytlen,
-                                    detytyt.as_mut_ptr(), y2.as_mut_ptr());
-    zlen =
-        scale_expansion_zeroelim(temp192len, temp192.as_mut_ptr(), aez,
-                                 detz.as_mut_ptr());
-    zzlen =
-        scale_expansion_zeroelim(zlen, detz.as_mut_ptr(), aez,
-                                 detzz.as_mut_ptr());
-    ztlen =
-        scale_expansion_zeroelim(temp192len, temp192.as_mut_ptr(), aeztail,
-                                 detzt.as_mut_ptr());
-    zztlen =
-        scale_expansion_zeroelim(ztlen, detzt.as_mut_ptr(), aez,
-                                 detzzt.as_mut_ptr());
-    i = 0 as i32;
-    while i < zztlen { detzzt[i as usize] *= 2.0f64; i += 1 }
-    ztztlen =
-        scale_expansion_zeroelim(ztlen, detzt.as_mut_ptr(), aeztail,
-                                 detztzt.as_mut_ptr());
-    z1len =
-        fast_expansion_sum_zeroelim(zzlen, detzz.as_mut_ptr(), zztlen,
-                                    detzzt.as_mut_ptr(), z1.as_mut_ptr());
-    z2len =
-        fast_expansion_sum_zeroelim(z1len, z1.as_mut_ptr(), ztztlen,
-                                    detztzt.as_mut_ptr(), z2.as_mut_ptr());
-    xylen =
-        fast_expansion_sum_zeroelim(x2len, x2.as_mut_ptr(), y2len,
-                                    y2.as_mut_ptr(), detxy.as_mut_ptr());
-    alen =
-        fast_expansion_sum_zeroelim(z2len, z2.as_mut_ptr(), xylen,
-                                    detxy.as_mut_ptr(), adet.as_mut_ptr());
-    temp32alen =
-        scale_expansion_zeroelim(dalen, da.as_mut_ptr(), cez,
-                                 temp32a.as_mut_ptr());
-    temp32blen =
-        scale_expansion_zeroelim(dalen, da.as_mut_ptr(), ceztail,
-                                 temp32b.as_mut_ptr());
-    temp64alen =
-        fast_expansion_sum_zeroelim(temp32alen, temp32a.as_mut_ptr(),
-                                    temp32blen, temp32b.as_mut_ptr(),
-                                    temp64a.as_mut_ptr());
-    temp32alen =
-        scale_expansion_zeroelim(aclen, ac.as_mut_ptr(), dez,
-                                 temp32a.as_mut_ptr());
-    temp32blen =
-        scale_expansion_zeroelim(aclen, ac.as_mut_ptr(), deztail,
-                                 temp32b.as_mut_ptr());
-    temp64blen =
-        fast_expansion_sum_zeroelim(temp32alen, temp32a.as_mut_ptr(),
-                                    temp32blen, temp32b.as_mut_ptr(),
-                                    temp64b.as_mut_ptr());
-    temp32alen =
-        scale_expansion_zeroelim(cdlen, cd.as_mut_ptr(), aez,
-                                 temp32a.as_mut_ptr());
-    temp32blen =
-        scale_expansion_zeroelim(cdlen, cd.as_mut_ptr(), aeztail,
-                                 temp32b.as_mut_ptr());
-    temp64clen =
-        fast_expansion_sum_zeroelim(temp32alen, temp32a.as_mut_ptr(),
-                                    temp32blen, temp32b.as_mut_ptr(),
-                                    temp64c.as_mut_ptr());
-    temp128len =
-        fast_expansion_sum_zeroelim(temp64alen, temp64a.as_mut_ptr(),
-                                    temp64blen, temp64b.as_mut_ptr(),
-                                    temp128.as_mut_ptr());
-    temp192len =
-        fast_expansion_sum_zeroelim(temp64clen, temp64c.as_mut_ptr(),
-                                    temp128len, temp128.as_mut_ptr(),
-                                    temp192.as_mut_ptr());
-    xlen =
-        scale_expansion_zeroelim(temp192len, temp192.as_mut_ptr(), bex,
-                                 detx.as_mut_ptr());
-    xxlen =
-        scale_expansion_zeroelim(xlen, detx.as_mut_ptr(), bex,
-                                 detxx.as_mut_ptr());
-    xtlen =
-        scale_expansion_zeroelim(temp192len, temp192.as_mut_ptr(), bextail,
-                                 detxt.as_mut_ptr());
-    xxtlen =
-        scale_expansion_zeroelim(xtlen, detxt.as_mut_ptr(), bex,
-                                 detxxt.as_mut_ptr());
-    i = 0 as i32;
-    while i < xxtlen { detxxt[i as usize] *= 2.0f64; i += 1 }
-    xtxtlen =
-        scale_expansion_zeroelim(xtlen, detxt.as_mut_ptr(), bextail,
-                                 detxtxt.as_mut_ptr());
-    x1len =
-        fast_expansion_sum_zeroelim(xxlen, detxx.as_mut_ptr(), xxtlen,
-                                    detxxt.as_mut_ptr(), x1.as_mut_ptr());
-    x2len =
-        fast_expansion_sum_zeroelim(x1len, x1.as_mut_ptr(), xtxtlen,
-                                    detxtxt.as_mut_ptr(), x2.as_mut_ptr());
-    ylen =
-        scale_expansion_zeroelim(temp192len, temp192.as_mut_ptr(), bey,
-                                 dety.as_mut_ptr());
-    yylen =
-        scale_expansion_zeroelim(ylen, dety.as_mut_ptr(), bey,
-                                 detyy.as_mut_ptr());
-    ytlen =
-        scale_expansion_zeroelim(temp192len, temp192.as_mut_ptr(), beytail,
-                                 detyt.as_mut_ptr());
-    yytlen =
-        scale_expansion_zeroelim(ytlen, detyt.as_mut_ptr(), bey,
-                                 detyyt.as_mut_ptr());
-    i = 0 as i32;
-    while i < yytlen { detyyt[i as usize] *= 2.0f64; i += 1 }
-    ytytlen =
-        scale_expansion_zeroelim(ytlen, detyt.as_mut_ptr(), beytail,
-                                 detytyt.as_mut_ptr());
-    y1len =
-        fast_expansion_sum_zeroelim(yylen, detyy.as_mut_ptr(), yytlen,
-                                    detyyt.as_mut_ptr(), y1.as_mut_ptr());
-    y2len =
-        fast_expansion_sum_zeroelim(y1len, y1.as_mut_ptr(), ytytlen,
-                                    detytyt.as_mut_ptr(), y2.as_mut_ptr());
-    zlen =
-        scale_expansion_zeroelim(temp192len, temp192.as_mut_ptr(), bez,
-                                 detz.as_mut_ptr());
-    zzlen =
-        scale_expansion_zeroelim(zlen, detz.as_mut_ptr(), bez,
-                                 detzz.as_mut_ptr());
-    ztlen =
-        scale_expansion_zeroelim(temp192len, temp192.as_mut_ptr(), beztail,
-                                 detzt.as_mut_ptr());
-    zztlen =
-        scale_expansion_zeroelim(ztlen, detzt.as_mut_ptr(), bez,
-                                 detzzt.as_mut_ptr());
-    i = 0 as i32;
-    while i < zztlen { detzzt[i as usize] *= 2.0f64; i += 1 }
-    ztztlen =
-        scale_expansion_zeroelim(ztlen, detzt.as_mut_ptr(), beztail,
-                                 detztzt.as_mut_ptr());
-    z1len =
-        fast_expansion_sum_zeroelim(zzlen, detzz.as_mut_ptr(), zztlen,
-                                    detzzt.as_mut_ptr(), z1.as_mut_ptr());
-    z2len =
-        fast_expansion_sum_zeroelim(z1len, z1.as_mut_ptr(), ztztlen,
-                                    detztzt.as_mut_ptr(), z2.as_mut_ptr());
-    xylen =
-        fast_expansion_sum_zeroelim(x2len, x2.as_mut_ptr(), y2len,
-                                    y2.as_mut_ptr(), detxy.as_mut_ptr());
-    blen =
-        fast_expansion_sum_zeroelim(z2len, z2.as_mut_ptr(), xylen,
-                                    detxy.as_mut_ptr(), bdet.as_mut_ptr());
-    temp32alen =
-        scale_expansion_zeroelim(ablen, ab.as_mut_ptr(), -dez,
-                                 temp32a.as_mut_ptr());
-    temp32blen =
-        scale_expansion_zeroelim(ablen, ab.as_mut_ptr(), -deztail,
-                                 temp32b.as_mut_ptr());
-    temp64alen =
-        fast_expansion_sum_zeroelim(temp32alen, temp32a.as_mut_ptr(),
-                                    temp32blen, temp32b.as_mut_ptr(),
-                                    temp64a.as_mut_ptr());
-    temp32alen =
-        scale_expansion_zeroelim(bdlen, bd.as_mut_ptr(), -aez,
-                                 temp32a.as_mut_ptr());
-    temp32blen =
-        scale_expansion_zeroelim(bdlen, bd.as_mut_ptr(), -aeztail,
-                                 temp32b.as_mut_ptr());
-    temp64blen =
-        fast_expansion_sum_zeroelim(temp32alen, temp32a.as_mut_ptr(),
-                                    temp32blen, temp32b.as_mut_ptr(),
-                                    temp64b.as_mut_ptr());
-    temp32alen =
-        scale_expansion_zeroelim(dalen, da.as_mut_ptr(), -bez,
-                                 temp32a.as_mut_ptr());
-    temp32blen =
-        scale_expansion_zeroelim(dalen, da.as_mut_ptr(), -beztail,
-                                 temp32b.as_mut_ptr());
-    temp64clen =
-        fast_expansion_sum_zeroelim(temp32alen, temp32a.as_mut_ptr(),
-                                    temp32blen, temp32b.as_mut_ptr(),
-                                    temp64c.as_mut_ptr());
-    temp128len =
-        fast_expansion_sum_zeroelim(temp64alen, temp64a.as_mut_ptr(),
-                                    temp64blen, temp64b.as_mut_ptr(),
-                                    temp128.as_mut_ptr());
-    temp192len =
-        fast_expansion_sum_zeroelim(temp64clen, temp64c.as_mut_ptr(),
-                                    temp128len, temp128.as_mut_ptr(),
-                                    temp192.as_mut_ptr());
-    xlen =
-        scale_expansion_zeroelim(temp192len, temp192.as_mut_ptr(), cex,
-                                 detx.as_mut_ptr());
-    xxlen =
-        scale_expansion_zeroelim(xlen, detx.as_mut_ptr(), cex,
-                                 detxx.as_mut_ptr());
-    xtlen =
-        scale_expansion_zeroelim(temp192len, temp192.as_mut_ptr(), cextail,
-                                 detxt.as_mut_ptr());
-    xxtlen =
-        scale_expansion_zeroelim(xtlen, detxt.as_mut_ptr(), cex,
-                                 detxxt.as_mut_ptr());
-    i = 0 as i32;
-    while i < xxtlen { detxxt[i as usize] *= 2.0f64; i += 1 }
-    xtxtlen =
-        scale_expansion_zeroelim(xtlen, detxt.as_mut_ptr(), cextail,
-                                 detxtxt.as_mut_ptr());
-    x1len =
-        fast_expansion_sum_zeroelim(xxlen, detxx.as_mut_ptr(), xxtlen,
-                                    detxxt.as_mut_ptr(), x1.as_mut_ptr());
-    x2len =
-        fast_expansion_sum_zeroelim(x1len, x1.as_mut_ptr(), xtxtlen,
-                                    detxtxt.as_mut_ptr(), x2.as_mut_ptr());
-    ylen =
-        scale_expansion_zeroelim(temp192len, temp192.as_mut_ptr(), cey,
-                                 dety.as_mut_ptr());
-    yylen =
-        scale_expansion_zeroelim(ylen, dety.as_mut_ptr(), cey,
-                                 detyy.as_mut_ptr());
-    ytlen =
-        scale_expansion_zeroelim(temp192len, temp192.as_mut_ptr(), ceytail,
-                                 detyt.as_mut_ptr());
-    yytlen =
-        scale_expansion_zeroelim(ytlen, detyt.as_mut_ptr(), cey,
-                                 detyyt.as_mut_ptr());
-    i = 0 as i32;
-    while i < yytlen { detyyt[i as usize] *= 2.0f64; i += 1 }
-    ytytlen =
-        scale_expansion_zeroelim(ytlen, detyt.as_mut_ptr(), ceytail,
-                                 detytyt.as_mut_ptr());
-    y1len =
-        fast_expansion_sum_zeroelim(yylen, detyy.as_mut_ptr(), yytlen,
-                                    detyyt.as_mut_ptr(), y1.as_mut_ptr());
-    y2len =
-        fast_expansion_sum_zeroelim(y1len, y1.as_mut_ptr(), ytytlen,
-                                    detytyt.as_mut_ptr(), y2.as_mut_ptr());
-    zlen =
-        scale_expansion_zeroelim(temp192len, temp192.as_mut_ptr(), cez,
-                                 detz.as_mut_ptr());
-    zzlen =
-        scale_expansion_zeroelim(zlen, detz.as_mut_ptr(), cez,
-                                 detzz.as_mut_ptr());
-    ztlen =
-        scale_expansion_zeroelim(temp192len, temp192.as_mut_ptr(), ceztail,
-                                 detzt.as_mut_ptr());
-    zztlen =
-        scale_expansion_zeroelim(ztlen, detzt.as_mut_ptr(), cez,
-                                 detzzt.as_mut_ptr());
-    i = 0 as i32;
-    while i < zztlen { detzzt[i as usize] *= 2.0f64; i += 1 }
-    ztztlen =
-        scale_expansion_zeroelim(ztlen, detzt.as_mut_ptr(), ceztail,
-                                 detztzt.as_mut_ptr());
-    z1len =
-        fast_expansion_sum_zeroelim(zzlen, detzz.as_mut_ptr(), zztlen,
-                                    detzzt.as_mut_ptr(), z1.as_mut_ptr());
-    z2len =
-        fast_expansion_sum_zeroelim(z1len, z1.as_mut_ptr(), ztztlen,
-                                    detztzt.as_mut_ptr(), z2.as_mut_ptr());
-    xylen =
-        fast_expansion_sum_zeroelim(x2len, x2.as_mut_ptr(), y2len,
-                                    y2.as_mut_ptr(), detxy.as_mut_ptr());
-    clen =
-        fast_expansion_sum_zeroelim(z2len, z2.as_mut_ptr(), xylen,
-                                    detxy.as_mut_ptr(), cdet.as_mut_ptr());
-    temp32alen =
-        scale_expansion_zeroelim(bclen, bc.as_mut_ptr(), aez,
-                                 temp32a.as_mut_ptr());
-    temp32blen =
-        scale_expansion_zeroelim(bclen, bc.as_mut_ptr(), aeztail,
-                                 temp32b.as_mut_ptr());
-    temp64alen =
-        fast_expansion_sum_zeroelim(temp32alen, temp32a.as_mut_ptr(),
-                                    temp32blen, temp32b.as_mut_ptr(),
-                                    temp64a.as_mut_ptr());
-    temp32alen =
-        scale_expansion_zeroelim(aclen, ac.as_mut_ptr(), -bez,
-                                 temp32a.as_mut_ptr());
-    temp32blen =
-        scale_expansion_zeroelim(aclen, ac.as_mut_ptr(), -beztail,
-                                 temp32b.as_mut_ptr());
-    temp64blen =
-        fast_expansion_sum_zeroelim(temp32alen, temp32a.as_mut_ptr(),
-                                    temp32blen, temp32b.as_mut_ptr(),
-                                    temp64b.as_mut_ptr());
-    temp32alen =
-        scale_expansion_zeroelim(ablen, ab.as_mut_ptr(), cez,
-                                 temp32a.as_mut_ptr());
-    temp32blen =
-        scale_expansion_zeroelim(ablen, ab.as_mut_ptr(), ceztail,
-                                 temp32b.as_mut_ptr());
-    temp64clen =
-        fast_expansion_sum_zeroelim(temp32alen, temp32a.as_mut_ptr(),
-                                    temp32blen, temp32b.as_mut_ptr(),
-                                    temp64c.as_mut_ptr());
-    temp128len =
-        fast_expansion_sum_zeroelim(temp64alen, temp64a.as_mut_ptr(),
-                                    temp64blen, temp64b.as_mut_ptr(),
-                                    temp128.as_mut_ptr());
-    temp192len =
-        fast_expansion_sum_zeroelim(temp64clen, temp64c.as_mut_ptr(),
-                                    temp128len, temp128.as_mut_ptr(),
-                                    temp192.as_mut_ptr());
-    xlen =
-        scale_expansion_zeroelim(temp192len, temp192.as_mut_ptr(), dex,
-                                 detx.as_mut_ptr());
-    xxlen =
-        scale_expansion_zeroelim(xlen, detx.as_mut_ptr(), dex,
-                                 detxx.as_mut_ptr());
-    xtlen =
-        scale_expansion_zeroelim(temp192len, temp192.as_mut_ptr(), dextail,
-                                 detxt.as_mut_ptr());
-    xxtlen =
-        scale_expansion_zeroelim(xtlen, detxt.as_mut_ptr(), dex,
-                                 detxxt.as_mut_ptr());
-    i = 0 as i32;
-    while i < xxtlen { detxxt[i as usize] *= 2.0f64; i += 1 }
-    xtxtlen =
-        scale_expansion_zeroelim(xtlen, detxt.as_mut_ptr(), dextail,
-                                 detxtxt.as_mut_ptr());
-    x1len =
-        fast_expansion_sum_zeroelim(xxlen, detxx.as_mut_ptr(), xxtlen,
-                                    detxxt.as_mut_ptr(), x1.as_mut_ptr());
-    x2len =
-        fast_expansion_sum_zeroelim(x1len, x1.as_mut_ptr(), xtxtlen,
-                                    detxtxt.as_mut_ptr(), x2.as_mut_ptr());
-    ylen =
-        scale_expansion_zeroelim(temp192len, temp192.as_mut_ptr(), dey,
-                                 dety.as_mut_ptr());
-    yylen =
-        scale_expansion_zeroelim(ylen, dety.as_mut_ptr(), dey,
-                                 detyy.as_mut_ptr());
-    ytlen =
-        scale_expansion_zeroelim(temp192len, temp192.as_mut_ptr(), deytail,
-                                 detyt.as_mut_ptr());
-    yytlen =
-        scale_expansion_zeroelim(ytlen, detyt.as_mut_ptr(), dey,
-                                 detyyt.as_mut_ptr());
-    i = 0 as i32;
-    while i < yytlen { detyyt[i as usize] *= 2.0f64; i += 1 }
-    ytytlen =
-        scale_expansion_zeroelim(ytlen, detyt.as_mut_ptr(), deytail,
-                                 detytyt.as_mut_ptr());
-    y1len =
-        fast_expansion_sum_zeroelim(yylen, detyy.as_mut_ptr(), yytlen,
-                                    detyyt.as_mut_ptr(), y1.as_mut_ptr());
-    y2len =
-        fast_expansion_sum_zeroelim(y1len, y1.as_mut_ptr(), ytytlen,
-                                    detytyt.as_mut_ptr(), y2.as_mut_ptr());
-    zlen =
-        scale_expansion_zeroelim(temp192len, temp192.as_mut_ptr(), dez,
-                                 detz.as_mut_ptr());
-    zzlen =
-        scale_expansion_zeroelim(zlen, detz.as_mut_ptr(), dez,
-                                 detzz.as_mut_ptr());
-    ztlen =
-        scale_expansion_zeroelim(temp192len, temp192.as_mut_ptr(), deztail,
-                                 detzt.as_mut_ptr());
-    zztlen =
-        scale_expansion_zeroelim(ztlen, detzt.as_mut_ptr(), dez,
-                                 detzzt.as_mut_ptr());
-    i = 0 as i32;
-    while i < zztlen { detzzt[i as usize] *= 2.0f64; i += 1 }
-    ztztlen =
-        scale_expansion_zeroelim(ztlen, detzt.as_mut_ptr(), deztail,
-                                 detztzt.as_mut_ptr());
-    z1len =
-        fast_expansion_sum_zeroelim(zzlen, detzz.as_mut_ptr(), zztlen,
-                                    detzzt.as_mut_ptr(), z1.as_mut_ptr());
-    z2len =
-        fast_expansion_sum_zeroelim(z1len, z1.as_mut_ptr(), ztztlen,
-                                    detztzt.as_mut_ptr(), z2.as_mut_ptr());
-    xylen =
-        fast_expansion_sum_zeroelim(x2len, x2.as_mut_ptr(), y2len,
-                                    y2.as_mut_ptr(), detxy.as_mut_ptr());
-    dlen =
-        fast_expansion_sum_zeroelim(z2len, z2.as_mut_ptr(), xylen,
-                                    detxy.as_mut_ptr(), ddet.as_mut_ptr());
-    ablen =
-        fast_expansion_sum_zeroelim(alen, adet.as_mut_ptr(), blen,
-                                    bdet.as_mut_ptr(), abdet.as_mut_ptr());
-    cdlen =
-        fast_expansion_sum_zeroelim(clen, cdet.as_mut_ptr(), dlen,
-                                    ddet.as_mut_ptr(), cddet.as_mut_ptr());
-    deterlen =
-        fast_expansion_sum_zeroelim(ablen, abdet.as_mut_ptr(), cdlen,
-                                    cddet.as_mut_ptr(), deter.as_mut_ptr());
-    return deter[(deterlen - 1 as i32) as usize];
+#[inline]
+pub fn insphere_slow(pa: [f64; 3], pb: [f64; 3], pc: [f64; 3], pd: [f64; 3], pe: [f64; 3]) -> f64 {
+    let mut ab = [0.; 16];
+    let mut bc = [0.; 16];
+    let mut cd = [0.; 16];
+    let mut da = [0.; 16];
+    let mut ac = [0.; 16];
+    let mut bd = [0.; 16];
+    let mut temp32a = [0.; 32];
+    let mut temp32b = [0.; 32];
+    let mut temp64a = [0.; 64];
+    let mut temp64b = [0.; 64];
+    let mut temp64c = [0.; 64];
+    let mut temp128 = [0.; 128];
+    let mut temp192 = [0.; 192];
+    let mut detx = [0.; 384];
+    let mut detxx = [0.; 768];
+    let mut detxt = [0.; 384];
+    let mut detxxt = [0.; 768];
+    let mut detxtxt = [0.; 768];
+    let mut x1 = [0.; 1536];
+    let mut x2 = [0.; 2304];
+    let mut dety = [0.; 384];
+    let mut detyy = [0.; 768];
+    let mut detyt = [0.; 384];
+    let mut detyyt = [0.; 768];
+    let mut detytyt = [0.; 768];
+    let mut y1 = [0.; 1536];
+    let mut y2 = [0.; 2304];
+    let mut detz = [0.; 384];
+    let mut detzz = [0.; 768];
+    let mut detzt = [0.; 384];
+    let mut detzzt = [0.; 768];
+    let mut detztzt = [0.; 768];
+    let mut z1 = [0.; 1536];
+    let mut z2 = [0.; 2304];
+    let mut detxy = [0.; 4608];
+    let mut adet = [0.; 6912];
+    let mut bdet = [0.; 6912];
+    let mut cdet = [0.; 6912];
+    let mut ddet = [0.; 6912];
+    let mut abdet = [0.; 13824];
+    let mut cddet = [0.; 13824];
+    let mut deter = [0.; 27648];
+    let [aextail, aex] = Two_Diff(pa[0], pe[0]);
+    let [aeytail, aey] = Two_Diff(pa[1], pe[1]);
+    let [aeztail, aez] = Two_Diff(pa[2], pe[2]);
+    let [bextail, bex] = Two_Diff(pb[0], pe[0]);
+    let [beytail, bey] = Two_Diff(pb[1], pe[1]);
+    let [beztail, bez] = Two_Diff(pb[2], pe[2]);
+    let [cextail, cex] = Two_Diff(pc[0], pe[0]);
+    let [ceytail, cey] = Two_Diff(pc[1], pe[1]);
+    let [ceztail, cez] = Two_Diff(pc[2], pe[2]);
+    let [dextail, dex] = Two_Diff(pd[0], pe[0]);
+    let [deytail, dey] = Two_Diff(pd[1], pe[1]);
+    let [deztail, dez] = Two_Diff(pd[2], pe[2]);
+    let axby = Two_Two_Product(aex, aextail, bey, beytail);
+    let negate = -aey;
+    let negatetail = -aeytail;
+    let bxay = Two_Two_Product(bex, bextail, negate, negatetail);
+    let ablen = fast_expansion_sum_zeroelim(&axby, &bxay, &mut ab);
+    let bxcy = Two_Two_Product(bex, bextail, cey, ceytail);
+    let negate = -bey;
+    let negatetail = -beytail;
+    let cxby = Two_Two_Product(cex, cextail, negate, negatetail);
+    let bclen = fast_expansion_sum_zeroelim(&bxcy, &cxby, &mut bc);
+    let cxdy = Two_Two_Product(cex, cextail, dey, deytail);
+    let negate = -cey;
+    let negatetail = -ceytail;
+    let dxcy = Two_Two_Product(dex, dextail, negate, negatetail);
+    let cdlen = fast_expansion_sum_zeroelim(&cxdy, &dxcy, &mut cd);
+    let dxay = Two_Two_Product(dex, dextail, aey, aeytail);
+    let negate = -dey;
+    let negatetail = -deytail;
+    let axdy = Two_Two_Product(aex, aextail, negate, negatetail);
+    let dalen = fast_expansion_sum_zeroelim(&dxay, &axdy, &mut da);
+    let axcy = Two_Two_Product(aex, aextail, cey, ceytail);
+    let negate = -aey;
+    let negatetail = -aeytail;
+    let cxay = Two_Two_Product(cex, cextail, negate, negatetail);
+    let aclen = fast_expansion_sum_zeroelim(&axcy, &cxay, &mut ac);
+    let bxdy = Two_Two_Product(bex, bextail, dey, deytail);
+    let negate = -bey;
+    let negatetail = -beytail;
+    let dxby = Two_Two_Product(dex, dextail, negate, negatetail);
+    let bdlen = fast_expansion_sum_zeroelim(&bxdy, &dxby, &mut bd);
+    let temp32alen = scale_expansion_zeroelim(&cd[..cdlen], -bez, &mut temp32a);
+    let temp32blen = scale_expansion_zeroelim(&cd[..cdlen], -beztail, &mut temp32b);
+    let temp64alen = fast_expansion_sum_zeroelim(&temp32a[..temp32alen], &temp32b[..temp32blen], &mut temp64a);
+    let temp32alen = scale_expansion_zeroelim(&bd[..bdlen], cez, &mut temp32a);
+    let temp32blen = scale_expansion_zeroelim(&bd[..bdlen], ceztail, &mut temp32b);
+    let temp64blen = fast_expansion_sum_zeroelim(&temp32a[..temp32alen], &temp32b[..temp32blen], &mut temp64b);
+    let temp32alen = scale_expansion_zeroelim(&bc[..bclen], -dez, &mut temp32a);
+    let temp32blen = scale_expansion_zeroelim(&bc[..bclen], -deztail, &mut temp32b);
+    let temp64clen = fast_expansion_sum_zeroelim(&temp32a[..temp32alen], &temp32b[..temp32blen], &mut temp64c);
+    let temp128len = fast_expansion_sum_zeroelim(&temp64a[..temp64alen], &temp64b[..temp64blen], &mut temp128);
+    let temp192len = fast_expansion_sum_zeroelim(&temp64c[..temp64clen], &temp128[..temp128len], &mut temp192);
+    let xlen = scale_expansion_zeroelim(&temp192[..temp192len], aex, &mut detx);
+    let xxlen = scale_expansion_zeroelim(&detx[..xlen], aex, &mut detxx);
+    let xtlen = scale_expansion_zeroelim(&temp192[..temp192len], aextail, &mut detxt);
+    let xxtlen = scale_expansion_zeroelim(&detxt[..xtlen], aex, &mut detxxt);
+    detxxt[..xxtlen].iter_mut().for_each(|x| *x *= 2.0);
+    let xtxtlen = scale_expansion_zeroelim(&detxt[..xtlen], aextail, &mut detxtxt);
+    let x1len = fast_expansion_sum_zeroelim(&detxx[..xxlen], &detxxt[..xxtlen], &mut x1);
+    let x2len = fast_expansion_sum_zeroelim(&x1[..x1len], &detxtxt[..xtxtlen], &mut x2);
+    let ylen = scale_expansion_zeroelim(&temp192[..temp192len], aey, &mut dety);
+    let yylen = scale_expansion_zeroelim(&dety[..ylen], aey, &mut detyy);
+    let ytlen = scale_expansion_zeroelim(&temp192[..temp192len], aeytail, &mut detyt);
+    let yytlen = scale_expansion_zeroelim(&detyt[..ytlen], aey, &mut detyyt);
+    detyyt[..yytlen].iter_mut().for_each(|x| *x *= 2.0);
+    let ytytlen = scale_expansion_zeroelim(&detyt[..ytlen], aeytail, &mut detytyt);
+    let y1len = fast_expansion_sum_zeroelim(&detyy[..yylen], &detyyt[..yytlen], &mut y1);
+    let y2len = fast_expansion_sum_zeroelim(&y1[..y1len], &detytyt[..ytytlen], &mut y2);
+    let zlen = scale_expansion_zeroelim(&temp192[..temp192len], aez, &mut detz);
+    let zzlen = scale_expansion_zeroelim(&detz[..zlen], aez, &mut detzz);
+    let ztlen = scale_expansion_zeroelim(&temp192[..temp192len], aeztail, &mut detzt);
+    let zztlen = scale_expansion_zeroelim(&detzt[..ztlen], aez, &mut detzzt);
+    detzzt[..zztlen].iter_mut().for_each(|x| *x *= 2.0);
+    let ztztlen = scale_expansion_zeroelim(&detzt[..ztlen], aeztail, &mut detztzt);
+    let z1len = fast_expansion_sum_zeroelim(&detzz[..zzlen], &detzzt[..zztlen], &mut z1);
+    let z2len = fast_expansion_sum_zeroelim(&z1[..z1len], &detztzt[..ztztlen], &mut z2);
+    let xylen = fast_expansion_sum_zeroelim(&x2[..x2len], &y2[..y2len], &mut detxy);
+    let alen = fast_expansion_sum_zeroelim(&z2[..z2len], &detxy[..xylen], &mut adet);
+    let temp32alen = scale_expansion_zeroelim(&da[..dalen], cez, &mut temp32a);
+    let temp32blen = scale_expansion_zeroelim(&da[..dalen], ceztail, &mut temp32b);
+    let temp64alen = fast_expansion_sum_zeroelim(&temp32a[..temp32alen], &temp32b[..temp32blen], &mut temp64a);
+    let temp32alen = scale_expansion_zeroelim(&ac[..aclen], dez, &mut temp32a);
+    let temp32blen = scale_expansion_zeroelim(&ac[..aclen], deztail, &mut temp32b);
+    let temp64blen = fast_expansion_sum_zeroelim(&temp32a[..temp32alen], &temp32b[..temp32blen], &mut temp64b);
+    let temp32alen = scale_expansion_zeroelim(&cd[..cdlen], aez, &mut temp32a);
+    let temp32blen = scale_expansion_zeroelim(&cd[..cdlen], aeztail, &mut temp32b);
+    let temp64clen = fast_expansion_sum_zeroelim(&temp32a[..temp32alen], &temp32b[..temp32blen], &mut temp64c);
+    let temp128len = fast_expansion_sum_zeroelim(&temp64a[..temp64alen], &temp64b[..temp64blen], &mut temp128);
+    let temp192len = fast_expansion_sum_zeroelim(&temp64c[..temp64clen], &temp128[..temp128len], &mut temp192);
+    let xlen = scale_expansion_zeroelim(&temp192[..temp192len], bex, &mut detx);
+    let xxlen = scale_expansion_zeroelim(&detx[..xlen], bex, &mut detxx);
+    let xtlen = scale_expansion_zeroelim(&temp192[..temp192len], bextail, &mut detxt);
+    let xxtlen = scale_expansion_zeroelim(&detxt[..xtlen], bex, &mut detxxt);
+    detxxt[..xxtlen].iter_mut().for_each(|x| *x *= 2.0);
+    let xtxtlen = scale_expansion_zeroelim(&detxt[..xtlen], bextail, &mut detxtxt);
+    let x1len = fast_expansion_sum_zeroelim(&detxx[..xxlen], &detxxt[..xxtlen], &mut x1);
+    let x2len = fast_expansion_sum_zeroelim(&x1[..x1len], &detxtxt[..xtxtlen], &mut x2);
+    let ylen = scale_expansion_zeroelim(&temp192[..temp192len], bey, &mut dety);
+    let yylen = scale_expansion_zeroelim(&dety[..ylen], bey, &mut detyy);
+    let ytlen = scale_expansion_zeroelim(&temp192[..temp192len], beytail, &mut detyt);
+    let yytlen = scale_expansion_zeroelim(&detyt[..ytlen], bey, &mut detyyt);
+    detyyt[..yytlen].iter_mut().for_each(|x| *x *= 2.0);
+    let ytytlen = scale_expansion_zeroelim(&detyt[..ytlen], beytail, &mut detytyt);
+    let y1len = fast_expansion_sum_zeroelim(&detyy[..yylen], &detyyt[..yytlen], &mut y1);
+    let y2len = fast_expansion_sum_zeroelim(&y1[..y1len], &detytyt[..ytytlen], &mut y2);
+    let zlen = scale_expansion_zeroelim(&temp192[..temp192len], bez, &mut detz);
+    let zzlen = scale_expansion_zeroelim(&detz[..zlen], bez, &mut detzz);
+    let ztlen = scale_expansion_zeroelim(&temp192[..temp192len], beztail, &mut detzt);
+    let zztlen = scale_expansion_zeroelim(&detzt[..ztlen], bez, &mut detzzt);
+    detzzt[..zztlen].iter_mut().for_each(|x| *x *= 2.0);
+    let ztztlen = scale_expansion_zeroelim(&detzt[..ztlen], beztail, &mut detztzt);
+    let z1len = fast_expansion_sum_zeroelim(&detzz[..zzlen], &detzzt[..zztlen], &mut z1);
+    let z2len = fast_expansion_sum_zeroelim(&z1[..z1len], &detztzt[..ztztlen], &mut z2);
+    let xylen = fast_expansion_sum_zeroelim(&x2[..x2len], &y2[..y2len], &mut detxy);
+    let blen = fast_expansion_sum_zeroelim(&z2[..z2len], &detxy[..xylen], &mut bdet);
+    let temp32alen = scale_expansion_zeroelim(&ab[..ablen], -dez, &mut temp32a);
+    let temp32blen = scale_expansion_zeroelim(&ab[..ablen], -deztail, &mut temp32b);
+    let temp64alen = fast_expansion_sum_zeroelim(&temp32a[..temp32alen], &temp32b[..temp32blen], &mut temp64a);
+    let temp32alen = scale_expansion_zeroelim(&bd[..bdlen], -aez, &mut temp32a);
+    let temp32blen = scale_expansion_zeroelim(&bd[..bdlen], -aeztail, &mut temp32b);
+    let temp64blen = fast_expansion_sum_zeroelim(&temp32a[..temp32alen], &temp32b[..temp32blen], &mut temp64b);
+    let temp32alen = scale_expansion_zeroelim(&da[..dalen], -bez, &mut temp32a);
+    let temp32blen = scale_expansion_zeroelim(&da[..dalen], -beztail, &mut temp32b);
+    let temp64clen = fast_expansion_sum_zeroelim(&temp32a[..temp32alen], &temp32b[..temp32blen], &mut temp64c);
+    let temp128len = fast_expansion_sum_zeroelim(&temp64a[..temp64alen], &temp64b[..temp64blen], &mut temp128);
+    let temp192len = fast_expansion_sum_zeroelim(&temp64c[..temp64clen], &temp128[..temp128len], &mut temp192);
+    let xlen = scale_expansion_zeroelim(&temp192[..temp192len], cex, &mut detx);
+    let xxlen = scale_expansion_zeroelim(&detx[..xlen], cex, &mut detxx);
+    let xtlen = scale_expansion_zeroelim(&temp192[..temp192len], cextail, &mut detxt);
+    let xxtlen = scale_expansion_zeroelim(&detxt[..xtlen], cex, &mut detxxt);
+    detxxt[..xxtlen].iter_mut().for_each(|x| *x *= 2.0);
+    let xtxtlen = scale_expansion_zeroelim(&detxt[..xtlen], cextail, &mut detxtxt);
+    let x1len = fast_expansion_sum_zeroelim(&detxx[..xxlen], &detxxt[..xxtlen], &mut x1);
+    let x2len = fast_expansion_sum_zeroelim(&x1[..x1len], &detxtxt[..xtxtlen], &mut x2);
+    let ylen = scale_expansion_zeroelim(&temp192[..temp192len], cey, &mut dety);
+    let yylen = scale_expansion_zeroelim(&dety[..ylen], cey, &mut detyy);
+    let ytlen = scale_expansion_zeroelim(&temp192[..temp192len], ceytail, &mut detyt);
+    let yytlen = scale_expansion_zeroelim(&detyt[..ytlen], cey, &mut detyyt);
+    detyyt[..yytlen].iter_mut().for_each(|x| *x *= 2.0);
+    let ytytlen = scale_expansion_zeroelim(&detyt[..ytlen], ceytail, &mut detytyt);
+    let y1len = fast_expansion_sum_zeroelim(&detyy[..yylen], &detyyt[..yytlen], &mut y1);
+    let y2len = fast_expansion_sum_zeroelim(&y1[..y1len], &detytyt[..ytytlen], &mut y2);
+    let zlen = scale_expansion_zeroelim(&temp192[..temp192len], cez, &mut detz);
+    let zzlen = scale_expansion_zeroelim(&detz[..zlen], cez, &mut detzz);
+    let ztlen = scale_expansion_zeroelim(&temp192[..temp192len], ceztail, &mut detzt);
+    let zztlen = scale_expansion_zeroelim(&detzt[..ztlen], cez, &mut detzzt);
+    detzzt[..zztlen].iter_mut().for_each(|x| *x *= 2.0);
+    let ztztlen = scale_expansion_zeroelim(&detzt[..ztlen], ceztail, &mut detztzt);
+    let z1len = fast_expansion_sum_zeroelim(&detzz[..zzlen], &detzzt[..zztlen], &mut z1);
+    let z2len = fast_expansion_sum_zeroelim(&z1[..z1len], &detztzt[..ztztlen], &mut z2);
+    let xylen = fast_expansion_sum_zeroelim(&x2[..x2len], &y2[..y2len], &mut detxy);
+    let clen = fast_expansion_sum_zeroelim(&z2[..z2len], &detxy[..xylen], &mut cdet);
+    let temp32alen = scale_expansion_zeroelim(&bc[..bclen], aez, &mut temp32a);
+    let temp32blen = scale_expansion_zeroelim(&bc[..bclen], aeztail, &mut temp32b);
+    let temp64alen = fast_expansion_sum_zeroelim(&temp32a[..temp32alen], &temp32b[..temp32blen], &mut temp64a);
+    let temp32alen = scale_expansion_zeroelim(&ac[..aclen], -bez, &mut temp32a);
+    let temp32blen = scale_expansion_zeroelim(&ac[..aclen], -beztail, &mut temp32b);
+    let temp64blen = fast_expansion_sum_zeroelim(&temp32a[..temp32alen], &temp32b[..temp32blen], &mut temp64b);
+    let temp32alen = scale_expansion_zeroelim(&ab[..ablen], cez, &mut temp32a);
+    let temp32blen = scale_expansion_zeroelim(&ab[..ablen], ceztail, &mut temp32b);
+    let temp64clen = fast_expansion_sum_zeroelim(&temp32a[..temp32alen], &temp32b[..temp32blen], &mut temp64c);
+    let temp128len = fast_expansion_sum_zeroelim(&temp64a[..temp64alen], &temp64b[..temp64blen], &mut temp128);
+    let temp192len = fast_expansion_sum_zeroelim(&temp64c[..temp64clen], &temp128[..temp128len], &mut temp192);
+    let xlen = scale_expansion_zeroelim(&temp192[..temp192len], dex, &mut detx);
+    let xxlen = scale_expansion_zeroelim(&detx[..xlen], dex, &mut detxx);
+    let xtlen = scale_expansion_zeroelim(&temp192[..temp192len], dextail, &mut detxt);
+    let xxtlen = scale_expansion_zeroelim(&detxt[..xtlen], dex, &mut detxxt);
+    detxxt[..xxtlen].iter_mut().for_each(|x| *x *= 2.0);
+    let xtxtlen = scale_expansion_zeroelim(&detxt[..xtlen], dextail, &mut detxtxt);
+    let x1len = fast_expansion_sum_zeroelim(&detxx[..xxlen], &detxxt[..xxtlen], &mut x1);
+    let x2len = fast_expansion_sum_zeroelim(&x1[..x1len], &detxtxt[..xtxtlen], &mut x2);
+    let ylen = scale_expansion_zeroelim(&temp192[..temp192len], dey, &mut dety);
+    let yylen = scale_expansion_zeroelim(&dety[..ylen], dey, &mut detyy);
+    let ytlen = scale_expansion_zeroelim(&temp192[..temp192len], deytail, &mut detyt);
+    let yytlen = scale_expansion_zeroelim(&detyt[..ytlen], dey, &mut detyyt);
+    detyyt[..yytlen].iter_mut().for_each(|x| *x *= 2.0);
+    let ytytlen = scale_expansion_zeroelim(&detyt[..ytlen], deytail, &mut detytyt);
+    let y1len = fast_expansion_sum_zeroelim(&detyy[..yylen], &detyyt[..yytlen], &mut y1);
+    let y2len = fast_expansion_sum_zeroelim(&y1[..y1len], &detytyt[..ytytlen], &mut y2);
+    let zlen = scale_expansion_zeroelim(&temp192[..temp192len], dez, &mut detz);
+    let zzlen = scale_expansion_zeroelim(&detz[..zlen], dez, &mut detzz);
+    let ztlen = scale_expansion_zeroelim(&temp192[..temp192len], deztail, &mut detzt);
+    let zztlen = scale_expansion_zeroelim(&detzt[..ztlen], dez, &mut detzzt);
+    detzzt[..zztlen].iter_mut().for_each(|x| *x *= 2.0);
+    let ztztlen = scale_expansion_zeroelim(&detzt[..ztlen], deztail, &mut detztzt);
+    let z1len = fast_expansion_sum_zeroelim(&detzz[..zzlen], &detzzt[..zztlen], &mut z1);
+    let z2len = fast_expansion_sum_zeroelim(&z1[..z1len], &detztzt[..ztztlen], &mut z2);
+    let xylen = fast_expansion_sum_zeroelim(&x2[..x2len], &y2[..y2len], &mut detxy);
+    let dlen = fast_expansion_sum_zeroelim(&z2[..z2len], &detxy[..xylen], &mut ddet);
+    let ablen = fast_expansion_sum_zeroelim(&adet[..alen], &bdet[..blen], &mut abdet);
+    let cdlen = fast_expansion_sum_zeroelim(&cdet[..clen], &ddet[..dlen], &mut cddet);
+    let deterlen = fast_expansion_sum_zeroelim(&abdet[..ablen], &cddet[..cdlen], &mut deter);
+    deter[deterlen - 1]
 }
 
-pub unsafe fn insphereadapt(mut pa: *const f64,
-                                       mut pb: *const f64,
-                                       mut pc: *const f64,
-                                       mut pd: *const f64,
-                                       mut pe: *const f64,
-                                       mut permanent: f64)
- -> f64 {
-    let mut aex: f64 = 0.;
-    let mut bex: f64 = 0.;
-    let mut cex: f64 = 0.;
-    let mut dex: f64 = 0.;
-    let mut aey: f64 = 0.;
-    let mut bey: f64 = 0.;
-    let mut cey: f64 = 0.;
-    let mut dey: f64 = 0.;
-    let mut aez: f64 = 0.;
-    let mut bez: f64 = 0.;
-    let mut cez: f64 = 0.;
-    let mut dez: f64 = 0.;
-    let mut det: f64 = 0.;
-    let mut errbound: f64 = 0.;
-    let mut aexbey1: f64 = 0.;
-    let mut bexaey1: f64 = 0.;
-    let mut bexcey1: f64 = 0.;
-    let mut cexbey1: f64 = 0.;
-    let mut cexdey1: f64 = 0.;
-    let mut dexcey1: f64 = 0.;
-    let mut dexaey1: f64 = 0.;
-    let mut aexdey1: f64 = 0.;
-    let mut aexcey1: f64 = 0.;
-    let mut cexaey1: f64 = 0.;
-    let mut bexdey1: f64 = 0.;
-    let mut dexbey1: f64 = 0.;
-    let mut aexbey0: f64 = 0.;
-    let mut bexaey0: f64 = 0.;
-    let mut bexcey0: f64 = 0.;
-    let mut cexbey0: f64 = 0.;
-    let mut cexdey0: f64 = 0.;
-    let mut dexcey0: f64 = 0.;
-    let mut dexaey0: f64 = 0.;
-    let mut aexdey0: f64 = 0.;
-    let mut aexcey0: f64 = 0.;
-    let mut cexaey0: f64 = 0.;
-    let mut bexdey0: f64 = 0.;
-    let mut dexbey0: f64 = 0.;
-    let mut ab: [f64; 4] = [0.; 4];
-    let mut bc: [f64; 4] = [0.; 4];
-    let mut cd: [f64; 4] = [0.; 4];
-    let mut da: [f64; 4] = [0.; 4];
-    let mut ac: [f64; 4] = [0.; 4];
-    let mut bd: [f64; 4] = [0.; 4];
-    let mut ab3: f64 = 0.;
-    let mut bc3: f64 = 0.;
-    let mut cd3: f64 = 0.;
-    let mut da3: f64 = 0.;
-    let mut ac3: f64 = 0.;
-    let mut bd3: f64 = 0.;
-    let mut abeps: f64 = 0.;
-    let mut bceps: f64 = 0.;
-    let mut cdeps: f64 = 0.;
-    let mut daeps: f64 = 0.;
-    let mut aceps: f64 = 0.;
-    let mut bdeps: f64 = 0.;
+#[inline]
+pub fn insphereadapt(pa: [f64; 3], pb: [f64; 3], pc: [f64; 3], pd: [f64; 3], pe: [f64; 3], permanent: f64) -> f64 {
     let mut temp8a: [f64; 8] = [0.; 8];
     let mut temp8b: [f64; 8] = [0.; 8];
     let mut temp8c: [f64; 8] = [0.; 8];
     let mut temp16: [f64; 16] = [0.; 16];
     let mut temp24: [f64; 24] = [0.; 24];
     let mut temp48: [f64; 48] = [0.; 48];
-    let mut temp8alen: i32 = 0;
-    let mut temp8blen: i32 = 0;
-    let mut temp8clen: i32 = 0;
-    let mut temp16len: i32 = 0;
-    let mut temp24len: i32 = 0;
-    let mut temp48len: i32 = 0;
     let mut xdet: [f64; 96] = [0.; 96];
     let mut ydet: [f64; 96] = [0.; 96];
     let mut zdet: [f64; 96] = [0.; 96];
     let mut xydet: [f64; 192] = [0.; 192];
-    let mut xlen: i32 = 0;
-    let mut ylen: i32 = 0;
-    let mut zlen: i32 = 0;
-    let mut xylen: i32 = 0;
     let mut adet: [f64; 288] = [0.; 288];
     let mut bdet: [f64; 288] = [0.; 288];
     let mut cdet: [f64; 288] = [0.; 288];
     let mut ddet: [f64; 288] = [0.; 288];
-    let mut alen: i32 = 0;
-    let mut blen: i32 = 0;
-    let mut clen: i32 = 0;
-    let mut dlen: i32 = 0;
     let mut abdet: [f64; 576] = [0.; 576];
     let mut cddet: [f64; 576] = [0.; 576];
-    let mut ablen: i32 = 0;
-    let mut cdlen: i32 = 0;
     let mut fin1: [f64; 1152] = [0.; 1152];
-    let mut finlength: i32 = 0;
-    let mut aextail: f64 = 0.;
-    let mut bextail: f64 = 0.;
-    let mut cextail: f64 = 0.;
-    let mut dextail: f64 = 0.;
-    let mut aeytail: f64 = 0.;
-    let mut beytail: f64 = 0.;
-    let mut ceytail: f64 = 0.;
-    let mut deytail: f64 = 0.;
-    let mut aeztail: f64 = 0.;
-    let mut beztail: f64 = 0.;
-    let mut ceztail: f64 = 0.;
-    let mut deztail: f64 = 0.;
-    let mut bvirt: f64 = 0.;
-    let mut avirt: f64 = 0.;
-    let mut bround: f64 = 0.;
-    let mut around: f64 = 0.;
-    let mut c: f64 = 0.;
-    let mut abig: f64 = 0.;
-    let mut ahi: f64 = 0.;
-    let mut alo: f64 = 0.;
-    let mut bhi: f64 = 0.;
-    let mut blo: f64 = 0.;
-    let mut err1: f64 = 0.;
-    let mut err2: f64 = 0.;
-    let mut err3: f64 = 0.;
-    let mut _i: f64 = 0.;
-    let mut _j: f64 = 0.;
-    let mut _0: f64 = 0.;
-    aex =
-        *pa.offset(0 as i32 as isize) -
-            *pe.offset(0 as i32 as isize);
-    bex =
-        *pb.offset(0 as i32 as isize) -
-            *pe.offset(0 as i32 as isize);
-    cex =
-        *pc.offset(0 as i32 as isize) -
-            *pe.offset(0 as i32 as isize);
-    dex =
-        *pd.offset(0 as i32 as isize) -
-            *pe.offset(0 as i32 as isize);
-    aey =
-        *pa.offset(1 as i32 as isize) -
-            *pe.offset(1 as i32 as isize);
-    bey =
-        *pb.offset(1 as i32 as isize) -
-            *pe.offset(1 as i32 as isize);
-    cey =
-        *pc.offset(1 as i32 as isize) -
-            *pe.offset(1 as i32 as isize);
-    dey =
-        *pd.offset(1 as i32 as isize) -
-            *pe.offset(1 as i32 as isize);
-    aez =
-        *pa.offset(2 as i32 as isize) -
-            *pe.offset(2 as i32 as isize);
-    bez =
-        *pb.offset(2 as i32 as isize) -
-            *pe.offset(2 as i32 as isize);
-    cez =
-        *pc.offset(2 as i32 as isize) -
-            *pe.offset(2 as i32 as isize);
-    dez =
-        *pd.offset(2 as i32 as isize) -
-            *pe.offset(2 as i32 as isize);
-    Two_Product(aex, bey, &mut aexbey1, &mut aexbey0);
-    Two_Product(bex, aey, &mut bexaey1, &mut bexaey0);
-    Two_Two_Diff(aexbey1, aexbey0, bexaey1, bexaey0, ab.as_mut_ptr());
-    Two_Product(bex, cey, &mut bexcey1, &mut bexcey0);
-    Two_Product(cex, bey, &mut cexbey1, &mut cexbey0);
-    Two_Two_Diff(bexcey1, bexcey0, cexbey1, cexbey0, bc.as_mut_ptr());
-    Two_Product(cex, dey, &mut cexdey1, &mut cexdey0);
-    Two_Product(dex, cey, &mut dexcey1, &mut dexcey0);
-    Two_Two_Diff(cexdey1, cexdey0, dexcey1, dexcey0, cd.as_mut_ptr());
-    Two_Product(dex, aey, &mut dexaey1, &mut dexaey0);
-    Two_Product(aex, dey, &mut aexdey1, &mut aexdey0);
-    Two_Two_Diff(dexaey1, dexaey0, aexdey1, aexdey0, da.as_mut_ptr());
-    Two_Product(aex, cey, &mut aexcey1, &mut aexcey0);
-    Two_Product(cex, aey, &mut cexaey1, &mut cexaey0);
-    Two_Two_Diff(aexcey1, aexcey0, cexaey1, cexaey0, ac.as_mut_ptr());
-    Two_Product(bex, dey, &mut bexdey1, &mut bexdey0);
-    Two_Product(dex, bey, &mut dexbey1, &mut dexbey0);
-    Two_Two_Diff(bexdey1, bexdey0, dexbey1, dexbey0, bd.as_mut_ptr());
-    temp8alen =
-        scale_expansion_zeroelim(4 as i32, cd.as_mut_ptr(), bez,
-                                 temp8a.as_mut_ptr());
-    temp8blen =
-        scale_expansion_zeroelim(4 as i32, bd.as_mut_ptr(), -cez,
-                                 temp8b.as_mut_ptr());
-    temp8clen =
-        scale_expansion_zeroelim(4 as i32, bc.as_mut_ptr(), dez,
-                                 temp8c.as_mut_ptr());
-    temp16len =
-        fast_expansion_sum_zeroelim(temp8alen, temp8a.as_mut_ptr(), temp8blen,
-                                    temp8b.as_mut_ptr(), temp16.as_mut_ptr());
-    temp24len =
-        fast_expansion_sum_zeroelim(temp8clen, temp8c.as_mut_ptr(), temp16len,
-                                    temp16.as_mut_ptr(), temp24.as_mut_ptr());
-    temp48len =
-        scale_expansion_zeroelim(temp24len, temp24.as_mut_ptr(), aex,
-                                 temp48.as_mut_ptr());
-    xlen =
-        scale_expansion_zeroelim(temp48len, temp48.as_mut_ptr(), -aex,
-                                 xdet.as_mut_ptr());
-    temp48len =
-        scale_expansion_zeroelim(temp24len, temp24.as_mut_ptr(), aey,
-                                 temp48.as_mut_ptr());
-    ylen =
-        scale_expansion_zeroelim(temp48len, temp48.as_mut_ptr(), -aey,
-                                 ydet.as_mut_ptr());
-    temp48len =
-        scale_expansion_zeroelim(temp24len, temp24.as_mut_ptr(), aez,
-                                 temp48.as_mut_ptr());
-    zlen =
-        scale_expansion_zeroelim(temp48len, temp48.as_mut_ptr(), -aez,
-                                 zdet.as_mut_ptr());
-    xylen =
-        fast_expansion_sum_zeroelim(xlen, xdet.as_mut_ptr(), ylen,
-                                    ydet.as_mut_ptr(), xydet.as_mut_ptr());
-    alen =
-        fast_expansion_sum_zeroelim(xylen, xydet.as_mut_ptr(), zlen,
-                                    zdet.as_mut_ptr(), adet.as_mut_ptr());
-    temp8alen =
-        scale_expansion_zeroelim(4 as i32, da.as_mut_ptr(), cez,
-                                 temp8a.as_mut_ptr());
-    temp8blen =
-        scale_expansion_zeroelim(4 as i32, ac.as_mut_ptr(), dez,
-                                 temp8b.as_mut_ptr());
-    temp8clen =
-        scale_expansion_zeroelim(4 as i32, cd.as_mut_ptr(), aez,
-                                 temp8c.as_mut_ptr());
-    temp16len =
-        fast_expansion_sum_zeroelim(temp8alen, temp8a.as_mut_ptr(), temp8blen,
-                                    temp8b.as_mut_ptr(), temp16.as_mut_ptr());
-    temp24len =
-        fast_expansion_sum_zeroelim(temp8clen, temp8c.as_mut_ptr(), temp16len,
-                                    temp16.as_mut_ptr(), temp24.as_mut_ptr());
-    temp48len =
-        scale_expansion_zeroelim(temp24len, temp24.as_mut_ptr(), bex,
-                                 temp48.as_mut_ptr());
-    xlen =
-        scale_expansion_zeroelim(temp48len, temp48.as_mut_ptr(), bex,
-                                 xdet.as_mut_ptr());
-    temp48len =
-        scale_expansion_zeroelim(temp24len, temp24.as_mut_ptr(), bey,
-                                 temp48.as_mut_ptr());
-    ylen =
-        scale_expansion_zeroelim(temp48len, temp48.as_mut_ptr(), bey,
-                                 ydet.as_mut_ptr());
-    temp48len =
-        scale_expansion_zeroelim(temp24len, temp24.as_mut_ptr(), bez,
-                                 temp48.as_mut_ptr());
-    zlen =
-        scale_expansion_zeroelim(temp48len, temp48.as_mut_ptr(), bez,
-                                 zdet.as_mut_ptr());
-    xylen =
-        fast_expansion_sum_zeroelim(xlen, xdet.as_mut_ptr(), ylen,
-                                    ydet.as_mut_ptr(), xydet.as_mut_ptr());
-    blen =
-        fast_expansion_sum_zeroelim(xylen, xydet.as_mut_ptr(), zlen,
-                                    zdet.as_mut_ptr(), bdet.as_mut_ptr());
-    temp8alen =
-        scale_expansion_zeroelim(4 as i32, ab.as_mut_ptr(), dez,
-                                 temp8a.as_mut_ptr());
-    temp8blen =
-        scale_expansion_zeroelim(4 as i32, bd.as_mut_ptr(), aez,
-                                 temp8b.as_mut_ptr());
-    temp8clen =
-        scale_expansion_zeroelim(4 as i32, da.as_mut_ptr(), bez,
-                                 temp8c.as_mut_ptr());
-    temp16len =
-        fast_expansion_sum_zeroelim(temp8alen, temp8a.as_mut_ptr(), temp8blen,
-                                    temp8b.as_mut_ptr(), temp16.as_mut_ptr());
-    temp24len =
-        fast_expansion_sum_zeroelim(temp8clen, temp8c.as_mut_ptr(), temp16len,
-                                    temp16.as_mut_ptr(), temp24.as_mut_ptr());
-    temp48len =
-        scale_expansion_zeroelim(temp24len, temp24.as_mut_ptr(), cex,
-                                 temp48.as_mut_ptr());
-    xlen =
-        scale_expansion_zeroelim(temp48len, temp48.as_mut_ptr(), -cex,
-                                 xdet.as_mut_ptr());
-    temp48len =
-        scale_expansion_zeroelim(temp24len, temp24.as_mut_ptr(), cey,
-                                 temp48.as_mut_ptr());
-    ylen =
-        scale_expansion_zeroelim(temp48len, temp48.as_mut_ptr(), -cey,
-                                 ydet.as_mut_ptr());
-    temp48len =
-        scale_expansion_zeroelim(temp24len, temp24.as_mut_ptr(), cez,
-                                 temp48.as_mut_ptr());
-    zlen =
-        scale_expansion_zeroelim(temp48len, temp48.as_mut_ptr(), -cez,
-                                 zdet.as_mut_ptr());
-    xylen =
-        fast_expansion_sum_zeroelim(xlen, xdet.as_mut_ptr(), ylen,
-                                    ydet.as_mut_ptr(), xydet.as_mut_ptr());
-    clen =
-        fast_expansion_sum_zeroelim(xylen, xydet.as_mut_ptr(), zlen,
-                                    zdet.as_mut_ptr(), cdet.as_mut_ptr());
-    temp8alen =
-        scale_expansion_zeroelim(4 as i32, bc.as_mut_ptr(), aez,
-                                 temp8a.as_mut_ptr());
-    temp8blen =
-        scale_expansion_zeroelim(4 as i32, ac.as_mut_ptr(), -bez,
-                                 temp8b.as_mut_ptr());
-    temp8clen =
-        scale_expansion_zeroelim(4 as i32, ab.as_mut_ptr(), cez,
-                                 temp8c.as_mut_ptr());
-    temp16len =
-        fast_expansion_sum_zeroelim(temp8alen, temp8a.as_mut_ptr(), temp8blen,
-                                    temp8b.as_mut_ptr(), temp16.as_mut_ptr());
-    temp24len =
-        fast_expansion_sum_zeroelim(temp8clen, temp8c.as_mut_ptr(), temp16len,
-                                    temp16.as_mut_ptr(), temp24.as_mut_ptr());
-    temp48len =
-        scale_expansion_zeroelim(temp24len, temp24.as_mut_ptr(), dex,
-                                 temp48.as_mut_ptr());
-    xlen =
-        scale_expansion_zeroelim(temp48len, temp48.as_mut_ptr(), dex,
-                                 xdet.as_mut_ptr());
-    temp48len =
-        scale_expansion_zeroelim(temp24len, temp24.as_mut_ptr(), dey,
-                                 temp48.as_mut_ptr());
-    ylen =
-        scale_expansion_zeroelim(temp48len, temp48.as_mut_ptr(), dey,
-                                 ydet.as_mut_ptr());
-    temp48len =
-        scale_expansion_zeroelim(temp24len, temp24.as_mut_ptr(), dez,
-                                 temp48.as_mut_ptr());
-    zlen =
-        scale_expansion_zeroelim(temp48len, temp48.as_mut_ptr(), dez,
-                                 zdet.as_mut_ptr());
-    xylen =
-        fast_expansion_sum_zeroelim(xlen, xdet.as_mut_ptr(), ylen,
-                                    ydet.as_mut_ptr(), xydet.as_mut_ptr());
-    dlen =
-        fast_expansion_sum_zeroelim(xylen, xydet.as_mut_ptr(), zlen,
-                                    zdet.as_mut_ptr(), ddet.as_mut_ptr());
-    ablen =
-        fast_expansion_sum_zeroelim(alen, adet.as_mut_ptr(), blen,
-                                    bdet.as_mut_ptr(), abdet.as_mut_ptr());
-    cdlen =
-        fast_expansion_sum_zeroelim(clen, cdet.as_mut_ptr(), dlen,
-                                    ddet.as_mut_ptr(), cddet.as_mut_ptr());
-    finlength =
-        fast_expansion_sum_zeroelim(ablen, abdet.as_mut_ptr(), cdlen,
-                                    cddet.as_mut_ptr(), fin1.as_mut_ptr());
-    det = estimate(finlength, fin1.as_mut_ptr());
-    errbound = PARAMS.isperrboundB * permanent;
+    let aex = pa[0] - pe[0];
+    let bex = pb[0] - pe[0];
+    let cex = pc[0] - pe[0];
+    let dex = pd[0] - pe[0];
+    let aey = pa[1] - pe[1];
+    let bey = pb[1] - pe[1];
+    let cey = pc[1] - pe[1];
+    let dey = pd[1] - pe[1];
+    let aez = pa[2] - pe[2];
+    let bez = pb[2] - pe[2];
+    let cez = pc[2] - pe[2];
+    let dez = pd[2] - pe[2];
+    let [aexbey0, aexbey1] = Two_Product(aex, bey);
+    let [bexaey0, bexaey1] = Two_Product(bex, aey);
+    let ab = Two_Two_Diff(aexbey1, aexbey0, bexaey1, bexaey0);
+    let [bexcey0, bexcey1] = Two_Product(bex, cey);
+    let [cexbey0, cexbey1] = Two_Product(cex, bey);
+    let bc = Two_Two_Diff(bexcey1, bexcey0, cexbey1, cexbey0);
+    let [cexdey0, cexdey1] = Two_Product(cex, dey);
+    let [dexcey0, dexcey1] = Two_Product(dex, cey);
+    let cd = Two_Two_Diff(cexdey1, cexdey0, dexcey1, dexcey0);
+    let [dexaey0, dexaey1] = Two_Product(dex, aey);
+    let [aexdey0, aexdey1] = Two_Product(aex, dey);
+    let da = Two_Two_Diff(dexaey1, dexaey0, aexdey1, aexdey0);
+    let [aexcey0, aexcey1] = Two_Product(aex, cey);
+    let [cexaey0, cexaey1] = Two_Product(cex, aey);
+    let ac = Two_Two_Diff(aexcey1, aexcey0, cexaey1, cexaey0);
+    let [bexdey0, bexdey1] = Two_Product(bex, dey);
+    let [dexbey0, dexbey1] = Two_Product(dex, bey);
+    let bd = Two_Two_Diff(bexdey1, bexdey0, dexbey1, dexbey0);
+    let temp8alen = scale_expansion_zeroelim(&cd, bez, &mut temp8a);
+    let temp8blen = scale_expansion_zeroelim(&bd, -cez, &mut temp8b);
+    let temp8clen = scale_expansion_zeroelim(&bc, dez, &mut temp8c);
+    let temp16len = fast_expansion_sum_zeroelim(&temp8a[..temp8alen], &temp8b[..temp8blen], &mut temp16);
+    let temp24len = fast_expansion_sum_zeroelim(&temp8c[..temp8clen], &temp16[..temp16len], &mut temp24);
+    let temp48len = scale_expansion_zeroelim(&temp24[..temp24len], aex, &mut temp48);
+    let xlen = scale_expansion_zeroelim(&temp48[..temp48len], -aex, &mut xdet);
+    let temp48len = scale_expansion_zeroelim(&temp24[..temp24len], aey, &mut temp48);
+    let ylen = scale_expansion_zeroelim(&temp48[..temp48len], -aey, &mut ydet);
+    let temp48len = scale_expansion_zeroelim(&temp24[..temp24len], aez, &mut temp48);
+    let zlen = scale_expansion_zeroelim(&temp48[..temp48len], -aez, &mut zdet);
+    let xylen = fast_expansion_sum_zeroelim(&xdet[..xlen], &ydet[..ylen], &mut xydet);
+    let alen = fast_expansion_sum_zeroelim(&xydet[..xylen], &zdet[..zlen], &mut adet);
+    let temp8alen = scale_expansion_zeroelim(&da, cez, &mut temp8a);
+    let temp8blen = scale_expansion_zeroelim(&ac, dez, &mut temp8b);
+    let temp8clen = scale_expansion_zeroelim(&cd, aez, &mut temp8c);
+    let temp16len = fast_expansion_sum_zeroelim(&temp8a[..temp8alen], &temp8b[..temp8blen], &mut temp16);
+    let temp24len = fast_expansion_sum_zeroelim(&temp8c[..temp8clen], &temp16[..temp16len], &mut temp24);
+    let temp48len = scale_expansion_zeroelim(&temp24[..temp24len], bex, &mut temp48);
+    let xlen = scale_expansion_zeroelim(&temp48[..temp48len], bex, &mut xdet);
+    let temp48len = scale_expansion_zeroelim(&temp24[..temp24len], bey, &mut temp48);
+    let ylen = scale_expansion_zeroelim(&temp48[..temp48len], bey, &mut ydet);
+    let temp48len = scale_expansion_zeroelim(&temp24[..temp24len], bez, &mut temp48);
+    let zlen = scale_expansion_zeroelim(&temp48[..temp48len], bez, &mut zdet);
+    let xylen = fast_expansion_sum_zeroelim(&xdet[..xlen], &ydet[..ylen], &mut xydet);
+    let blen = fast_expansion_sum_zeroelim(&xydet[..xylen], &zdet[..zlen], &mut bdet);
+    let temp8alen = scale_expansion_zeroelim(&ab, dez, &mut temp8a);
+    let temp8blen = scale_expansion_zeroelim(&bd, aez, &mut temp8b);
+    let temp8clen = scale_expansion_zeroelim(&da, bez, &mut temp8c);
+    let temp16len = fast_expansion_sum_zeroelim(&temp8a[..temp8alen], &temp8b[..temp8blen], &mut temp16);
+    let temp24len = fast_expansion_sum_zeroelim(&temp8c[..temp8clen], &temp16[..temp16len], &mut temp24);
+    let temp48len = scale_expansion_zeroelim(&temp24[..temp24len], cex, &mut temp48);
+    let xlen = scale_expansion_zeroelim(&temp48[..temp48len], -cex, &mut xdet);
+    let temp48len = scale_expansion_zeroelim(&temp24[..temp24len], cey, &mut temp48);
+    let ylen = scale_expansion_zeroelim(&temp48[..temp48len], -cey, &mut ydet);
+    let temp48len = scale_expansion_zeroelim(&temp24[..temp24len], cez, &mut temp48);
+    let zlen = scale_expansion_zeroelim(&temp48[..temp48len], -cez, &mut zdet);
+    let xylen = fast_expansion_sum_zeroelim(&xdet[..xlen], &ydet[..ylen], &mut xydet);
+    let clen = fast_expansion_sum_zeroelim(&xydet[..xylen], &zdet[..zlen], &mut cdet);
+    let temp8alen = scale_expansion_zeroelim(&bc, aez, &mut temp8a);
+    let temp8blen = scale_expansion_zeroelim(&ac, -bez, &mut temp8b);
+    let temp8clen = scale_expansion_zeroelim(&ab, cez, &mut temp8c);
+    let temp16len = fast_expansion_sum_zeroelim(&temp8a[..temp8alen], &temp8b[..temp8blen], &mut temp16);
+    let temp24len = fast_expansion_sum_zeroelim(&temp8c[..temp8clen], &temp16[..temp16len], &mut temp24);
+    let temp48len = scale_expansion_zeroelim(&temp24[..temp24len], dex, &mut temp48);
+    let xlen = scale_expansion_zeroelim(&temp48[..temp48len], dex, &mut xdet);
+    let temp48len = scale_expansion_zeroelim(&temp24[..temp24len], dey, &mut temp48);
+    let ylen = scale_expansion_zeroelim(&temp48[..temp48len], dey, &mut ydet);
+    let temp48len = scale_expansion_zeroelim(&temp24[..temp24len], dez, &mut temp48);
+    let zlen = scale_expansion_zeroelim(&temp48[..temp48len], dez, &mut zdet);
+    let xylen = fast_expansion_sum_zeroelim(&xdet[..xlen], &ydet[..ylen], &mut xydet);
+    let dlen = fast_expansion_sum_zeroelim(&xydet[..xylen], &zdet[..zlen], &mut ddet);
+    let ablen = fast_expansion_sum_zeroelim(&adet[..alen], &bdet[..blen], &mut abdet);
+    let cdlen = fast_expansion_sum_zeroelim(&cdet[..clen], &ddet[..dlen], &mut cddet);
+    let finlength = fast_expansion_sum_zeroelim(&abdet[..ablen], &cddet[..cdlen], &mut fin1);
+    let mut det = estimate(&fin1[..finlength]);
+    let errbound = PARAMS.isperrboundB * permanent;
     if det >= errbound || -det >= errbound { return det }
-    aextail =
-        Two_Diff_Tail(*pa.offset(0 as i32 as isize),
-                      *pe.offset(0 as i32 as isize), aex);
-    aeytail =
-        Two_Diff_Tail(*pa.offset(1 as i32 as isize),
-                      *pe.offset(1 as i32 as isize), aey);
-    aeztail =
-        Two_Diff_Tail(*pa.offset(2 as i32 as isize),
-                      *pe.offset(2 as i32 as isize), aez);
-    bextail =
-        Two_Diff_Tail(*pb.offset(0 as i32 as isize),
-                      *pe.offset(0 as i32 as isize), bex);
-    beytail =
-        Two_Diff_Tail(*pb.offset(1 as i32 as isize),
-                      *pe.offset(1 as i32 as isize), bey);
-    beztail =
-        Two_Diff_Tail(*pb.offset(2 as i32 as isize),
-                      *pe.offset(2 as i32 as isize), bez);
-    cextail =
-        Two_Diff_Tail(*pc.offset(0 as i32 as isize),
-                      *pe.offset(0 as i32 as isize), cex);
-    ceytail =
-        Two_Diff_Tail(*pc.offset(1 as i32 as isize),
-                      *pe.offset(1 as i32 as isize), cey);
-    ceztail =
-        Two_Diff_Tail(*pc.offset(2 as i32 as isize),
-                      *pe.offset(2 as i32 as isize), cez);
-    dextail =
-        Two_Diff_Tail(*pd.offset(0 as i32 as isize),
-                      *pe.offset(0 as i32 as isize), dex);
-    deytail =
-        Two_Diff_Tail(*pd.offset(1 as i32 as isize),
-                      *pe.offset(1 as i32 as isize), dey);
-    deztail =
-        Two_Diff_Tail(*pd.offset(2 as i32 as isize),
-                      *pe.offset(2 as i32 as isize), dez);
-    if aextail == 0.0f64 && aeytail == 0.0f64 && aeztail == 0.0f64 &&
-           bextail == 0.0f64 && beytail == 0.0f64 && beztail == 0.0f64 &&
-           cextail == 0.0f64 && ceytail == 0.0f64 && ceztail == 0.0f64 &&
-           dextail == 0.0f64 && deytail == 0.0f64 && deztail == 0.0f64 {
-        return det
+    let aextail = Two_Diff_Tail(pa[0], pe[0], aex);
+    let aeytail = Two_Diff_Tail(pa[1], pe[1], aey);
+    let aeztail = Two_Diff_Tail(pa[2], pe[2], aez);
+    let bextail = Two_Diff_Tail(pb[0], pe[0], bex);
+    let beytail = Two_Diff_Tail(pb[1], pe[1], bey);
+    let beztail = Two_Diff_Tail(pb[2], pe[2], bez);
+    let cextail = Two_Diff_Tail(pc[0], pe[0], cex);
+    let ceytail = Two_Diff_Tail(pc[1], pe[1], cey);
+    let ceztail = Two_Diff_Tail(pc[2], pe[2], cez);
+    let dextail = Two_Diff_Tail(pd[0], pe[0], dex);
+    let deytail = Two_Diff_Tail(pd[1], pe[1], dey);
+    let deztail = Two_Diff_Tail(pd[2], pe[2], dez);
+    if aextail == 0.0 && aeytail == 0.0 && aeztail == 0.0 &&
+           bextail == 0.0 && beytail == 0.0 && beztail == 0.0 &&
+           cextail == 0.0 && ceytail == 0.0 && ceztail == 0.0 &&
+           dextail == 0.0 && deytail == 0.0 && deztail == 0.0 {
+        return det;
     }
-    errbound = PARAMS.isperrboundC * permanent + PARAMS.resulterrbound * Absolute(det);
-    abeps = aex * beytail + bey * aextail - (aey * bextail + bex * aeytail);
-    bceps = bex * ceytail + cey * bextail - (bey * cextail + cex * beytail);
-    cdeps = cex * deytail + dey * cextail - (cey * dextail + dex * ceytail);
-    daeps = dex * aeytail + aey * dextail - (dey * aextail + aex * deytail);
-    aceps = aex * ceytail + cey * aextail - (aey * cextail + cex * aeytail);
-    bdeps = bex * deytail + dey * bextail - (bey * dextail + dex * beytail);
+    let errbound = PARAMS.isperrboundC * permanent + PARAMS.resulterrbound * Absolute(det);
+    let abeps = aex * beytail + bey * aextail - (aey * bextail + bex * aeytail);
+    let bceps = bex * ceytail + cey * bextail - (bey * cextail + cex * beytail);
+    let cdeps = cex * deytail + dey * cextail - (cey * dextail + dex * ceytail);
+    let daeps = dex * aeytail + aey * dextail - (dey * aextail + aex * deytail);
+    let aceps = aex * ceytail + cey * aextail - (aey * cextail + cex * aeytail);
+    let bdeps = bex * deytail + dey * bextail - (bey * dextail + dex * beytail);
     det +=
         (bex * bex + bey * bey + bez * bez) *
             (cez * daeps + dez * aceps + aez * cdeps +
-                 (ceztail * da3 + deztail * ac3 + aeztail * cd3)) +
+                 (ceztail * da[3] + deztail * ac[3] + aeztail * cd[3])) +
             (dex * dex + dey * dey + dez * dez) *
                 (aez * bceps - bez * aceps + cez * abeps +
-                     (aeztail * bc3 - beztail * ac3 + ceztail * ab3)) -
+                     (aeztail * bc[3] - beztail * ac[3] + ceztail * ab[3])) -
             ((aex * aex + aey * aey + aez * aez) *
                  (bez * cdeps - cez * bdeps + dez * bceps +
-                      (beztail * cd3 - ceztail * bd3 + deztail * bc3)) +
+                      (beztail * cd[3] - ceztail * bd[3] + deztail * bc[3])) +
                  (cex * cex + cey * cey + cez * cez) *
                      (dez * abeps + aez * bdeps + bez * daeps +
-                          (deztail * ab3 + aeztail * bd3 + beztail * da3))) +
-            2.0f64 *
+                          (deztail * ab[3] + aeztail * bd[3] + beztail * da[3]))) +
+            2.0 *
                 ((bex * bextail + bey * beytail + bez * beztail) *
-                     (cez * da3 + dez * ac3 + aez * cd3) +
+                     (cez * da[3] + dez * ac[3] + aez * cd[3]) +
                      (dex * dextail + dey * deytail + dez * deztail) *
-                         (aez * bc3 - bez * ac3 + cez * ab3) -
+                         (aez * bc[3] - bez * ac[3] + cez * ab[3]) -
                      ((aex * aextail + aey * aeytail + aez * aeztail) *
-                          (bez * cd3 - cez * bd3 + dez * bc3) +
+                          (bez * cd[3] - cez * bd[3] + dez * bc[3]) +
                           (cex * cextail + cey * ceytail + cez * ceztail) *
-                              (dez * ab3 + aez * bd3 + bez * da3)));
+                              (dez * ab[3] + aez * bd[3] + bez * da[3])));
     if det >= errbound || -det >= errbound { return det }
-    return insphereexact(pa, pb, pc, pd, pe);
+    insphere_exact(pa, pb, pc, pd, pe)
 }
 
-pub unsafe fn insphere(mut pa: *const f64,
-                                  mut pb: *const f64,
-                                  mut pc: *const f64,
-                                  mut pd: *const f64,
-                                  mut pe: *const f64)
- -> f64 {
-    let mut aex: f64 = 0.;
-    let mut bex: f64 = 0.;
-    let mut cex: f64 = 0.;
-    let mut dex: f64 = 0.;
-    let mut aey: f64 = 0.;
-    let mut bey: f64 = 0.;
-    let mut cey: f64 = 0.;
-    let mut dey: f64 = 0.;
-    let mut aez: f64 = 0.;
-    let mut bez: f64 = 0.;
-    let mut cez: f64 = 0.;
-    let mut dez: f64 = 0.;
-    let mut aexbey: f64 = 0.;
-    let mut bexaey: f64 = 0.;
-    let mut bexcey: f64 = 0.;
-    let mut cexbey: f64 = 0.;
-    let mut cexdey: f64 = 0.;
-    let mut dexcey: f64 = 0.;
-    let mut dexaey: f64 = 0.;
-    let mut aexdey: f64 = 0.;
-    let mut aexcey: f64 = 0.;
-    let mut cexaey: f64 = 0.;
-    let mut bexdey: f64 = 0.;
-    let mut dexbey: f64 = 0.;
-    let mut alift: f64 = 0.;
-    let mut blift: f64 = 0.;
-    let mut clift: f64 = 0.;
-    let mut dlift: f64 = 0.;
-    let mut ab: f64 = 0.;
-    let mut bc: f64 = 0.;
-    let mut cd: f64 = 0.;
-    let mut da: f64 = 0.;
-    let mut ac: f64 = 0.;
-    let mut bd: f64 = 0.;
-    let mut abc: f64 = 0.;
-    let mut bcd: f64 = 0.;
-    let mut cda: f64 = 0.;
-    let mut dab: f64 = 0.;
-    let mut aezplus: f64 = 0.;
-    let mut bezplus: f64 = 0.;
-    let mut cezplus: f64 = 0.;
-    let mut dezplus: f64 = 0.;
-    let mut aexbeyplus: f64 = 0.;
-    let mut bexaeyplus: f64 = 0.;
-    let mut bexceyplus: f64 = 0.;
-    let mut cexbeyplus: f64 = 0.;
-    let mut cexdeyplus: f64 = 0.;
-    let mut dexceyplus: f64 = 0.;
-    let mut dexaeyplus: f64 = 0.;
-    let mut aexdeyplus: f64 = 0.;
-    let mut aexceyplus: f64 = 0.;
-    let mut cexaeyplus: f64 = 0.;
-    let mut bexdeyplus: f64 = 0.;
-    let mut dexbeyplus: f64 = 0.;
-    let mut det: f64 = 0.;
-    let mut permanent: f64 = 0.;
-    let mut errbound: f64 = 0.;
-    aex =
-        *pa.offset(0 as i32 as isize) -
-            *pe.offset(0 as i32 as isize);
-    bex =
-        *pb.offset(0 as i32 as isize) -
-            *pe.offset(0 as i32 as isize);
-    cex =
-        *pc.offset(0 as i32 as isize) -
-            *pe.offset(0 as i32 as isize);
-    dex =
-        *pd.offset(0 as i32 as isize) -
-            *pe.offset(0 as i32 as isize);
-    aey =
-        *pa.offset(1 as i32 as isize) -
-            *pe.offset(1 as i32 as isize);
-    bey =
-        *pb.offset(1 as i32 as isize) -
-            *pe.offset(1 as i32 as isize);
-    cey =
-        *pc.offset(1 as i32 as isize) -
-            *pe.offset(1 as i32 as isize);
-    dey =
-        *pd.offset(1 as i32 as isize) -
-            *pe.offset(1 as i32 as isize);
-    aez =
-        *pa.offset(2 as i32 as isize) -
-            *pe.offset(2 as i32 as isize);
-    bez =
-        *pb.offset(2 as i32 as isize) -
-            *pe.offset(2 as i32 as isize);
-    cez =
-        *pc.offset(2 as i32 as isize) -
-            *pe.offset(2 as i32 as isize);
-    dez =
-        *pd.offset(2 as i32 as isize) -
-            *pe.offset(2 as i32 as isize);
-    aexbey = aex * bey;
-    bexaey = bex * aey;
-    ab = aexbey - bexaey;
-    bexcey = bex * cey;
-    cexbey = cex * bey;
-    bc = bexcey - cexbey;
-    cexdey = cex * dey;
-    dexcey = dex * cey;
-    cd = cexdey - dexcey;
-    dexaey = dex * aey;
-    aexdey = aex * dey;
-    da = dexaey - aexdey;
-    aexcey = aex * cey;
-    cexaey = cex * aey;
-    ac = aexcey - cexaey;
-    bexdey = bex * dey;
-    dexbey = dex * bey;
-    bd = bexdey - dexbey;
-    abc = aez * bc - bez * ac + cez * ab;
-    bcd = bez * cd - cez * bd + dez * bc;
-    cda = cez * da + dez * ac + aez * cd;
-    dab = dez * ab + aez * bd + bez * da;
-    alift = aex * aex + aey * aey + aez * aez;
-    blift = bex * bex + bey * bey + bez * bez;
-    clift = cex * cex + cey * cey + cez * cez;
-    dlift = dex * dex + dey * dey + dez * dez;
-    det = dlift * abc - clift * dab + (blift * cda - alift * bcd);
-    aezplus = Absolute(aez);
-    bezplus = Absolute(bez);
-    cezplus = Absolute(cez);
-    dezplus = Absolute(dez);
-    aexbeyplus = Absolute(aexbey);
-    bexaeyplus = Absolute(bexaey);
-    bexceyplus = Absolute(bexcey);
-    cexbeyplus = Absolute(cexbey);
-    cexdeyplus = Absolute(cexdey);
-    dexceyplus = Absolute(dexcey);
-    dexaeyplus = Absolute(dexaey);
-    aexdeyplus = Absolute(aexdey);
-    aexceyplus = Absolute(aexcey);
-    cexaeyplus = Absolute(cexaey);
-    bexdeyplus = Absolute(bexdey);
-    dexbeyplus = Absolute(dexbey);
-    permanent =
+/**
+ * Adaptive exact 3D insphere test. Robust.
+ *
+ * Return a positive value if the point `pe` lies inside the
+ * sphere passing through `pa`, `pb`, `pc`, and `pd`; a negative value
+ * if it lies outside; and zero if the five points are
+ * cospherical.  The points `pa`, `pb`, `pc`, and `pd` must be ordered
+ * so that they have a positive orientation (as defined by
+ * `orient3d()`), or the sign of the result will be reversed.
+ *
+ * The result returned is the determinant of a matrix.
+ * this determinant is computed adaptively, in the sense that exact
+ * arithmetic is used only to the degree it is needed to ensure that the
+ * returned value has the correct sign.  Hence, `insphere()` is usually quite
+ * fast, but will run more slowly when the input points are cospherical or
+ * nearly so.
+ */
+#[inline]
+pub fn insphere(pa: [f64; 3], pb: [f64; 3], pc: [f64; 3], pd: [f64; 3], pe: [f64; 3]) -> f64 {
+    let aex = pa[0] - pe[0];
+    let bex = pb[0] - pe[0];
+    let cex = pc[0] - pe[0];
+    let dex = pd[0] - pe[0];
+    let aey = pa[1] - pe[1];
+    let bey = pb[1] - pe[1];
+    let cey = pc[1] - pe[1];
+    let dey = pd[1] - pe[1];
+    let aez = pa[2] - pe[2];
+    let bez = pb[2] - pe[2];
+    let cez = pc[2] - pe[2];
+    let dez = pd[2] - pe[2];
+    let aexbey = aex * bey;
+    let bexaey = bex * aey;
+    let ab = aexbey - bexaey;
+    let bexcey = bex * cey;
+    let cexbey = cex * bey;
+    let bc = bexcey - cexbey;
+    let cexdey = cex * dey;
+    let dexcey = dex * cey;
+    let cd = cexdey - dexcey;
+    let dexaey = dex * aey;
+    let aexdey = aex * dey;
+    let da = dexaey - aexdey;
+    let aexcey = aex * cey;
+    let cexaey = cex * aey;
+    let ac = aexcey - cexaey;
+    let bexdey = bex * dey;
+    let dexbey = dex * bey;
+    let bd = bexdey - dexbey;
+    let abc = aez * bc - bez * ac + cez * ab;
+    let bcd = bez * cd - cez * bd + dez * bc;
+    let cda = cez * da + dez * ac + aez * cd;
+    let dab = dez * ab + aez * bd + bez * da;
+    let alift = aex * aex + aey * aey + aez * aez;
+    let blift = bex * bex + bey * bey + bez * bez;
+    let clift = cex * cex + cey * cey + cez * cez;
+    let dlift = dex * dex + dey * dey + dez * dez;
+    let det = dlift * abc - clift * dab + (blift * cda - alift * bcd);
+    let aezplus = Absolute(aez);
+    let bezplus = Absolute(bez);
+    let cezplus = Absolute(cez);
+    let dezplus = Absolute(dez);
+    let aexbeyplus = Absolute(aexbey);
+    let bexaeyplus = Absolute(bexaey);
+    let bexceyplus = Absolute(bexcey);
+    let cexbeyplus = Absolute(cexbey);
+    let cexdeyplus = Absolute(cexdey);
+    let dexceyplus = Absolute(dexcey);
+    let dexaeyplus = Absolute(dexaey);
+    let aexdeyplus = Absolute(aexdey);
+    let aexceyplus = Absolute(aexcey);
+    let cexaeyplus = Absolute(cexaey);
+    let bexdeyplus = Absolute(bexdey);
+    let dexbeyplus = Absolute(dexbey);
+    let permanent =
         ((cexdeyplus + dexceyplus) * bezplus +
              (dexbeyplus + bexdeyplus) * cezplus +
              (bexceyplus + cexbeyplus) * dezplus) * alift +
@@ -6540,7 +3306,7 @@ pub unsafe fn insphere(mut pa: *const f64,
             ((bexceyplus + cexbeyplus) * aezplus +
                  (cexaeyplus + aexceyplus) * bezplus +
                  (aexbeyplus + bexaeyplus) * cezplus) * dlift;
-    errbound = PARAMS.isperrboundA * permanent;
+    let errbound = PARAMS.isperrboundA * permanent;
     if det > errbound || -det > errbound { return det }
-    return insphereadapt(pa, pb, pc, pd, pe, permanent);
+    insphereadapt(pa, pb, pc, pd, pe, permanent)
 }

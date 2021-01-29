@@ -18,6 +18,10 @@ travis-ci = { repository = "elrnv/geometry-predicates-rs", branch = "master" }
 
 [features]
 unstable = []
+transpiled = []
+
+[dependencies]
+lazy_static = "1"
 
 [dev-dependencies]
 rand = "0.3"
