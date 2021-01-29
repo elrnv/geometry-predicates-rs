@@ -7,7 +7,7 @@
 //! used widely for computational geometry.
 //!
 //! In addition, the building blocks of these predicates, namely the adaptive precision
-//! floating-point arithmetic primitives, are also exposed in `[predicates]` to allow for extensions
+//! floating-point arithmetic primitives, are also exposed in [`predicates`] to allow for extensions
 //! to other predicates or exact geometric constructions.
 //!
 //! ## Background
