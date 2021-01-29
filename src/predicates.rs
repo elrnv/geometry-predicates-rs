@@ -36,7 +36,6 @@ struct PredicateParams {
     isperrboundC: f64,
 }
 
-/*
 /* ***************************************************************************/
 /*  The following are constants used in exact arithmetic                     */
 /*                                                                           */
@@ -44,17 +43,18 @@ struct PredicateParams {
 /*  floating-point arithmetic.  `epsilon' bounds the relative roundoff       */
 /*  error.  It is used for floating-point error analysis.                    */
 /*                                                                           */
-/*  `splitter' is used to split floating-point numbers into two half-        */
+/*  `PARAMS.splitter' is used to split floating-point numbers into two half- */
 /*  length significands for exact multiplication.                            */
 /*                                                                           */
-/*  See exactinit() in predicates.c for the function used to generate these. */
+/*  See exactinit() for the function used to generate these.                 */
 /*                                                                           */
 /* ***************************************************************************/
-// The SPLITTER and EPSILON were pregenerated using exact init on a machine with IEEE 754 floats.
+// EPSILON and PARAMS.slitter were pregenerated using exactinit on a machine with IEEE 754 floats.
+// See `exactinit` function below for details.
 const EPSILON: f64 = 0.000_000_000_000_000_111_022_302_462_515_65;
-const SPLITTER: f64 = 134_217_729f64;
 
 const PARAMS: PredicateParams = PredicateParams {
+    splitter: 134_217_729f64,
     resulterrbound: (3.0 + 8.0 * EPSILON) * EPSILON,
     ccwerrboundA: (3.0 + 16.0 * EPSILON) * EPSILON,
     ccwerrboundB: (2.0 + 12.0 * EPSILON) * EPSILON,
@@ -69,11 +69,6 @@ const PARAMS: PredicateParams = PredicateParams {
     isperrboundB: (5.0f64 + 72.0f64 * EPSILON) * EPSILON,
     isperrboundC: (71.0f64 + 1408.0f64 * EPSILON) * EPSILON * EPSILON,
 };
-*/
-
-lazy_static::lazy_static! {
-    static ref PARAMS: PredicateParams = exactinit();
-}
 
 /* ****************************************************************************/
 /*                                                                           */

@@ -21,7 +21,6 @@ unstable = []
 transpiled = []
 
 [dependencies]
-lazy_static = "1"
 
 [dev-dependencies]
 rand = "0.3"
