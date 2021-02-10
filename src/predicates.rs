@@ -1,18 +1,7 @@
-#![allow(
-    unused_variables,
-    dead_code,
-    mutable_transmutes,
-    non_camel_case_types,
-    non_snake_case,
-    non_upper_case_globals,
-    unused_assignments,
-    unused_mut
-)]
-
 // f64::abs is not available in core. See https://github.com/rust-lang/rust/issues/50145
 // This implementation is identical to abs on x86 but not on arm at the time of this writing.
 #[inline]
-pub fn Absolute(a: f64) -> f64 {
+pub fn abs(a: f64) -> f64 {
     f64::from_bits(a.to_bits() & 0x7FFF_FFFF_FFFF_FFFF)
 }
 
@@ -22,18 +11,18 @@ struct PredicateParams {
     splitter: f64, // = 2^ceiling(p / 2) + 1.
     /* A set of coefficients used to calculate maximum roundoff errors.          */
     resulterrbound: f64,
-    ccwerrboundA: f64,
-    ccwerrboundB: f64,
-    ccwerrboundC: f64,
-    o3derrboundA: f64,
-    o3derrboundB: f64,
-    o3derrboundC: f64,
-    iccerrboundA: f64,
-    iccerrboundB: f64,
-    iccerrboundC: f64,
-    isperrboundA: f64,
-    isperrboundB: f64,
-    isperrboundC: f64,
+    ccwerrbound_a: f64,
+    ccwerrbound_b: f64,
+    ccwerrbound_c: f64,
+    o3derrbound_a: f64,
+    o3derrbound_b: f64,
+    o3derrbound_c: f64,
+    iccerrbound_a: f64,
+    iccerrbound_b: f64,
+    iccerrbound_c: f64,
+    isperrbound_a: f64,
+    isperrbound_b: f64,
+    isperrbound_c: f64,
 }
 
 /* ***************************************************************************/
@@ -56,18 +45,18 @@ const EPSILON: f64 = 0.000_000_000_000_000_111_022_302_462_515_65;
 const PARAMS: PredicateParams = PredicateParams {
     splitter: 134_217_729f64,
     resulterrbound: (3.0 + 8.0 * EPSILON) * EPSILON,
-    ccwerrboundA: (3.0 + 16.0 * EPSILON) * EPSILON,
-    ccwerrboundB: (2.0 + 12.0 * EPSILON) * EPSILON,
-    ccwerrboundC: (9.0 + 64.0 * EPSILON) * EPSILON * EPSILON,
-    o3derrboundA: (7.0f64 + 56.0f64 * EPSILON) * EPSILON,
-    o3derrboundB: (3.0f64 + 28.0f64 * EPSILON) * EPSILON,
-    o3derrboundC: (26.0f64 + 288.0f64 * EPSILON) * EPSILON * EPSILON,
-    iccerrboundA: (10.0 + 96.0 * EPSILON) * EPSILON,
-    iccerrboundB: (4.0 + 48.0 * EPSILON) * EPSILON,
-    iccerrboundC: (44.0 + 576.0 * EPSILON) * EPSILON * EPSILON,
-    isperrboundA: (16.0f64 + 224.0f64 * EPSILON) * EPSILON,
-    isperrboundB: (5.0f64 + 72.0f64 * EPSILON) * EPSILON,
-    isperrboundC: (71.0f64 + 1408.0f64 * EPSILON) * EPSILON * EPSILON,
+    ccwerrbound_a: (3.0 + 16.0 * EPSILON) * EPSILON,
+    ccwerrbound_b: (2.0 + 12.0 * EPSILON) * EPSILON,
+    ccwerrbound_c: (9.0 + 64.0 * EPSILON) * EPSILON * EPSILON,
+    o3derrbound_a: (7.0f64 + 56.0f64 * EPSILON) * EPSILON,
+    o3derrbound_b: (3.0f64 + 28.0f64 * EPSILON) * EPSILON,
+    o3derrbound_c: (26.0f64 + 288.0f64 * EPSILON) * EPSILON * EPSILON,
+    iccerrbound_a: (10.0 + 96.0 * EPSILON) * EPSILON,
+    iccerrbound_b: (4.0 + 48.0 * EPSILON) * EPSILON,
+    iccerrbound_c: (44.0 + 576.0 * EPSILON) * EPSILON * EPSILON,
+    isperrbound_a: (16.0f64 + 224.0f64 * EPSILON) * EPSILON,
+    isperrbound_b: (5.0f64 + 72.0f64 * EPSILON) * EPSILON,
+    isperrbound_c: (71.0f64 + 1408.0f64 * EPSILON) * EPSILON * EPSILON,
 };
 
 /* ****************************************************************************/
@@ -88,10 +77,10 @@ const PARAMS: PredicateParams = PredicateParams {
 /*  Don't change this routine unless you fully understand it.                */
 /*                                                                           */
 /* ****************************************************************************/
+#[allow(dead_code)] // This function is for reference only.
 fn exactinit() -> PredicateParams {
-    let mut half = 0.5_f64;
     let mut check = 1.0_f64;
-    let mut lastcheck = 0.0_f64;
+    let mut lastcheck;
     let mut every_other = 1_i32;
     let mut epsilon = 1.0f64;
     let mut splitter = 1.0f64;
@@ -101,7 +90,7 @@ fn exactinit() -> PredicateParams {
         /*   the previous sum, for machines that round up instead of using exact */
         /*   rounding.  Not that this library will work on such machines anyway. */
         lastcheck = check;
-        epsilon *= half;
+        epsilon *= 0.5;
         if every_other != 0 {
             splitter *= 2.0f64
         }
@@ -116,18 +105,18 @@ fn exactinit() -> PredicateParams {
         splitter,
         /* Error bounds for orientation and incircle tests. */
         resulterrbound: (3.0f64 + 8.0f64 * epsilon) * epsilon,
-        ccwerrboundA: (3.0f64 + 16.0f64 * epsilon) * epsilon,
-        ccwerrboundB: (2.0f64 + 12.0f64 * epsilon) * epsilon,
-        ccwerrboundC: (9.0f64 + 64.0f64 * epsilon) * epsilon * epsilon,
-        o3derrboundA: (7.0f64 + 56.0f64 * epsilon) * epsilon,
-        o3derrboundB: (3.0f64 + 28.0f64 * epsilon) * epsilon,
-        o3derrboundC: (26.0f64 + 288.0f64 * epsilon) * epsilon * epsilon,
-        iccerrboundA: (10.0f64 + 96.0f64 * epsilon) * epsilon,
-        iccerrboundB: (4.0f64 + 48.0f64 * epsilon) * epsilon,
-        iccerrboundC: (44.0f64 + 576.0f64 * epsilon) * epsilon * epsilon,
-        isperrboundA: (16.0f64 + 224.0f64 * epsilon) * epsilon,
-        isperrboundB: (5.0f64 + 72.0f64 * epsilon) * epsilon,
-        isperrboundC: (71.0f64 + 1408.0f64 * epsilon) * epsilon * epsilon,
+        ccwerrbound_a: (3.0f64 + 16.0f64 * epsilon) * epsilon,
+        ccwerrbound_b: (2.0f64 + 12.0f64 * epsilon) * epsilon,
+        ccwerrbound_c: (9.0f64 + 64.0f64 * epsilon) * epsilon * epsilon,
+        o3derrbound_a: (7.0f64 + 56.0f64 * epsilon) * epsilon,
+        o3derrbound_b: (3.0f64 + 28.0f64 * epsilon) * epsilon,
+        o3derrbound_c: (26.0f64 + 288.0f64 * epsilon) * epsilon * epsilon,
+        iccerrbound_a: (10.0f64 + 96.0f64 * epsilon) * epsilon,
+        iccerrbound_b: (4.0f64 + 48.0f64 * epsilon) * epsilon,
+        iccerrbound_c: (44.0f64 + 576.0f64 * epsilon) * epsilon * epsilon,
+        isperrbound_a: (16.0f64 + 224.0f64 * epsilon) * epsilon,
+        isperrbound_b: (5.0f64 + 72.0f64 * epsilon) * epsilon,
+        isperrbound_c: (71.0f64 + 1408.0f64 * epsilon) * epsilon * epsilon,
     }
 }
 
@@ -136,31 +125,31 @@ fn exactinit() -> PredicateParams {
 /*   roundoff error of that operation.                                       */
 
 #[inline]
-pub fn Fast_Two_Sum_Tail(a: f64, b: f64, x: f64) -> f64 {
+pub fn fast_two_sum_tail(a: f64, b: f64, x: f64) -> f64 {
     let bvirt: f64 = x - a;
     b - bvirt
 }
 
 #[inline]
-pub fn Fast_Two_Sum(a: f64, b: f64) -> [f64; 2] {
+pub fn fast_two_sum(a: f64, b: f64) -> [f64; 2] {
     let x: f64 = a + b;
-    [Fast_Two_Sum_Tail(a, b, x), x]
+    [fast_two_sum_tail(a, b, x), x]
 }
 
 #[inline]
-pub fn Fast_Two_Diff_Tail(a: f64, b: f64, x: f64) -> f64 {
-    let mut bvirt: f64 = a - x;
+pub fn fast_two_diff_tail(a: f64, b: f64, x: f64) -> f64 {
+    let bvirt: f64 = a - x;
     return bvirt - b;
 }
 
 #[inline]
-pub fn Fast_Two_Diff(a: f64, b: f64) -> [f64; 2] {
+pub fn fast_two_diff(a: f64, b: f64) -> [f64; 2] {
     let x: f64 = a - b;
-    [Fast_Two_Diff_Tail(a, b, x), x]
+    [fast_two_diff_tail(a, b, x), x]
 }
 
 #[inline]
-pub fn Two_Sum_Tail(a: f64, b: f64, x: f64) -> f64 {
+pub fn two_sum_tail(a: f64, b: f64, x: f64) -> f64 {
     let bvirt: f64 = x - a;
     let avirt: f64 = x - bvirt;
     let bround: f64 = b - bvirt;
@@ -169,13 +158,13 @@ pub fn Two_Sum_Tail(a: f64, b: f64, x: f64) -> f64 {
 }
 
 #[inline]
-pub fn Two_Sum(a: f64, mut b: f64) -> [f64; 2] {
+pub fn two_sum(a: f64, b: f64) -> [f64; 2] {
     let x: f64 = a + b;
-    [Two_Sum_Tail(a, b, x), x]
+    [two_sum_tail(a, b, x), x]
 }
 
 #[inline]
-pub fn Two_Diff_Tail(a: f64, b: f64, x: f64) -> f64 {
+pub fn two_diff_tail(a: f64, b: f64, x: f64) -> f64 {
     let bvirt: f64 = a - x;
     let avirt: f64 = x + bvirt;
     let bround: f64 = bvirt - b;
@@ -184,13 +173,13 @@ pub fn Two_Diff_Tail(a: f64, b: f64, x: f64) -> f64 {
 }
 
 #[inline]
-pub fn Two_Diff(a: f64, b: f64) -> [f64; 2] {
+pub fn two_diff(a: f64, b: f64) -> [f64; 2] {
     let x: f64 = a - b;
-    [Two_Diff_Tail(a, b, x), x]
+    [two_diff_tail(a, b, x), x]
 }
 
 #[inline]
-pub fn Split(a: f64) -> [f64; 2] {
+pub fn split(a: f64) -> [f64; 2] {
     let c: f64 = PARAMS.splitter * a;
     let abig: f64 = c - a;
     let ahi = c - abig;
@@ -199,9 +188,9 @@ pub fn Split(a: f64) -> [f64; 2] {
 }
 
 #[inline]
-pub fn Two_Product_Tail(a: f64, b: f64, x: f64) -> f64 {
-    let [alo, ahi] = Split(a);
-    let [blo, bhi] = Split(b);
+pub fn two_product_tail(a: f64, b: f64, x: f64) -> f64 {
+    let [alo, ahi] = split(a);
+    let [blo, bhi] = split(b);
     let err1: f64 = x - ahi * bhi;
     let err2: f64 = err1 - alo * bhi;
     let err3: f64 = err2 - ahi * blo;
@@ -209,17 +198,17 @@ pub fn Two_Product_Tail(a: f64, b: f64, x: f64) -> f64 {
 }
 
 #[inline]
-pub fn Two_Product(a: f64, b: f64) -> [f64; 2] {
+pub fn two_product(a: f64, b: f64) -> [f64; 2] {
     let x = a * b;
-    [Two_Product_Tail(a, b, x), x]
+    [two_product_tail(a, b, x), x]
 }
 /* Two_Product_Presplit() is Two_Product() where one of the inputs has       */
 /*   already been split.  Avoids redundant splitting.                        */
 
 #[inline]
-pub fn Two_Product_Presplit(a: f64, b: f64, bhi: f64, blo: f64) -> [f64; 2] {
+pub fn two_product_presplit(a: f64, b: f64, bhi: f64, blo: f64) -> [f64; 2] {
     let x = a * b;
-    let [alo, ahi] = Split(a);
+    let [alo, ahi] = split(a);
     let err1: f64 = x - ahi * bhi;
     let err2: f64 = err1 - alo * bhi;
     let err3: f64 = err2 - ahi * blo;
@@ -229,7 +218,7 @@ pub fn Two_Product_Presplit(a: f64, b: f64, bhi: f64, blo: f64) -> [f64; 2] {
 /*   already been split.  Avoids redundant splitting.                        */
 
 #[inline]
-pub fn Two_Product_2Presplit(a: f64, ahi: f64, alo: f64, b: f64, bhi: f64, blo: f64) -> [f64; 2] {
+pub fn two_product_2presplit(a: f64, ahi: f64, alo: f64, b: f64, bhi: f64, blo: f64) -> [f64; 2] {
     let x = a * b;
     let err1: f64 = x - ahi * bhi;
     let err2: f64 = err1 - alo * bhi;
@@ -239,65 +228,65 @@ pub fn Two_Product_2Presplit(a: f64, ahi: f64, alo: f64, b: f64, bhi: f64, blo: 
 /* Square() can be done more quickly than Two_Product().                     */
 
 #[inline]
-pub fn Square_Tail(a: f64, x: f64) -> f64 {
-    let [alo, ahi] = Split(a);
+pub fn square_tail(a: f64, x: f64) -> f64 {
+    let [alo, ahi] = split(a);
     let err1: f64 = x - ahi * ahi;
     let err3: f64 = err1 - (ahi + ahi) * alo;
     alo * alo - err3
 }
 
 #[inline]
-pub fn Square(a: f64) -> [f64; 2] {
+pub fn square(a: f64) -> [f64; 2] {
     let x = a * a;
-    [Square_Tail(a, x), x]
+    [square_tail(a, x), x]
 }
 /* Macros for summing expansions of various fixed lengths.  These are all    */
 /*   unrolled versions of Expansion_Sum().                                   */
 
 #[inline]
-pub fn Two_One_Sum(a1: f64, a0: f64, b: f64) -> [f64; 3] {
-    let [x0, _i] = Two_Sum(a0, b);
-    let [x1, x2] = Two_Sum(a1, _i);
+pub fn two_one_sum(a1: f64, a0: f64, b: f64) -> [f64; 3] {
+    let [x0, _i] = two_sum(a0, b);
+    let [x1, x2] = two_sum(a1, _i);
     [x0, x1, x2]
 }
 
 #[inline]
-pub fn Two_One_Diff(a1: f64, a0: f64, b: f64) -> [f64; 3] {
-    let [x0, _i] = Two_Diff(a0, b);
-    let [x1, x2] = Two_Sum(a1, _i);
+pub fn two_one_diff(a1: f64, a0: f64, b: f64) -> [f64; 3] {
+    let [x0, _i] = two_diff(a0, b);
+    let [x1, x2] = two_sum(a1, _i);
     [x2, x1, x0]
 }
 
 #[inline]
-pub fn Two_Two_Sum(a1: f64, a0: f64, b1: f64, b0: f64) -> [f64; 4] {
-    let [x0, _0, _j] = Two_One_Sum(a1, a0, b0);
-    let [x1, x2, x3] = Two_One_Sum(_j, _0, b1);
+pub fn two_two_sum(a1: f64, a0: f64, b1: f64, b0: f64) -> [f64; 4] {
+    let [x0, _0, _j] = two_one_sum(a1, a0, b0);
+    let [x1, x2, x3] = two_one_sum(_j, _0, b1);
     [x0, x1, x2, x3]
 }
 
 #[inline]
-pub fn Two_Two_Diff(a1: f64, a0: f64, b1: f64, b0: f64) -> [f64; 4] {
-    let [_j, _0, x0] = Two_One_Diff(a1, a0, b0);
-    let [x3, x2, x1] = Two_One_Diff(_j, _0, b1);
+pub fn two_two_diff(a1: f64, a0: f64, b1: f64, b0: f64) -> [f64; 4] {
+    let [_j, _0, x0] = two_one_diff(a1, a0, b0);
+    let [x3, x2, x1] = two_one_diff(_j, _0, b1);
     [x0, x1, x2, x3]
 }
 
 #[inline]
-pub fn Four_One_Sum(a3: f64, a2: f64, a1: f64, a0: f64, b: f64) -> [f64; 5] {
-    let [x0, x1, _j] = Two_One_Sum(a1, a0, b);
-    let [x2, x3, x4] = Two_One_Sum(a3, a2, _j);
+pub fn four_one_sum(a3: f64, a2: f64, a1: f64, a0: f64, b: f64) -> [f64; 5] {
+    let [x0, x1, _j] = two_one_sum(a1, a0, b);
+    let [x2, x3, x4] = two_one_sum(a3, a2, _j);
     [x0, x1, x2, x3, x4]
 }
 
 #[inline]
-pub fn Four_Two_Sum(a3: f64, a2: f64, a1: f64, a0: f64, b1: f64, b0: f64) -> [f64; 6] {
-    let [x0, _0, _1, _2, _k] = Four_One_Sum(a3, a2, a1, a0, b0);
-    let [x1, x2, x3, x4, x5] = Four_One_Sum(_k, _2, _1, _0, b1);
+pub fn four_two_sum(a3: f64, a2: f64, a1: f64, a0: f64, b1: f64, b0: f64) -> [f64; 6] {
+    let [x0, _0, _1, _2, _k] = four_one_sum(a3, a2, a1, a0, b0);
+    let [x1, x2, x3, x4, x5] = four_one_sum(_k, _2, _1, _0, b1);
     [x0, x1, x2, x3, x4, x5]
 }
 
 #[inline]
-pub fn Four_Four_Sum(
+pub fn four_four_sum(
     a3: f64,
     a2: f64,
     a1: f64,
@@ -307,13 +296,13 @@ pub fn Four_Four_Sum(
     b1: f64,
     b0: f64,
 ) -> [f64; 8] {
-    let [x0, x1, _0, _1, _2, _l] = Four_Two_Sum(a3, a2, a1, a0, b1, b0);
-    let [x2, x3, x4, x5, x6, x7] = Four_Two_Sum(_l, _2, _1, _0, b4, b3);
+    let [x0, x1, _0, _1, _2, _l] = four_two_sum(a3, a2, a1, a0, b1, b0);
+    let [x2, x3, x4, x5, x6, x7] = four_two_sum(_l, _2, _1, _0, b4, b3);
     [x7, x6, x5, x4, x3, x2, x1, x0]
 }
 
 #[inline]
-pub fn Eight_One_Sum(
+pub fn eight_one_sum(
     a7: f64,
     a6: f64,
     a5: f64,
@@ -324,13 +313,13 @@ pub fn Eight_One_Sum(
     a0: f64,
     b: f64,
 ) -> [f64; 9] {
-    let [x0, x1, x2, x3, _j] = Four_One_Sum(a3, a2, a1, a0, b);
-    let [x4, x5, x6, x7, x8] = Four_One_Sum(a7, a6, a5, a4, _j);
+    let [x0, x1, x2, x3, _j] = four_one_sum(a3, a2, a1, a0, b);
+    let [x4, x5, x6, x7, x8] = four_one_sum(a7, a6, a5, a4, _j);
     [x0, x1, x2, x3, x4, x5, x6, x7, x8]
 }
 
 #[inline]
-pub fn Eight_Two_Sum(
+pub fn eight_two_sum(
     a7: f64,
     a6: f64,
     a5: f64,
@@ -342,13 +331,13 @@ pub fn Eight_Two_Sum(
     b1: f64,
     b0: f64,
 ) -> [f64; 10] {
-    let [x0, _0, _1, _2, _3, _4, _5, _6, _k] = Eight_One_Sum(a7, a6, a5, a4, a3, a2, a1, a0, b0);
-    let [x1, x2, x3, x4, x5, x6, x7, x8, x9] = Eight_One_Sum(_k, _6, _5, _4, _3, _2, _1, _0, b1);
+    let [x0, _0, _1, _2, _3, _4, _5, _6, _k] = eight_one_sum(a7, a6, a5, a4, a3, a2, a1, a0, b0);
+    let [x1, x2, x3, x4, x5, x6, x7, x8, x9] = eight_one_sum(_k, _6, _5, _4, _3, _2, _1, _0, b1);
     [x0, x1, x2, x3, x4, x5, x6, x7, x8, x9]
 }
 
 #[inline]
-pub fn Eight_Four_Sum(
+pub fn eight_four_sum(
     a7: f64,
     a6: f64,
     a5: f64,
@@ -363,66 +352,66 @@ pub fn Eight_Four_Sum(
     b0: f64,
 ) -> [f64; 12] {
     let [x0, x1, _0, _1, _2, _3, _4, _5, _6, _l] =
-        Eight_Two_Sum(a7, a6, a5, a4, a3, a2, a1, a0, b1, b0);
+        eight_two_sum(a7, a6, a5, a4, a3, a2, a1, a0, b1, b0);
     let [x2, x3, x4, x5, x6, x7, x8, x9, x10, x11] =
-        Eight_Two_Sum(_l, _6, _5, _4, _3, _2, _1, _0, b4, b3);
+        eight_two_sum(_l, _6, _5, _4, _3, _2, _1, _0, b4, b3);
     [x0, x1, x2, x3, x4, x5, x6, x7, x8, x9, x10, x11]
 }
 
 /* Macros for multiplying expansions of various fixed lengths. */
 
 #[inline]
-pub fn Two_One_Product(a1: f64, a0: f64, b: f64) -> [f64; 4] {
-    let [blo, bhi] = Split(b);
-    let [x0, _i] = Two_Product_Presplit(a0, b, bhi, blo);
-    let [_0, _j] = Two_Product_Presplit(a1, b, bhi, blo);
-    let [x1, _k] = Two_Sum(_i, _0);
-    let [x2, x3] = Fast_Two_Sum(_j, _k);
+pub fn two_one_product(a1: f64, a0: f64, b: f64) -> [f64; 4] {
+    let [blo, bhi] = split(b);
+    let [x0, _i] = two_product_presplit(a0, b, bhi, blo);
+    let [_0, _j] = two_product_presplit(a1, b, bhi, blo);
+    let [x1, _k] = two_sum(_i, _0);
+    let [x2, x3] = fast_two_sum(_j, _k);
     [x0, x1, x2, x3]
 }
 
 #[inline]
-pub fn Four_One_Product(a3: f64, a2: f64, a1: f64, a0: f64, b: f64) -> [f64; 8] {
-    let [blo, bhi] = Split(b);
-    let [x0, _i] = Two_Product_Presplit(a0, b, bhi, blo);
-    let [_0, _j] = Two_Product_Presplit(a1, b, bhi, blo);
-    let [x1, _k] = Two_Sum(_i, _0);
-    let [x2, _i] = Fast_Two_Sum(_j, _k);
-    let [_0, _j] = Two_Product_Presplit(a2, b, bhi, blo);
-    let [x3, _k] = Two_Sum(_i, _0);
-    let [x4, _i] = Fast_Two_Sum(_j, _k);
-    let [_0, _j] = Two_Product_Presplit(a3, b, bhi, blo);
-    let [x5, _k] = Two_Sum(_i, _0);
-    let [x6, x7] = Fast_Two_Sum(_j, _k);
+pub fn four_one_product(a3: f64, a2: f64, a1: f64, a0: f64, b: f64) -> [f64; 8] {
+    let [blo, bhi] = split(b);
+    let [x0, _i] = two_product_presplit(a0, b, bhi, blo);
+    let [_0, _j] = two_product_presplit(a1, b, bhi, blo);
+    let [x1, _k] = two_sum(_i, _0);
+    let [x2, _i] = fast_two_sum(_j, _k);
+    let [_0, _j] = two_product_presplit(a2, b, bhi, blo);
+    let [x3, _k] = two_sum(_i, _0);
+    let [x4, _i] = fast_two_sum(_j, _k);
+    let [_0, _j] = two_product_presplit(a3, b, bhi, blo);
+    let [x5, _k] = two_sum(_i, _0);
+    let [x6, x7] = fast_two_sum(_j, _k);
     [x0, x1, x2, x3, x4, x5, x6, x7]
 }
 
 #[inline]
-pub fn Two_Two_Product(a1: f64, a0: f64, b1: f64, b0: f64) -> [f64; 8] {
-    let [a0lo, a0hi] = Split(a0);
-    let [blo, bhi] = Split(b0);
-    let [x0, _i] = Two_Product_2Presplit(a0, a0hi, a0lo, b0, bhi, blo);
-    let [a1lo, a1hi] = Split(a1);
-    let [_0, _j] = Two_Product_2Presplit(a1, a1hi, a1lo, b0, bhi, blo);
-    let [_1, _k] = Two_Sum(_i, _0);
-    let [_2, _l] = Fast_Two_Sum(_j, _k);
-    let [blo, bhi] = Split(b1);
-    let [_0, _i] = Two_Product_2Presplit(a0, a0hi, a0lo, b1, bhi, blo);
-    let [x1, _k] = Two_Sum(_1, _0);
-    let [_1, _j] = Two_Sum(_2, _k);
-    let [_2, _m] = Two_Sum(_l, _j);
-    let [_0, _j] = Two_Product_2Presplit(a1, a1hi, a1lo, b1, bhi, blo);
-    let [_0, _n] = Two_Sum(_i, _0);
-    let [x2, _i] = Two_Sum(_1, _0);
-    let [_1, _k] = Two_Sum(_2, _i);
-    let [_2, _l] = Two_Sum(_m, _k);
-    let [_0, _k] = Two_Sum(_j, _n);
-    let [x3, _j] = Two_Sum(_1, _0);
-    let [_1, _i] = Two_Sum(_2, _j);
-    let [_2, _m] = Two_Sum(_l, _i);
-    let [x4, _i] = Two_Sum(_1, _k);
-    let [x5, _k] = Two_Sum(_2, _i);
-    let [x6, x7] = Two_Sum(_m, _k);
+pub fn two_two_product(a1: f64, a0: f64, b1: f64, b0: f64) -> [f64; 8] {
+    let [a0lo, a0hi] = split(a0);
+    let [blo, bhi] = split(b0);
+    let [x0, _i] = two_product_2presplit(a0, a0hi, a0lo, b0, bhi, blo);
+    let [a1lo, a1hi] = split(a1);
+    let [_0, _j] = two_product_2presplit(a1, a1hi, a1lo, b0, bhi, blo);
+    let [_1, _k] = two_sum(_i, _0);
+    let [_2, _l] = fast_two_sum(_j, _k);
+    let [blo, bhi] = split(b1);
+    let [_0, _i] = two_product_2presplit(a0, a0hi, a0lo, b1, bhi, blo);
+    let [x1, _k] = two_sum(_1, _0);
+    let [_1, _j] = two_sum(_2, _k);
+    let [_2, _m] = two_sum(_l, _j);
+    let [_0, _j] = two_product_2presplit(a1, a1hi, a1lo, b1, bhi, blo);
+    let [_0, _n] = two_sum(_i, _0);
+    let [x2, _i] = two_sum(_1, _0);
+    let [_1, _k] = two_sum(_2, _i);
+    let [_2, _l] = two_sum(_m, _k);
+    let [_0, _k] = two_sum(_j, _n);
+    let [x3, _j] = two_sum(_1, _0);
+    let [_1, _i] = two_sum(_2, _j);
+    let [_2, _m] = two_sum(_l, _i);
+    let [x4, _i] = two_sum(_1, _k);
+    let [x5, _k] = two_sum(_2, _i);
+    let [x6, x7] = two_sum(_m, _k);
     [x0, x1, x2, x3, x4, x5, x6, x7]
 }
 
@@ -431,13 +420,13 @@ pub fn Two_Two_Product(a1: f64, a0: f64, b1: f64, b0: f64) -> [f64; 8] {
 /*   guaranteed to have no more than six (rather than eight) components.     */
 
 #[inline]
-pub fn Two_Square(a1: f64, a0: f64) -> [f64; 6] {
-    let [x0, _j] = Square(a0);
+pub fn two_square(a1: f64, a0: f64) -> [f64; 6] {
+    let [x0, _j] = square(a0);
     let _0: f64 = a0 + a0;
-    let [_1, _k] = Two_Product(a1, _0);
-    let [x1, _2, _l] = Two_One_Sum(_k, _1, _j);
-    let [_1, _j] = Square(a1);
-    let [x2, x3, x4, x5] = Two_Two_Sum(_j, _1, _l, _2);
+    let [_1, _k] = two_product(a1, _0);
+    let [x1, _2, _l] = two_one_sum(_k, _1, _j);
+    let [_1, _j] = square(a1);
+    let [x2, x3, x4, x5] = two_two_sum(_j, _1, _l, _2);
     [x0, x1, x2, x3, x4, x5]
 }
 
@@ -455,15 +444,15 @@ pub fn Two_Square(a1: f64, a0: f64) -> [f64; 6] {
 /* ****************************************************************************/
 #[inline]
 pub fn grow_expansion(e: &[f64], b: f64, h: &mut [f64]) -> usize {
-    let mut Q = b;
+    let mut q = b;
     let mut eindex = 0;
     while eindex < e.len() {
-        let [hnew, Qnew] = Two_Sum(Q, e[eindex]);
-        Q = Qnew;
+        let [hnew, q_new] = two_sum(q, e[eindex]);
+        q = q_new;
         h[eindex] = hnew;
         eindex += 1;
     }
-    h[eindex] = Q;
+    h[eindex] = q;
     eindex + 1
 }
 
@@ -483,11 +472,11 @@ pub fn grow_expansion(e: &[f64], b: f64, h: &mut [f64]) -> usize {
 #[inline]
 pub fn grow_expansion_zeroelim(e: &[f64], b: f64, h: &mut [f64]) -> usize {
     let mut hindex = 0;
-    let mut Q = b;
+    let mut q = b;
     let mut eindex = 0;
     while eindex < e.len() {
-        let [hh, Qnew] = Two_Sum(Q, e[eindex]);
-        Q = Qnew;
+        let [hh, q_new] = two_sum(q, e[eindex]);
+        q = q_new;
         if hh != 0.0f64 {
             let fresh0 = hindex;
             hindex = hindex + 1;
@@ -495,10 +484,10 @@ pub fn grow_expansion_zeroelim(e: &[f64], b: f64, h: &mut [f64]) -> usize {
         }
         eindex += 1
     }
-    if Q != 0.0f64 || hindex == 0 {
+    if q != 0.0f64 || hindex == 0 {
         let fresh1 = hindex;
         hindex = hindex + 1;
-        h[fresh1] = Q;
+        h[fresh1] = q;
     }
     hindex
 }
@@ -800,17 +789,17 @@ pub unsafe fn fast_expansion_sum(mut elen: i32,
 
 #[inline]
 pub fn fast_expansion_sum_zeroelim(e: &[f64], f: &[f64], h: &mut [f64]) -> usize {
-    let mut Q;
+    let mut q;
     let mut findex = 0;
     let mut eindex = findex;
 
     let enow = e[0];
     let fnow = f[0];
     if (fnow > enow) == (fnow > -enow) {
-        Q = enow;
+        q = enow;
         eindex += 1;
     } else {
-        Q = fnow;
+        q = fnow;
         findex += 1;
     }
 
@@ -818,14 +807,14 @@ pub fn fast_expansion_sum_zeroelim(e: &[f64], f: &[f64], h: &mut [f64]) -> usize
     if eindex < e.len() && findex < f.len() {
         let enow = e[eindex];
         let fnow = f[findex];
-        let [hh, Qnew] = if (fnow > enow) == (fnow > -enow) {
+        let [hh, q_new] = if (fnow > enow) == (fnow > -enow) {
             eindex += 1;
-            Fast_Two_Sum(enow, Q)
+            fast_two_sum(enow, q)
         } else {
             findex += 1;
-            Fast_Two_Sum(fnow, Q)
+            fast_two_sum(fnow, q)
         };
-        Q = Qnew;
+        q = q_new;
         if hh != 0.0f64 {
             h[hindex] = hh;
             hindex += 1;
@@ -833,14 +822,14 @@ pub fn fast_expansion_sum_zeroelim(e: &[f64], f: &[f64], h: &mut [f64]) -> usize
         while eindex < e.len() && findex < f.len() {
             let enow = e[eindex];
             let fnow = f[findex];
-            let [hh, Qnew] = if (fnow > enow) == (fnow > -enow) {
+            let [hh, q_new] = if (fnow > enow) == (fnow > -enow) {
                 eindex += 1;
-                Two_Sum(Q, enow)
+                two_sum(q, enow)
             } else {
                 findex += 1;
-                Two_Sum(Q, fnow)
+                two_sum(q, fnow)
             };
-            Q = Qnew;
+            q = q_new;
             if hh != 0.0f64 {
                 h[hindex] = hh;
                 hindex += 1;
@@ -848,25 +837,25 @@ pub fn fast_expansion_sum_zeroelim(e: &[f64], f: &[f64], h: &mut [f64]) -> usize
         }
     }
     while eindex < e.len() {
-        let [hh, Qnew] = Two_Sum(Q, e[eindex]);
+        let [hh, q_new] = two_sum(q, e[eindex]);
         eindex += 1;
-        Q = Qnew;
+        q = q_new;
         if hh != 0.0f64 {
             h[hindex] = hh;
             hindex += 1;
         }
     }
     while findex < f.len() {
-        let [hh, Qnew] = Two_Sum(Q, f[findex]);
+        let [hh, q_new] = two_sum(q, f[findex]);
         findex += 1;
-        Q = Qnew;
+        q = q_new;
         if hh != 0.0f64 {
             h[hindex] = hh;
             hindex += 1;
         }
     }
-    if Q != 0.0f64 || hindex == 0 {
-        h[hindex] = Q;
+    if q != 0.0f64 || hindex == 0 {
+        h[hindex] = q;
         hindex += 1;
     }
     hindex
@@ -1133,8 +1122,8 @@ pub unsafe fn scale_expansion(mut elen: i32,
 /* ****************************************************************************/
 
 pub fn scale_expansion_zeroelim(e: &[f64], b: f64, h: &mut [f64]) -> usize {
-    let [blo, bhi] = Split(b);
-    let [hh, mut Q] = Two_Product_Presplit(e[0], b, bhi, blo);
+    let [blo, bhi] = split(b);
+    let [hh, mut q] = two_product_presplit(e[0], b, bhi, blo);
 
     let mut hindex = 0;
     if hh != 0.0f64 {
@@ -1142,21 +1131,21 @@ pub fn scale_expansion_zeroelim(e: &[f64], b: f64, h: &mut [f64]) -> usize {
         hindex += 1;
     }
     for &enow in e.iter().skip(1) {
-        let [product0, product1] = Two_Product_Presplit(enow, b, bhi, blo);
-        let [hh, sum] = Two_Sum(Q, product0);
+        let [product0, product1] = two_product_presplit(enow, b, bhi, blo);
+        let [hh, sum] = two_sum(q, product0);
         if hh != 0.0f64 {
             h[hindex] = hh;
             hindex += 1;
         }
-        let [hh, Qnew] = Fast_Two_Sum(product1, sum);
-        Q = Qnew;
+        let [hh, q_new] = fast_two_sum(product1, sum);
+        q = q_new;
         if hh != 0.0f64 {
             h[hindex] = hh;
             hindex += 1;
         }
     }
-    if Q != 0.0f64 || hindex == 0 {
-        h[hindex] = Q;
+    if q != 0.0f64 || hindex == 0 {
+        h[hindex] = q;
         hindex += 1;
     }
     hindex
@@ -1274,15 +1263,15 @@ pub fn orient2d_fast(pa: [f64; 2], pb: [f64; 2], pc: [f64; 2]) -> f64 {
 
 #[inline]
 pub fn orient2d_exact(pa: [f64; 2], pb: [f64; 2], pc: [f64; 2]) -> f64 {
-    let [axby0, axby1] = Two_Product(pa[0], pb[1]);
-    let [axcy0, axcy1] = Two_Product(pa[0], pc[1]);
-    let aterms = Two_Two_Diff(axby1, axby0, axcy1, axcy0);
-    let [bxcy0, bxcy1] = Two_Product(pb[0], pc[1]);
-    let [bxay0, bxay1] = Two_Product(pb[0], pa[1]);
-    let bterms = Two_Two_Diff(bxcy1, bxcy0, bxay1, bxay0);
-    let [cxay0, cxay1] = Two_Product(pc[0], pa[1]);
-    let [cxby0, cxby1] = Two_Product(pc[0], pb[1]);
-    let cterms = Two_Two_Diff(cxay1, cxay0, cxby1, cxby0);
+    let [axby0, axby1] = two_product(pa[0], pb[1]);
+    let [axcy0, axcy1] = two_product(pa[0], pc[1]);
+    let aterms = two_two_diff(axby1, axby0, axcy1, axcy0);
+    let [bxcy0, bxcy1] = two_product(pb[0], pc[1]);
+    let [bxay0, bxay1] = two_product(pb[0], pa[1]);
+    let bterms = two_two_diff(bxcy1, bxcy0, bxay1, bxay0);
+    let [cxay0, cxay1] = two_product(pc[0], pa[1]);
+    let [cxby0, cxby1] = two_product(pc[0], pb[1]);
+    let cterms = two_two_diff(cxay1, cxay0, cxby1, cxby0);
     let mut v = [0.; 8];
     let vlength = fast_expansion_sum_zeroelim(&aterms, &bterms, &mut v);
     let mut w = [0.; 12];
@@ -1292,14 +1281,14 @@ pub fn orient2d_exact(pa: [f64; 2], pb: [f64; 2], pc: [f64; 2]) -> f64 {
 
 #[inline]
 pub fn orient2d_slow(pa: [f64; 2], pb: [f64; 2], pc: [f64; 2]) -> f64 {
-    let [acxtail, acx] = Two_Diff(pa[0], pc[0]);
-    let [acytail, acy] = Two_Diff(pa[1], pc[1]);
-    let [bcxtail, bcx] = Two_Diff(pb[0], pc[0]);
-    let [bcytail, bcy] = Two_Diff(pb[1], pc[1]);
-    let axby = Two_Two_Product(acx, acxtail, bcy, bcytail);
+    let [acxtail, acx] = two_diff(pa[0], pc[0]);
+    let [acytail, acy] = two_diff(pa[1], pc[1]);
+    let [bcxtail, bcx] = two_diff(pb[0], pc[0]);
+    let [bcytail, bcy] = two_diff(pb[1], pc[1]);
+    let axby = two_two_product(acx, acxtail, bcy, bcytail);
     let negate = -acy;
     let negatetail = -acytail;
-    let bxay = Two_Two_Product(bcx, bcxtail, negate, negatetail);
+    let bxay = two_two_product(bcx, bcxtail, negate, negatetail);
     let mut deter = [0.; 16];
     let deterlen = fast_expansion_sum_zeroelim(&axby, &bxay, &mut deter);
     deter[deterlen - 1]
@@ -1311,42 +1300,42 @@ pub fn orient2dadapt(pa: [f64; 2], pb: [f64; 2], pc: [f64; 2], detsum: f64) -> f
     let bcx = pb[0] - pc[0];
     let acy = pa[1] - pc[1];
     let bcy = pb[1] - pc[1];
-    let [detlefttail, detleft] = Two_Product(acx, bcy);
-    let [detrighttail, detright] = Two_Product(acy, bcx);
-    let B = Two_Two_Diff(detleft, detlefttail, detright, detrighttail);
-    let mut det = estimate(&B);
-    let errbound = PARAMS.ccwerrboundB * detsum;
+    let [detlefttail, detleft] = two_product(acx, bcy);
+    let [detrighttail, detright] = two_product(acy, bcx);
+    let b = two_two_diff(detleft, detlefttail, detright, detrighttail);
+    let mut det = estimate(&b);
+    let errbound = PARAMS.ccwerrbound_b * detsum;
     if det >= errbound || -det >= errbound {
         return det;
     }
-    let acxtail = Two_Diff_Tail(pa[0], pc[0], acx);
-    let bcxtail = Two_Diff_Tail(pb[0], pc[0], bcx);
-    let acytail = Two_Diff_Tail(pa[1], pc[1], acy);
-    let bcytail = Two_Diff_Tail(pb[1], pc[1], bcy);
+    let acxtail = two_diff_tail(pa[0], pc[0], acx);
+    let bcxtail = two_diff_tail(pb[0], pc[0], bcx);
+    let acytail = two_diff_tail(pa[1], pc[1], acy);
+    let bcytail = two_diff_tail(pb[1], pc[1], bcy);
     if acxtail == 0.0 && acytail == 0.0 && bcxtail == 0.0 && bcytail == 0.0 {
         return det;
     }
-    let errbound = PARAMS.ccwerrboundC * detsum + PARAMS.resulterrbound * Absolute(det);
+    let errbound = PARAMS.ccwerrbound_c * detsum + PARAMS.resulterrbound * abs(det);
     det += acx * bcytail + bcy * acxtail - (acy * bcxtail + bcx * acytail);
     if det >= errbound || -det >= errbound {
         return det;
     }
-    let [s0, s1] = Two_Product(acxtail, bcy);
-    let [t0, t1] = Two_Product(acytail, bcx);
-    let u = Two_Two_Diff(s1, s0, t1, t0);
-    let mut C1: [f64; 8] = [0.; 8];
-    let C1length = fast_expansion_sum_zeroelim(&B, &u, &mut C1);
-    let [s0, s1] = Two_Product(acx, bcytail);
-    let [t0, t1] = Two_Product(acy, bcxtail);
-    let u = Two_Two_Diff(s1, s0, t1, t0);
-    let mut C2: [f64; 12] = [0.; 12];
-    let C2length = fast_expansion_sum_zeroelim(&C1[..C1length], &u, &mut C2);
-    let [s0, s1] = Two_Product(acxtail, bcytail);
-    let [t0, t1] = Two_Product(acytail, bcxtail);
-    let u = Two_Two_Diff(s1, s0, t1, t0);
-    let mut D: [f64; 16] = [0.; 16];
-    let Dlength = fast_expansion_sum_zeroelim(&C2[..C2length], &u, &mut D);
-    D[Dlength - 1]
+    let [s0, s1] = two_product(acxtail, bcy);
+    let [t0, t1] = two_product(acytail, bcx);
+    let u = two_two_diff(s1, s0, t1, t0);
+    let mut c1: [f64; 8] = [0.; 8];
+    let c1length = fast_expansion_sum_zeroelim(&b, &u, &mut c1);
+    let [s0, s1] = two_product(acx, bcytail);
+    let [t0, t1] = two_product(acy, bcxtail);
+    let u = two_two_diff(s1, s0, t1, t0);
+    let mut c2: [f64; 12] = [0.; 12];
+    let c2length = fast_expansion_sum_zeroelim(&c1[..c1length], &u, &mut c2);
+    let [s0, s1] = two_product(acxtail, bcytail);
+    let [t0, t1] = two_product(acytail, bcxtail);
+    let u = two_two_diff(s1, s0, t1, t0);
+    let mut d: [f64; 16] = [0.; 16];
+    let dlength = fast_expansion_sum_zeroelim(&c2[..c2length], &u, &mut d);
+    d[dlength - 1]
 }
 
 /**
@@ -1385,7 +1374,7 @@ pub fn orient2d(pa: [f64; 2], pb: [f64; 2], pc: [f64; 2]) -> f64 {
     } else {
         return det;
     };
-    let errbound = PARAMS.ccwerrboundA * detsum;
+    let errbound = PARAMS.ccwerrbound_a * detsum;
     if det >= errbound || -det >= errbound {
         return det;
     }
@@ -1438,24 +1427,24 @@ pub fn orient3d_fast(pa: [f64; 3], pb: [f64; 3], pc: [f64; 3], pd: [f64; 3]) -> 
 
 #[inline]
 pub fn orient3d_exact(pa: [f64; 3], pb: [f64; 3], pc: [f64; 3], pd: [f64; 3]) -> f64 {
-    let [axby0, axby1] = Two_Product(pa[0], pb[1]);
-    let [bxay0, bxay1] = Two_Product(pb[0], pa[1]);
-    let ab = Two_Two_Diff(axby1, axby0, bxay1, bxay0);
-    let [bxcy0, bxcy1] = Two_Product(pb[0], pc[1]);
-    let [cxby0, cxby1] = Two_Product(pc[0], pb[1]);
-    let bc = Two_Two_Diff(bxcy1, bxcy0, cxby1, cxby0);
-    let [cxdy0, cxdy1] = Two_Product(pc[0], pd[1]);
-    let [dxcy0, dxcy1] = Two_Product(pd[0], pc[1]);
-    let cd = Two_Two_Diff(cxdy1, cxdy0, dxcy1, dxcy0);
-    let [dxay0, dxay1] = Two_Product(pd[0], pa[1]);
-    let [axdy0, axdy1] = Two_Product(pa[0], pd[1]);
-    let da = Two_Two_Diff(dxay1, dxay0, axdy1, axdy0);
-    let [axcy0, axcy1] = Two_Product(pa[0], pc[1]);
-    let [cxay0, cxay1] = Two_Product(pc[0], pa[1]);
-    let mut ac = Two_Two_Diff(axcy1, axcy0, cxay1, cxay0);
-    let [bxdy0, bxdy1] = Two_Product(pb[0], pd[1]);
-    let [dxby0, dxby1] = Two_Product(pd[0], pb[1]);
-    let mut bd = Two_Two_Diff(bxdy1, bxdy0, dxby1, dxby0);
+    let [axby0, axby1] = two_product(pa[0], pb[1]);
+    let [bxay0, bxay1] = two_product(pb[0], pa[1]);
+    let ab = two_two_diff(axby1, axby0, bxay1, bxay0);
+    let [bxcy0, bxcy1] = two_product(pb[0], pc[1]);
+    let [cxby0, cxby1] = two_product(pc[0], pb[1]);
+    let bc = two_two_diff(bxcy1, bxcy0, cxby1, cxby0);
+    let [cxdy0, cxdy1] = two_product(pc[0], pd[1]);
+    let [dxcy0, dxcy1] = two_product(pd[0], pc[1]);
+    let cd = two_two_diff(cxdy1, cxdy0, dxcy1, dxcy0);
+    let [dxay0, dxay1] = two_product(pd[0], pa[1]);
+    let [axdy0, axdy1] = two_product(pa[0], pd[1]);
+    let da = two_two_diff(dxay1, dxay0, axdy1, axdy0);
+    let [axcy0, axcy1] = two_product(pa[0], pc[1]);
+    let [cxay0, cxay1] = two_product(pc[0], pa[1]);
+    let mut ac = two_two_diff(axcy1, axcy0, cxay1, cxay0);
+    let [bxdy0, bxdy1] = two_product(pb[0], pd[1]);
+    let [dxby0, dxby1] = two_product(pd[0], pb[1]);
+    let mut bd = two_two_diff(bxdy1, bxdy0, dxby1, dxby0);
 
     let mut temp8 = [0.; 8];
     let mut abc = [0.; 12];
@@ -1500,27 +1489,27 @@ pub fn orient3d_slow(pa: [f64; 3], pb: [f64; 3], pc: [f64; 3], pd: [f64; 3]) -> 
     let mut cdet: [f64; 64] = [0.; 64];
     let mut abdet: [f64; 128] = [0.; 128];
     let mut deter: [f64; 192] = [0.; 192];
-    let [adxtail, adx] = Two_Diff(pa[0], pd[0]);
-    let [adytail, ady] = Two_Diff(pa[1], pd[1]);
-    let [adztail, adz] = Two_Diff(pa[2], pd[2]);
-    let [bdxtail, bdx] = Two_Diff(pb[0], pd[0]);
-    let [bdytail, bdy] = Two_Diff(pb[1], pd[1]);
-    let [bdztail, bdz] = Two_Diff(pb[2], pd[2]);
-    let [cdxtail, cdx] = Two_Diff(pc[0], pd[0]);
-    let [cdytail, cdy] = Two_Diff(pc[1], pd[1]);
-    let [cdztail, cdz] = Two_Diff(pc[2], pd[2]);
-    let axby = Two_Two_Product(adx, adxtail, bdy, bdytail);
+    let [adxtail, adx] = two_diff(pa[0], pd[0]);
+    let [adytail, ady] = two_diff(pa[1], pd[1]);
+    let [adztail, adz] = two_diff(pa[2], pd[2]);
+    let [bdxtail, bdx] = two_diff(pb[0], pd[0]);
+    let [bdytail, bdy] = two_diff(pb[1], pd[1]);
+    let [bdztail, bdz] = two_diff(pb[2], pd[2]);
+    let [cdxtail, cdx] = two_diff(pc[0], pd[0]);
+    let [cdytail, cdy] = two_diff(pc[1], pd[1]);
+    let [cdztail, cdz] = two_diff(pc[2], pd[2]);
+    let axby = two_two_product(adx, adxtail, bdy, bdytail);
     let negate = -ady;
     let negatetail = -adytail;
-    let bxay = Two_Two_Product(bdx, bdxtail, negate, negatetail);
-    let bxcy = Two_Two_Product(bdx, bdxtail, cdy, cdytail);
+    let bxay = two_two_product(bdx, bdxtail, negate, negatetail);
+    let bxcy = two_two_product(bdx, bdxtail, cdy, cdytail);
     let negate = -bdy;
     let negatetail = -bdytail;
-    let cxby = Two_Two_Product(cdx, cdxtail, negate, negatetail);
-    let cxay = Two_Two_Product(cdx, cdxtail, ady, adytail);
+    let cxby = two_two_product(cdx, cdxtail, negate, negatetail);
+    let cxay = two_two_product(cdx, cdxtail, ady, adytail);
     let negate = -cdy;
     let negatetail = -cdytail;
-    let axcy = Two_Two_Product(adx, adxtail, negate, negatetail);
+    let axcy = two_two_product(adx, adxtail, negate, negatetail);
     let temp16len = fast_expansion_sum_zeroelim(&bxcy, &cxby, &mut temp16);
     let temp32len = scale_expansion_zeroelim(&temp16[..temp16len], adz, &mut temp32);
     let temp32tlen = scale_expansion_zeroelim(&temp16[..temp16len], adztail, &mut temp32t);
@@ -1556,21 +1545,21 @@ pub fn orient3dadapt(
     let bdz = pb[2] - pd[2];
     let cdz = pc[2] - pd[2];
 
-    let [bdxcdy0, bdxcdy1] = Two_Product(bdx, cdy);
-    let [cdxbdy0, cdxbdy1] = Two_Product(cdx, bdy);
-    let bc = Two_Two_Diff(bdxcdy1, bdxcdy0, cdxbdy1, cdxbdy0);
+    let [bdxcdy0, bdxcdy1] = two_product(bdx, cdy);
+    let [cdxbdy0, cdxbdy1] = two_product(cdx, bdy);
+    let bc = two_two_diff(bdxcdy1, bdxcdy0, cdxbdy1, cdxbdy0);
     let mut adet = [0.; 8];
     let alen = scale_expansion_zeroelim(&bc, adz, &mut adet);
 
-    let [cdxady0, cdxady1] = Two_Product(cdx, ady);
-    let [adxcdy0, adxcdy1] = Two_Product(adx, cdy);
-    let ca = Two_Two_Diff(cdxady1, cdxady0, adxcdy1, adxcdy0);
+    let [cdxady0, cdxady1] = two_product(cdx, ady);
+    let [adxcdy0, adxcdy1] = two_product(adx, cdy);
+    let ca = two_two_diff(cdxady1, cdxady0, adxcdy1, adxcdy0);
     let mut bdet = [0.; 8];
     let blen = scale_expansion_zeroelim(&ca, bdz, &mut bdet);
 
-    let [adxbdy0, adxbdy1] = Two_Product(adx, bdy);
-    let [bdxady0, bdxady1] = Two_Product(bdx, ady);
-    let ab = Two_Two_Diff(adxbdy1, adxbdy0, bdxady1, bdxady0);
+    let [adxbdy0, adxbdy1] = two_product(adx, bdy);
+    let [bdxady0, bdxady1] = two_product(bdx, ady);
+    let ab = two_two_diff(adxbdy1, adxbdy0, bdxady1, bdxady0);
     let mut cdet = [0.; 8];
     let clen = scale_expansion_zeroelim(&ab, cdz, &mut cdet);
 
@@ -1580,20 +1569,20 @@ pub fn orient3dadapt(
     let mut finlength = fast_expansion_sum_zeroelim(&abdet[..ablen], &cdet[..clen], &mut fin1);
 
     let mut det = estimate(&fin1[..finlength]);
-    let errbound = PARAMS.o3derrboundB * permanent;
+    let errbound = PARAMS.o3derrbound_b * permanent;
     if det >= errbound || -det >= errbound {
         return det;
     }
 
-    let adxtail = Two_Diff_Tail(pa[0], pd[0], adx);
-    let bdxtail = Two_Diff_Tail(pb[0], pd[0], bdx);
-    let cdxtail = Two_Diff_Tail(pc[0], pd[0], cdx);
-    let adytail = Two_Diff_Tail(pa[1], pd[1], ady);
-    let bdytail = Two_Diff_Tail(pb[1], pd[1], bdy);
-    let cdytail = Two_Diff_Tail(pc[1], pd[1], cdy);
-    let adztail = Two_Diff_Tail(pa[2], pd[2], adz);
-    let bdztail = Two_Diff_Tail(pb[2], pd[2], bdz);
-    let cdztail = Two_Diff_Tail(pc[2], pd[2], cdz);
+    let adxtail = two_diff_tail(pa[0], pd[0], adx);
+    let bdxtail = two_diff_tail(pb[0], pd[0], bdx);
+    let cdxtail = two_diff_tail(pc[0], pd[0], cdx);
+    let adytail = two_diff_tail(pa[1], pd[1], ady);
+    let bdytail = two_diff_tail(pb[1], pd[1], bdy);
+    let cdytail = two_diff_tail(pc[1], pd[1], cdy);
+    let adztail = two_diff_tail(pa[2], pd[2], adz);
+    let bdztail = two_diff_tail(pb[2], pd[2], bdz);
+    let cdztail = two_diff_tail(pc[2], pd[2], cdz);
     if adxtail == 0.0
         && bdxtail == 0.0
         && cdxtail == 0.0
@@ -1606,7 +1595,7 @@ pub fn orient3dadapt(
     {
         return det;
     }
-    let errbound = PARAMS.o3derrboundC * permanent + PARAMS.resulterrbound * Absolute(det);
+    let errbound = PARAMS.o3derrbound_c * permanent + PARAMS.resulterrbound * abs(det);
     det += adz * (bdx * cdytail + cdy * bdxtail - (bdy * cdxtail + cdx * bdytail))
         + adztail * (bdx * cdy - bdy * cdx)
         + (bdz * (cdx * adytail + ady * cdxtail - (cdy * adxtail + adx * cdytail))
@@ -1630,29 +1619,29 @@ pub fn orient3dadapt(
             at_clen = 1;
         } else {
             let negate = -adytail;
-            let [at_b0, at_blarge] = Two_Product(negate, bdx);
+            let [at_b0, at_blarge] = two_product(negate, bdx);
             at_b = [at_b0, at_blarge, 0., 0.];
             at_blen = 2;
-            let [at_c0, at_clarge] = Two_Product(adytail, cdx);
+            let [at_c0, at_clarge] = two_product(adytail, cdx);
             at_c = [at_c0, at_clarge, 0., 0.];
             at_clen = 2;
         }
     } else if adytail == 0.0 {
-        let [at_b0, at_blarge] = Two_Product(adxtail, bdy);
+        let [at_b0, at_blarge] = two_product(adxtail, bdy);
         at_b = [at_b0, at_blarge, 0., 0.];
         at_blen = 2;
         let negate = -adxtail;
-        let [at_c0, at_clarge] = Two_Product(negate, cdy);
+        let [at_c0, at_clarge] = two_product(negate, cdy);
         at_c = [at_c0, at_clarge, 0., 0.];
         at_clen = 2;
     } else {
-        let [adxt_bdy0, adxt_bdy1] = Two_Product(adxtail, bdy);
-        let [adyt_bdx0, adyt_bdx1] = Two_Product(adytail, bdx);
-        at_b = Two_Two_Diff(adxt_bdy1, adxt_bdy0, adyt_bdx1, adyt_bdx0);
+        let [adxt_bdy0, adxt_bdy1] = two_product(adxtail, bdy);
+        let [adyt_bdx0, adyt_bdx1] = two_product(adytail, bdx);
+        at_b = two_two_diff(adxt_bdy1, adxt_bdy0, adyt_bdx1, adyt_bdx0);
         at_blen = 4;
-        let [adyt_cdx0, adyt_cdx1] = Two_Product(adytail, cdx);
-        let [adxt_cdy0, adxt_cdy1] = Two_Product(adxtail, cdy);
-        at_c = Two_Two_Diff(adyt_cdx1, adyt_cdx0, adxt_cdy1, adxt_cdy0);
+        let [adyt_cdx0, adyt_cdx1] = two_product(adytail, cdx);
+        let [adxt_cdy0, adxt_cdy1] = two_product(adxtail, cdy);
+        at_c = two_two_diff(adyt_cdx1, adyt_cdx0, adxt_cdy1, adxt_cdy0);
         at_clen = 4;
     }
     let bt_clen;
@@ -1667,29 +1656,29 @@ pub fn orient3dadapt(
             bt_alen = 1;
         } else {
             let negate = -bdytail;
-            let [bt_c0, bt_clarge] = Two_Product(negate, cdx);
+            let [bt_c0, bt_clarge] = two_product(negate, cdx);
             bt_c = [bt_c0, bt_clarge, 0., 0.];
             bt_clen = 2;
-            let [bt_a0, bt_alarge] = Two_Product(bdytail, adx);
+            let [bt_a0, bt_alarge] = two_product(bdytail, adx);
             bt_a = [bt_a0, bt_alarge, 0., 0.];
             bt_alen = 2;
         }
     } else if bdytail == 0.0 {
-        let [bt_c0, bt_clarge] = Two_Product(bdxtail, cdy);
+        let [bt_c0, bt_clarge] = two_product(bdxtail, cdy);
         bt_c = [bt_c0, bt_clarge, 0., 0.];
         bt_clen = 2;
         let negate = -bdxtail;
-        let [bt_a0, bt_alarge] = Two_Product(negate, ady);
+        let [bt_a0, bt_alarge] = two_product(negate, ady);
         bt_a = [bt_a0, bt_alarge, 0., 0.];
         bt_alen = 2
     } else {
-        let [bdxt_cdy0, bdxt_cdy1] = Two_Product(bdxtail, cdy);
-        let [bdyt_cdx0, bdyt_cdx1] = Two_Product(bdytail, cdx);
-        bt_c = Two_Two_Diff(bdxt_cdy1, bdxt_cdy0, bdyt_cdx1, bdyt_cdx0);
+        let [bdxt_cdy0, bdxt_cdy1] = two_product(bdxtail, cdy);
+        let [bdyt_cdx0, bdyt_cdx1] = two_product(bdytail, cdx);
+        bt_c = two_two_diff(bdxt_cdy1, bdxt_cdy0, bdyt_cdx1, bdyt_cdx0);
         bt_clen = 4;
-        let [bdyt_adx0, bdyt_adx1] = Two_Product(bdytail, adx);
-        let [bdxt_ady0, bdxt_ady1] = Two_Product(bdxtail, ady);
-        bt_a = Two_Two_Diff(bdyt_adx1, bdyt_adx0, bdxt_ady1, bdxt_ady0);
+        let [bdyt_adx0, bdyt_adx1] = two_product(bdytail, adx);
+        let [bdxt_ady0, bdxt_ady1] = two_product(bdxtail, ady);
+        bt_a = two_two_diff(bdyt_adx1, bdyt_adx0, bdxt_ady1, bdxt_ady0);
         bt_alen = 4;
     }
     let ct_alen;
@@ -1704,29 +1693,29 @@ pub fn orient3dadapt(
             ct_blen = 1;
         } else {
             let negate = -cdytail;
-            let [ct_a0, ct_alarge] = Two_Product(negate, adx);
+            let [ct_a0, ct_alarge] = two_product(negate, adx);
             ct_a = [ct_a0, ct_alarge, 0., 0.];
             ct_alen = 2;
-            let [ct_b0, ct_blarge] = Two_Product(cdytail, bdx);
+            let [ct_b0, ct_blarge] = two_product(cdytail, bdx);
             ct_b = [ct_b0, ct_blarge, 0., 0.];
             ct_blen = 2;
         }
     } else if cdytail == 0.0 {
-        let [ct_a0, ct_alarge] = Two_Product(cdxtail, ady);
+        let [ct_a0, ct_alarge] = two_product(cdxtail, ady);
         ct_a = [ct_a0, ct_alarge, 0., 0.];
         ct_alen = 2;
         let negate = -cdxtail;
-        let [ct_b0, ct_blarge] = Two_Product(negate, bdy);
+        let [ct_b0, ct_blarge] = two_product(negate, bdy);
         ct_b = [ct_b0, ct_blarge, 0., 0.];
         ct_blen = 2;
     } else {
-        let [cdxt_ady0, cdxt_ady1] = Two_Product(cdxtail, ady);
-        let [cdyt_adx0, cdyt_adx1] = Two_Product(cdytail, adx);
-        ct_a = Two_Two_Diff(cdxt_ady1, cdxt_ady0, cdyt_adx1, cdyt_adx0);
+        let [cdxt_ady0, cdxt_ady1] = two_product(cdxtail, ady);
+        let [cdyt_adx0, cdyt_adx1] = two_product(cdytail, adx);
+        ct_a = two_two_diff(cdxt_ady1, cdxt_ady0, cdyt_adx1, cdyt_adx0);
         ct_alen = 4;
-        let [cdyt_bdx0, cdyt_bdx1] = Two_Product(cdytail, bdx);
-        let [cdxt_bdy0, cdxt_bdy1] = Two_Product(cdxtail, bdy);
-        ct_b = Two_Two_Diff(cdyt_bdx1, cdyt_bdx0, cdxt_bdy1, cdxt_bdy0);
+        let [cdyt_bdx0, cdyt_bdx1] = two_product(cdytail, bdx);
+        let [cdxt_bdy0, cdxt_bdy1] = two_product(cdxtail, bdy);
+        ct_b = two_two_diff(cdyt_bdx1, cdyt_bdx0, cdxt_bdy1, cdxt_bdy0);
         ct_blen = 4;
     }
 
@@ -1776,12 +1765,12 @@ pub fn orient3dadapt(
     };
     let (mut fin1, fin2) = if adxtail != 0.0 {
         let (mut fin1, fin2) = if bdytail != 0.0 {
-            let [adxt_bdyt0, adxt_bdyt1] = Two_Product(adxtail, bdytail);
-            let u = Two_One_Product(adxt_bdyt1, adxt_bdyt0, cdz);
+            let [adxt_bdyt0, adxt_bdyt1] = two_product(adxtail, bdytail);
+            let u = two_one_product(adxt_bdyt1, adxt_bdyt0, cdz);
             finlength = fast_expansion_sum_zeroelim(&fin2[..finlength], &u, &mut fin1);
             let (mut fin1, fin2) = (fin2, fin1);
             if cdztail != 0.0 {
-                let u = Two_One_Product(adxt_bdyt1, adxt_bdyt0, cdztail);
+                let u = two_one_product(adxt_bdyt1, adxt_bdyt0, cdztail);
                 finlength = fast_expansion_sum_zeroelim(&fin2[..finlength], &u, &mut fin1);
                 (fin2, fin1)
             } else {
@@ -1792,12 +1781,12 @@ pub fn orient3dadapt(
         };
         if cdytail != 0.0 {
             let negate = -adxtail;
-            let [adxt_cdyt0, adxt_cdyt1] = Two_Product(negate, cdytail);
-            let u = Two_One_Product(adxt_cdyt1, adxt_cdyt0, bdz);
+            let [adxt_cdyt0, adxt_cdyt1] = two_product(negate, cdytail);
+            let u = two_one_product(adxt_cdyt1, adxt_cdyt0, bdz);
             finlength = fast_expansion_sum_zeroelim(&fin2[..finlength], &u, &mut fin1);
             let (mut fin1, fin2) = (fin2, fin1);
             if bdztail != 0.0 {
-                let u = Two_One_Product(adxt_cdyt1, adxt_cdyt0, bdztail);
+                let u = two_one_product(adxt_cdyt1, adxt_cdyt0, bdztail);
                 finlength = fast_expansion_sum_zeroelim(&fin2[..finlength], &u, &mut fin1);
                 (fin2, fin1)
             } else {
@@ -1811,12 +1800,12 @@ pub fn orient3dadapt(
     };
     let (mut fin1, fin2) = if bdxtail != 0.0 {
         let (mut fin1, fin2) = if cdytail != 0.0 {
-            let [bdxt_cdyt0, bdxt_cdyt1] = Two_Product(bdxtail, cdytail);
-            let u = Two_One_Product(bdxt_cdyt1, bdxt_cdyt0, adz);
+            let [bdxt_cdyt0, bdxt_cdyt1] = two_product(bdxtail, cdytail);
+            let u = two_one_product(bdxt_cdyt1, bdxt_cdyt0, adz);
             finlength = fast_expansion_sum_zeroelim(&fin2[..finlength], &u, &mut fin1);
             let (mut fin1, fin2) = (fin2, fin1);
             if adztail != 0.0 {
-                let u = Two_One_Product(bdxt_cdyt1, bdxt_cdyt0, adztail);
+                let u = two_one_product(bdxt_cdyt1, bdxt_cdyt0, adztail);
                 finlength = fast_expansion_sum_zeroelim(&fin2[..finlength], &u, &mut fin1);
                 (fin2, fin1)
             } else {
@@ -1827,12 +1816,12 @@ pub fn orient3dadapt(
         };
         if adytail != 0.0 {
             let negate = -bdxtail;
-            let [bdxt_adyt0, bdxt_adyt1] = Two_Product(negate, adytail);
-            let u = Two_One_Product(bdxt_adyt1, bdxt_adyt0, cdz);
+            let [bdxt_adyt0, bdxt_adyt1] = two_product(negate, adytail);
+            let u = two_one_product(bdxt_adyt1, bdxt_adyt0, cdz);
             finlength = fast_expansion_sum_zeroelim(&fin2[..finlength], &u, &mut fin1);
             let (mut fin1, fin2) = (fin2, fin1);
             if cdztail != 0.0 {
-                let u = Two_One_Product(bdxt_adyt1, bdxt_adyt0, cdztail);
+                let u = two_one_product(bdxt_adyt1, bdxt_adyt0, cdztail);
                 finlength = fast_expansion_sum_zeroelim(&fin2[..finlength], &u, &mut fin1);
                 (fin2, fin1)
             } else {
@@ -1846,12 +1835,12 @@ pub fn orient3dadapt(
     };
     let (mut fin1, fin2) = if cdxtail != 0.0 {
         let (mut fin1, fin2) = if adytail != 0.0 {
-            let [cdxt_adyt0, cdxt_adyt1] = Two_Product(cdxtail, adytail);
-            let u = Two_One_Product(cdxt_adyt1, cdxt_adyt0, bdz);
+            let [cdxt_adyt0, cdxt_adyt1] = two_product(cdxtail, adytail);
+            let u = two_one_product(cdxt_adyt1, cdxt_adyt0, bdz);
             finlength = fast_expansion_sum_zeroelim(&fin2[..finlength], &u, &mut fin1);
             let (mut fin1, fin2) = (fin2, fin1);
             if bdztail != 0.0 {
-                let u = Two_One_Product(cdxt_adyt1, cdxt_adyt0, bdztail);
+                let u = two_one_product(cdxt_adyt1, cdxt_adyt0, bdztail);
                 finlength = fast_expansion_sum_zeroelim(&fin2[..finlength], &u, &mut fin1);
                 (fin2, fin1)
             } else {
@@ -1862,12 +1851,12 @@ pub fn orient3dadapt(
         };
         if bdytail != 0.0 {
             let negate = -cdxtail;
-            let [cdxt_bdyt0, cdxt_bdyt1] = Two_Product(negate, bdytail);
-            let u = Two_One_Product(cdxt_bdyt1, cdxt_bdyt0, adz);
+            let [cdxt_bdyt0, cdxt_bdyt1] = two_product(negate, bdytail);
+            let u = two_one_product(cdxt_bdyt1, cdxt_bdyt0, adz);
             finlength = fast_expansion_sum_zeroelim(&fin2[..finlength], &u, &mut fin1);
             let (mut fin1, fin2) = (fin2, fin1);
             if adztail != 0.0 {
-                let u = Two_One_Product(cdxt_bdyt1, cdxt_bdyt0, adztail);
+                let u = two_one_product(cdxt_bdyt1, cdxt_bdyt0, adztail);
                 finlength = fast_expansion_sum_zeroelim(&fin2[..finlength], &u, &mut fin1);
                 (fin2, fin1)
             } else {
@@ -1940,10 +1929,10 @@ pub fn orient3d(pa: [f64; 3], pb: [f64; 3], pc: [f64; 3], pd: [f64; 3]) -> f64 {
     let adxbdy = adx * bdy;
     let bdxady = bdx * ady;
     let det = adz * (bdxcdy - cdxbdy) + bdz * (cdxady - adxcdy) + cdz * (adxbdy - bdxady);
-    let permanent = (Absolute(bdxcdy) + Absolute(cdxbdy)) * Absolute(adz)
-        + (Absolute(cdxady) + Absolute(adxcdy)) * Absolute(bdz)
-        + (Absolute(adxbdy) + Absolute(bdxady)) * Absolute(cdz);
-    let errbound = PARAMS.o3derrboundA * permanent;
+    let permanent = (abs(bdxcdy) + abs(cdxbdy)) * abs(adz)
+        + (abs(cdxady) + abs(adxcdy)) * abs(bdz)
+        + (abs(adxbdy) + abs(bdxady)) * abs(cdz);
+    let errbound = PARAMS.o3derrbound_a * permanent;
     if det > errbound || -det > errbound {
         return det;
     }
@@ -1996,24 +1985,24 @@ pub fn incircle_fast(pa: [f64; 2], pb: [f64; 2], pc: [f64; 2], pd: [f64; 2]) -> 
 
 #[inline]
 pub fn incircle_exact(pa: [f64; 2], pb: [f64; 2], pc: [f64; 2], pd: [f64; 2]) -> f64 {
-    let [axby0, axby1] = Two_Product(pa[0], pb[1]);
-    let [bxay0, bxay1] = Two_Product(pb[0], pa[1]);
-    let ab = Two_Two_Diff(axby1, axby0, bxay1, bxay0);
-    let [bxcy0, bxcy1] = Two_Product(pb[0], pc[1]);
-    let [cxby0, cxby1] = Two_Product(pc[0], pb[1]);
-    let bc = Two_Two_Diff(bxcy1, bxcy0, cxby1, cxby0);
-    let [cxdy0, cxdy1] = Two_Product(pc[0], pd[1]);
-    let [dxcy0, dxcy1] = Two_Product(pd[0], pc[1]);
-    let cd = Two_Two_Diff(cxdy1, cxdy0, dxcy1, dxcy0);
-    let [dxay0, dxay1] = Two_Product(pd[0], pa[1]);
-    let [axdy0, axdy1] = Two_Product(pa[0], pd[1]);
-    let da = Two_Two_Diff(dxay1, dxay0, axdy1, axdy0);
-    let [axcy0, axcy1] = Two_Product(pa[0], pc[1]);
-    let [cxay0, cxay1] = Two_Product(pc[0], pa[1]);
-    let mut ac = Two_Two_Diff(axcy1, axcy0, cxay1, cxay0);
-    let [bxdy0, bxdy1] = Two_Product(pb[0], pd[1]);
-    let [dxby0, dxby1] = Two_Product(pd[0], pb[1]);
-    let mut bd = Two_Two_Diff(bxdy1, bxdy0, dxby1, dxby0);
+    let [axby0, axby1] = two_product(pa[0], pb[1]);
+    let [bxay0, bxay1] = two_product(pb[0], pa[1]);
+    let ab = two_two_diff(axby1, axby0, bxay1, bxay0);
+    let [bxcy0, bxcy1] = two_product(pb[0], pc[1]);
+    let [cxby0, cxby1] = two_product(pc[0], pb[1]);
+    let bc = two_two_diff(bxcy1, bxcy0, cxby1, cxby0);
+    let [cxdy0, cxdy1] = two_product(pc[0], pd[1]);
+    let [dxcy0, dxcy1] = two_product(pd[0], pc[1]);
+    let cd = two_two_diff(cxdy1, cxdy0, dxcy1, dxcy0);
+    let [dxay0, dxay1] = two_product(pd[0], pa[1]);
+    let [axdy0, axdy1] = two_product(pa[0], pd[1]);
+    let da = two_two_diff(dxay1, dxay0, axdy1, axdy0);
+    let [axcy0, axcy1] = two_product(pa[0], pc[1]);
+    let [cxay0, cxay1] = two_product(pc[0], pa[1]);
+    let mut ac = two_two_diff(axcy1, axcy0, cxay1, cxay0);
+    let [bxdy0, bxdy1] = two_product(pb[0], pd[1]);
+    let [dxby0, dxby1] = two_product(pd[0], pb[1]);
+    let mut bd = two_two_diff(bxdy1, bxdy0, dxby1, dxby0);
     let mut temp8 = [0.; 8];
     let templen = fast_expansion_sum_zeroelim(&cd, &da, &mut temp8);
     let mut cda = [0.; 12];
@@ -2068,24 +2057,24 @@ pub fn incircle_exact(pa: [f64; 2], pb: [f64; 2], pc: [f64; 2], pd: [f64; 2]) ->
 
 #[inline]
 pub fn incircle_slow(pa: [f64; 2], pb: [f64; 2], pc: [f64; 2], pd: [f64; 2]) -> f64 {
-    let [adxtail, adx] = Two_Diff(pa[0], pd[0]);
-    let [adytail, ady] = Two_Diff(pa[1], pd[1]);
-    let [bdxtail, bdx] = Two_Diff(pb[0], pd[0]);
-    let [bdytail, bdy] = Two_Diff(pb[1], pd[1]);
-    let [cdxtail, cdx] = Two_Diff(pc[0], pd[0]);
-    let [cdytail, cdy] = Two_Diff(pc[1], pd[1]);
-    let axby = Two_Two_Product(adx, adxtail, bdy, bdytail);
+    let [adxtail, adx] = two_diff(pa[0], pd[0]);
+    let [adytail, ady] = two_diff(pa[1], pd[1]);
+    let [bdxtail, bdx] = two_diff(pb[0], pd[0]);
+    let [bdytail, bdy] = two_diff(pb[1], pd[1]);
+    let [cdxtail, cdx] = two_diff(pc[0], pd[0]);
+    let [cdytail, cdy] = two_diff(pc[1], pd[1]);
+    let axby = two_two_product(adx, adxtail, bdy, bdytail);
     let negate = -ady;
     let negatetail = -adytail;
-    let bxay = Two_Two_Product(bdx, bdxtail, negate, negatetail);
-    let bxcy = Two_Two_Product(bdx, bdxtail, cdy, cdytail);
+    let bxay = two_two_product(bdx, bdxtail, negate, negatetail);
+    let bxcy = two_two_product(bdx, bdxtail, cdy, cdytail);
     let negate = -bdy;
     let negatetail = -bdytail;
-    let cxby = Two_Two_Product(cdx, cdxtail, negate, negatetail);
-    let cxay = Two_Two_Product(cdx, cdxtail, ady, adytail);
+    let cxby = two_two_product(cdx, cdxtail, negate, negatetail);
+    let cxay = two_two_product(cdx, cdxtail, ady, adytail);
     let negate = -cdy;
     let negatetail = -cdytail;
-    let axcy = Two_Two_Product(adx, adxtail, negate, negatetail);
+    let axcy = two_two_product(adx, adxtail, negate, negatetail);
     let mut temp16 = [0.; 16];
     let temp16len = fast_expansion_sum_zeroelim(&bxcy, &cxby, &mut temp16);
     let mut detx = [0.; 32];
@@ -2193,7 +2182,6 @@ pub fn incircleadapt(
     let mut fin2 = [0.; 1152];
     let mut finnow: &mut [f64];
     let mut finother: &mut [f64];
-    let mut finswap: &mut [f64];
     let mut temp8 = [0.; 8];
     let mut temp16a = [0.; 16];
     let mut temp16b = [0.; 16];
@@ -2232,25 +2220,25 @@ pub fn incircleadapt(
     let ady = pa[1] - pd[1];
     let bdy = pb[1] - pd[1];
     let cdy = pc[1] - pd[1];
-    let [bdxcdy0, bdxcdy1] = Two_Product(bdx, cdy);
-    let [cdxbdy0, cdxbdy1] = Two_Product(cdx, bdy);
-    let bc = Two_Two_Diff(bdxcdy1, bdxcdy0, cdxbdy1, cdxbdy0);
+    let [bdxcdy0, bdxcdy1] = two_product(bdx, cdy);
+    let [cdxbdy0, cdxbdy1] = two_product(cdx, bdy);
+    let bc = two_two_diff(bdxcdy1, bdxcdy0, cdxbdy1, cdxbdy0);
     let axbclen = scale_expansion_zeroelim(&bc, adx, &mut axbc);
     let axxbclen = scale_expansion_zeroelim(&axbc[..axbclen], adx, &mut axxbc);
     let aybclen = scale_expansion_zeroelim(&bc, ady, &mut aybc);
     let ayybclen = scale_expansion_zeroelim(&aybc[..aybclen], ady, &mut ayybc);
     let alen = fast_expansion_sum_zeroelim(&axxbc[..axxbclen], &ayybc[..ayybclen], &mut adet);
-    let [cdxady0, cdxady1] = Two_Product(cdx, ady);
-    let [adxcdy0, adxcdy1] = Two_Product(adx, cdy);
-    let ca = Two_Two_Diff(cdxady1, cdxady0, adxcdy1, adxcdy0);
+    let [cdxady0, cdxady1] = two_product(cdx, ady);
+    let [adxcdy0, adxcdy1] = two_product(adx, cdy);
+    let ca = two_two_diff(cdxady1, cdxady0, adxcdy1, adxcdy0);
     let bxcalen = scale_expansion_zeroelim(&ca, bdx, &mut bxca);
     let bxxcalen = scale_expansion_zeroelim(&bxca[..bxcalen], bdx, &mut bxxca);
     let bycalen = scale_expansion_zeroelim(&ca, bdy, &mut byca);
     let byycalen = scale_expansion_zeroelim(&byca[..bycalen], bdy, &mut byyca);
     let blen = fast_expansion_sum_zeroelim(&bxxca[..bxxcalen], &byyca[..byycalen], &mut bdet);
-    let [adxbdy0, adxbdy1] = Two_Product(adx, bdy);
-    let [bdxady0, bdxady1] = Two_Product(bdx, ady);
-    let ab = Two_Two_Diff(adxbdy1, adxbdy0, bdxady1, bdxady0);
+    let [adxbdy0, adxbdy1] = two_product(adx, bdy);
+    let [bdxady0, bdxady1] = two_product(bdx, ady);
+    let ab = two_two_diff(adxbdy1, adxbdy0, bdxady1, bdxady0);
     let cxablen = scale_expansion_zeroelim(&ab, cdx, &mut cxab);
     let cxxablen = scale_expansion_zeroelim(&cxab[..cxablen], cdx, &mut cxxab);
     let cyablen = scale_expansion_zeroelim(&ab, cdy, &mut cyab);
@@ -2259,16 +2247,16 @@ pub fn incircleadapt(
     let ablen = fast_expansion_sum_zeroelim(&adet[..alen], &bdet[..blen], &mut abdet);
     let mut finlength = fast_expansion_sum_zeroelim(&abdet[..ablen], &cdet[..clen], &mut fin1);
     let mut det = estimate(&fin1[..finlength]);
-    let errbound = PARAMS.iccerrboundB * permanent;
+    let errbound = PARAMS.iccerrbound_b * permanent;
     if det >= errbound || -det >= errbound {
         return det;
     }
-    let adxtail = Two_Diff_Tail(pa[0], pd[0], adx);
-    let adytail = Two_Diff_Tail(pa[1], pd[1], ady);
-    let bdxtail = Two_Diff_Tail(pb[0], pd[0], bdx);
-    let bdytail = Two_Diff_Tail(pb[1], pd[1], bdy);
-    let cdxtail = Two_Diff_Tail(pc[0], pd[0], cdx);
-    let cdytail = Two_Diff_Tail(pc[1], pd[1], cdy);
+    let adxtail = two_diff_tail(pa[0], pd[0], adx);
+    let adytail = two_diff_tail(pa[1], pd[1], ady);
+    let bdxtail = two_diff_tail(pb[0], pd[0], bdx);
+    let bdytail = two_diff_tail(pb[1], pd[1], bdy);
+    let cdxtail = two_diff_tail(pc[0], pd[0], cdx);
+    let cdytail = two_diff_tail(pc[1], pd[1], cdy);
     if adxtail == 0.0
         && bdxtail == 0.0
         && cdxtail == 0.0
@@ -2278,7 +2266,7 @@ pub fn incircleadapt(
     {
         return det;
     }
-    let errbound = PARAMS.iccerrboundC * permanent + PARAMS.resulterrbound * Absolute(det);
+    let errbound = PARAMS.iccerrbound_c * permanent + PARAMS.resulterrbound * abs(det);
     det += (adx * adx + ady * ady)
         * (bdx * cdytail + cdy * bdxtail - (bdy * cdxtail + cdx * bdytail))
         + 2.0 * (adx * adxtail + ady * adytail) * (bdx * cdy - bdy * cdx)
@@ -2294,23 +2282,23 @@ pub fn incircleadapt(
     finnow = &mut fin1;
     finother = &mut fin2;
     let aa = if bdxtail != 0.0 || bdytail != 0.0 || cdxtail != 0.0 || cdytail != 0.0 {
-        let [adxadx0, adxadx1] = Square(adx);
-        let [adyady0, adyady1] = Square(ady);
-        Two_Two_Sum(adxadx1, adxadx0, adyady1, adyady0)
+        let [adxadx0, adxadx1] = square(adx);
+        let [adyady0, adyady1] = square(ady);
+        two_two_sum(adxadx1, adxadx0, adyady1, adyady0)
     } else {
         [0.; 4]
     };
     let bb = if cdxtail != 0.0 || cdytail != 0.0 || adxtail != 0.0 || adytail != 0.0 {
-        let [bdxbdx0, bdxbdx1] = Square(bdx);
-        let [bdybdy0, bdybdy1] = Square(bdy);
-        Two_Two_Sum(bdxbdx1, bdxbdx0, bdybdy1, bdybdy0)
+        let [bdxbdx0, bdxbdx1] = square(bdx);
+        let [bdybdy0, bdybdy1] = square(bdy);
+        two_two_sum(bdxbdx1, bdxbdx0, bdybdy1, bdybdy0)
     } else {
         [0.; 4]
     };
     let cc = if adxtail != 0.0 || adytail != 0.0 || bdxtail != 0.0 || bdytail != 0.0 {
-        let [cdxcdx0, cdxcdx1] = Square(cdx);
-        let [cdycdy0, cdycdy1] = Square(cdy);
-        Two_Two_Sum(cdxcdx1, cdxcdx0, cdycdy1, cdycdy0)
+        let [cdxcdx0, cdxcdx1] = square(cdx);
+        let [cdycdy0, cdycdy1] = square(cdy);
+        two_two_sum(cdxcdx1, cdxcdx0, cdycdy1, cdycdy0)
     } else {
         [0.; 4]
     };
@@ -2406,7 +2394,7 @@ pub fn incircleadapt(
             fast_expansion_sum_zeroelim(&finnow[..finlength], &temp48[..temp48len], finother);
         core::mem::swap(&mut finnow, &mut finother);
     }
-    let mut cxtablen = 8;
+    let cxtablen = 8;
     let mut cxtab = [0.; 8];
     if cdxtail != 0.0 {
         let cxtablen = scale_expansion_zeroelim(&ab, cdxtail, &mut cxtab);
@@ -2458,18 +2446,18 @@ pub fn incircleadapt(
         let mut bct: [f64; 8] = [0.; 8];
         let mut bctt: [f64; 4] = [0.; 4];
         if bdxtail != 0.0 || bdytail != 0.0 || cdxtail != 0.0 || cdytail != 0.0 {
-            let [ti0, ti1] = Two_Product(bdxtail, cdy);
-            let [tj0, tj1] = Two_Product(bdx, cdytail);
-            let u = Two_Two_Sum(ti1, ti0, tj1, tj0);
+            let [ti0, ti1] = two_product(bdxtail, cdy);
+            let [tj0, tj1] = two_product(bdx, cdytail);
+            let u = two_two_sum(ti1, ti0, tj1, tj0);
             let negate = -bdy;
-            let [ti0, ti1] = Two_Product(cdxtail, negate);
+            let [ti0, ti1] = two_product(cdxtail, negate);
             let negate = -bdytail;
-            let [tj0, tj1] = Two_Product(cdx, negate);
-            let v = Two_Two_Sum(ti1, ti0, tj1, tj0);
+            let [tj0, tj1] = two_product(cdx, negate);
+            let v = two_two_sum(ti1, ti0, tj1, tj0);
             bctlen = fast_expansion_sum_zeroelim(&u, &v, &mut bct);
-            let [ti0, ti1] = Two_Product(bdxtail, cdytail);
-            let [tj0, tj1] = Two_Product(cdxtail, bdytail);
-            bctt = Two_Two_Diff(ti1, ti0, tj1, tj0);
+            let [ti0, ti1] = two_product(bdxtail, cdytail);
+            let [tj0, tj1] = two_product(cdxtail, bdytail);
+            bctt = two_two_diff(ti1, ti0, tj1, tj0);
             bcttlen = 4;
         }
         if adxtail != 0.0 {
@@ -2567,18 +2555,18 @@ pub fn incircleadapt(
         let mut cat: [f64; 8] = [0.; 8];
         let mut catt: [f64; 4] = [0.; 4];
         if cdxtail != 0.0 || cdytail != 0.0 || adxtail != 0.0 || adytail != 0.0 {
-            let [ti0, ti1] = Two_Product(cdxtail, ady);
-            let [tj0, tj1] = Two_Product(cdx, adytail);
-            let u = Two_Two_Sum(ti1, ti0, tj1, tj0);
+            let [ti0, ti1] = two_product(cdxtail, ady);
+            let [tj0, tj1] = two_product(cdx, adytail);
+            let u = two_two_sum(ti1, ti0, tj1, tj0);
             let negate = -cdy;
-            let [ti0, ti1] = Two_Product(adxtail, negate);
+            let [ti0, ti1] = two_product(adxtail, negate);
             let negate = -cdytail;
-            let [tj0, tj1] = Two_Product(adx, negate);
-            let v = Two_Two_Sum(ti1, ti0, tj1, tj0);
+            let [tj0, tj1] = two_product(adx, negate);
+            let v = two_two_sum(ti1, ti0, tj1, tj0);
             catlen = fast_expansion_sum_zeroelim(&u, &v, &mut cat);
-            let [ti0, ti1] = Two_Product(cdxtail, adytail);
-            let [tj0, tj1] = Two_Product(adxtail, cdytail);
-            catt = Two_Two_Diff(ti1, ti0, tj1, tj0);
+            let [ti0, ti1] = two_product(cdxtail, adytail);
+            let [tj0, tj1] = two_product(adxtail, cdytail);
+            catt = two_two_diff(ti1, ti0, tj1, tj0);
             cattlen = 4;
         }
         if bdxtail != 0.0 {
@@ -2676,18 +2664,18 @@ pub fn incircleadapt(
         let mut abt: [f64; 8] = [0.; 8];
         let mut abtt: [f64; 4] = [0.; 4];
         if adxtail != 0.0 || adytail != 0.0 || bdxtail != 0.0 || bdytail != 0.0 {
-            let [ti0, ti1] = Two_Product(adxtail, bdy);
-            let [tj0, tj1] = Two_Product(adx, bdytail);
-            let u = Two_Two_Sum(ti1, ti0, tj1, tj0);
+            let [ti0, ti1] = two_product(adxtail, bdy);
+            let [tj0, tj1] = two_product(adx, bdytail);
+            let u = two_two_sum(ti1, ti0, tj1, tj0);
             let negate = -ady;
-            let [ti0, ti1] = Two_Product(bdxtail, negate);
+            let [ti0, ti1] = two_product(bdxtail, negate);
             let negate = -adytail;
-            let [tj0, tj1] = Two_Product(bdx, negate);
-            let v = Two_Two_Sum(ti1, ti0, tj1, tj0);
+            let [tj0, tj1] = two_product(bdx, negate);
+            let v = two_two_sum(ti1, ti0, tj1, tj0);
             abtlen = fast_expansion_sum_zeroelim(&u, &v, &mut abt);
-            let [ti0, ti1] = Two_Product(adxtail, bdytail);
-            let [tj0, tj1] = Two_Product(bdxtail, adytail);
-            abtt = Two_Two_Diff(ti1, ti0, tj1, tj0);
+            let [ti0, ti1] = two_product(adxtail, bdytail);
+            let [tj0, tj1] = two_product(bdxtail, adytail);
+            abtt = two_two_diff(ti1, ti0, tj1, tj0);
             abttlen = 4;
         }
         if cdxtail != 0.0 {
@@ -2816,10 +2804,10 @@ pub fn incircle(pa: [f64; 2], pb: [f64; 2], pc: [f64; 2], pd: [f64; 2]) -> f64 {
     let bdxady = bdx * ady;
     let clift = cdx * cdx + cdy * cdy;
     let det = alift * (bdxcdy - cdxbdy) + blift * (cdxady - adxcdy) + clift * (adxbdy - bdxady);
-    let permanent = (Absolute(bdxcdy) + Absolute(cdxbdy)) * alift
-        + (Absolute(cdxady) + Absolute(adxcdy)) * blift
-        + (Absolute(adxbdy) + Absolute(bdxady)) * clift;
-    let errbound = PARAMS.iccerrboundA * permanent;
+    let permanent = (abs(bdxcdy) + abs(cdxbdy)) * alift
+        + (abs(cdxady) + abs(adxcdy)) * blift
+        + (abs(adxbdy) + abs(bdxady)) * clift;
+    let errbound = PARAMS.iccerrbound_a * permanent;
     if det > errbound || -det > errbound {
         return det;
     }
@@ -2920,36 +2908,36 @@ pub fn insphere_exact(pa: [f64; 3], pb: [f64; 3], pc: [f64; 3], pd: [f64; 3], pe
     let mut abdet = [0.; 2304];
     let mut cddet = [0.; 2304];
     let mut cdedet = [0.; 3456];
-    let [axby0, axby1] = Two_Product(pa[0], pb[1]);
-    let [bxay0, bxay1] = Two_Product(pb[0], pa[1]);
-    let ab = Two_Two_Diff(axby1, axby0, bxay1, bxay0);
-    let [bxcy0, bxcy1] = Two_Product(pb[0], pc[1]);
-    let [cxby0, cxby1] = Two_Product(pc[0], pb[1]);
-    let bc = Two_Two_Diff(bxcy1, bxcy0, cxby1, cxby0);
-    let [cxdy0, cxdy1] = Two_Product(pc[0], pd[1]);
-    let [dxcy0, dxcy1] = Two_Product(pd[0], pc[1]);
-    let cd = Two_Two_Diff(cxdy1, cxdy0, dxcy1, dxcy0);
-    let [dxey0, dxey1] = Two_Product(pd[0], pe[1]);
-    let [exdy0, exdy1] = Two_Product(pe[0], pd[1]);
-    let de = Two_Two_Diff(dxey1, dxey0, exdy1, exdy0);
-    let [exay0, exay1] = Two_Product(pe[0], pa[1]);
-    let [axey0, axey1] = Two_Product(pa[0], pe[1]);
-    let ea = Two_Two_Diff(exay1, exay0, axey1, axey0);
-    let [axcy0, axcy1] = Two_Product(pa[0], pc[1]);
-    let [cxay0, cxay1] = Two_Product(pc[0], pa[1]);
-    let ac = Two_Two_Diff(axcy1, axcy0, cxay1, cxay0);
-    let [bxdy0, bxdy1] = Two_Product(pb[0], pd[1]);
-    let [dxby0, dxby1] = Two_Product(pd[0], pb[1]);
-    let bd = Two_Two_Diff(bxdy1, bxdy0, dxby1, dxby0);
-    let [cxey0, cxey1] = Two_Product(pc[0], pe[1]);
-    let [excy0, excy1] = Two_Product(pe[0], pc[1]);
-    let ce = Two_Two_Diff(cxey1, cxey0, excy1, excy0);
-    let [dxay0, dxay1] = Two_Product(pd[0], pa[1]);
-    let [axdy0, axdy1] = Two_Product(pa[0], pd[1]);
-    let da = Two_Two_Diff(dxay1, dxay0, axdy1, axdy0);
-    let [exby0, exby1] = Two_Product(pe[0], pb[1]);
-    let [bxey0, bxey1] = Two_Product(pb[0], pe[1]);
-    let eb = Two_Two_Diff(exby1, exby0, bxey1, bxey0);
+    let [axby0, axby1] = two_product(pa[0], pb[1]);
+    let [bxay0, bxay1] = two_product(pb[0], pa[1]);
+    let ab = two_two_diff(axby1, axby0, bxay1, bxay0);
+    let [bxcy0, bxcy1] = two_product(pb[0], pc[1]);
+    let [cxby0, cxby1] = two_product(pc[0], pb[1]);
+    let bc = two_two_diff(bxcy1, bxcy0, cxby1, cxby0);
+    let [cxdy0, cxdy1] = two_product(pc[0], pd[1]);
+    let [dxcy0, dxcy1] = two_product(pd[0], pc[1]);
+    let cd = two_two_diff(cxdy1, cxdy0, dxcy1, dxcy0);
+    let [dxey0, dxey1] = two_product(pd[0], pe[1]);
+    let [exdy0, exdy1] = two_product(pe[0], pd[1]);
+    let de = two_two_diff(dxey1, dxey0, exdy1, exdy0);
+    let [exay0, exay1] = two_product(pe[0], pa[1]);
+    let [axey0, axey1] = two_product(pa[0], pe[1]);
+    let ea = two_two_diff(exay1, exay0, axey1, axey0);
+    let [axcy0, axcy1] = two_product(pa[0], pc[1]);
+    let [cxay0, cxay1] = two_product(pc[0], pa[1]);
+    let ac = two_two_diff(axcy1, axcy0, cxay1, cxay0);
+    let [bxdy0, bxdy1] = two_product(pb[0], pd[1]);
+    let [dxby0, dxby1] = two_product(pd[0], pb[1]);
+    let bd = two_two_diff(bxdy1, bxdy0, dxby1, dxby0);
+    let [cxey0, cxey1] = two_product(pc[0], pe[1]);
+    let [excy0, excy1] = two_product(pe[0], pc[1]);
+    let ce = two_two_diff(cxey1, cxey0, excy1, excy0);
+    let [dxay0, dxay1] = two_product(pd[0], pa[1]);
+    let [axdy0, axdy1] = two_product(pa[0], pd[1]);
+    let da = two_two_diff(dxay1, dxay0, axdy1, axdy0);
+    let [exby0, exby1] = two_product(pe[0], pb[1]);
+    let [bxey0, bxey1] = two_product(pb[0], pe[1]);
+    let eb = two_two_diff(exby1, exby0, bxey1, bxey0);
     let temp8alen = scale_expansion_zeroelim(&bc, pa[2], &mut temp8a);
     let temp8blen = scale_expansion_zeroelim(&ac, -pb[2], &mut temp8b);
     let temp16len =
@@ -3127,47 +3115,47 @@ pub fn insphere_slow(pa: [f64; 3], pb: [f64; 3], pc: [f64; 3], pd: [f64; 3], pe:
     let mut abdet = [0.; 13824];
     let mut cddet = [0.; 13824];
     let mut deter = [0.; 27648];
-    let [aextail, aex] = Two_Diff(pa[0], pe[0]);
-    let [aeytail, aey] = Two_Diff(pa[1], pe[1]);
-    let [aeztail, aez] = Two_Diff(pa[2], pe[2]);
-    let [bextail, bex] = Two_Diff(pb[0], pe[0]);
-    let [beytail, bey] = Two_Diff(pb[1], pe[1]);
-    let [beztail, bez] = Two_Diff(pb[2], pe[2]);
-    let [cextail, cex] = Two_Diff(pc[0], pe[0]);
-    let [ceytail, cey] = Two_Diff(pc[1], pe[1]);
-    let [ceztail, cez] = Two_Diff(pc[2], pe[2]);
-    let [dextail, dex] = Two_Diff(pd[0], pe[0]);
-    let [deytail, dey] = Two_Diff(pd[1], pe[1]);
-    let [deztail, dez] = Two_Diff(pd[2], pe[2]);
-    let axby = Two_Two_Product(aex, aextail, bey, beytail);
+    let [aextail, aex] = two_diff(pa[0], pe[0]);
+    let [aeytail, aey] = two_diff(pa[1], pe[1]);
+    let [aeztail, aez] = two_diff(pa[2], pe[2]);
+    let [bextail, bex] = two_diff(pb[0], pe[0]);
+    let [beytail, bey] = two_diff(pb[1], pe[1]);
+    let [beztail, bez] = two_diff(pb[2], pe[2]);
+    let [cextail, cex] = two_diff(pc[0], pe[0]);
+    let [ceytail, cey] = two_diff(pc[1], pe[1]);
+    let [ceztail, cez] = two_diff(pc[2], pe[2]);
+    let [dextail, dex] = two_diff(pd[0], pe[0]);
+    let [deytail, dey] = two_diff(pd[1], pe[1]);
+    let [deztail, dez] = two_diff(pd[2], pe[2]);
+    let axby = two_two_product(aex, aextail, bey, beytail);
     let negate = -aey;
     let negatetail = -aeytail;
-    let bxay = Two_Two_Product(bex, bextail, negate, negatetail);
+    let bxay = two_two_product(bex, bextail, negate, negatetail);
     let ablen = fast_expansion_sum_zeroelim(&axby, &bxay, &mut ab);
-    let bxcy = Two_Two_Product(bex, bextail, cey, ceytail);
+    let bxcy = two_two_product(bex, bextail, cey, ceytail);
     let negate = -bey;
     let negatetail = -beytail;
-    let cxby = Two_Two_Product(cex, cextail, negate, negatetail);
+    let cxby = two_two_product(cex, cextail, negate, negatetail);
     let bclen = fast_expansion_sum_zeroelim(&bxcy, &cxby, &mut bc);
-    let cxdy = Two_Two_Product(cex, cextail, dey, deytail);
+    let cxdy = two_two_product(cex, cextail, dey, deytail);
     let negate = -cey;
     let negatetail = -ceytail;
-    let dxcy = Two_Two_Product(dex, dextail, negate, negatetail);
+    let dxcy = two_two_product(dex, dextail, negate, negatetail);
     let cdlen = fast_expansion_sum_zeroelim(&cxdy, &dxcy, &mut cd);
-    let dxay = Two_Two_Product(dex, dextail, aey, aeytail);
+    let dxay = two_two_product(dex, dextail, aey, aeytail);
     let negate = -dey;
     let negatetail = -deytail;
-    let axdy = Two_Two_Product(aex, aextail, negate, negatetail);
+    let axdy = two_two_product(aex, aextail, negate, negatetail);
     let dalen = fast_expansion_sum_zeroelim(&dxay, &axdy, &mut da);
-    let axcy = Two_Two_Product(aex, aextail, cey, ceytail);
+    let axcy = two_two_product(aex, aextail, cey, ceytail);
     let negate = -aey;
     let negatetail = -aeytail;
-    let cxay = Two_Two_Product(cex, cextail, negate, negatetail);
+    let cxay = two_two_product(cex, cextail, negate, negatetail);
     let aclen = fast_expansion_sum_zeroelim(&axcy, &cxay, &mut ac);
-    let bxdy = Two_Two_Product(bex, bextail, dey, deytail);
+    let bxdy = two_two_product(bex, bextail, dey, deytail);
     let negate = -bey;
     let negatetail = -beytail;
-    let dxby = Two_Two_Product(dex, dextail, negate, negatetail);
+    let dxby = two_two_product(dex, dextail, negate, negatetail);
     let bdlen = fast_expansion_sum_zeroelim(&bxdy, &dxby, &mut bd);
     let temp32alen = scale_expansion_zeroelim(&cd[..cdlen], -bez, &mut temp32a);
     let temp32blen = scale_expansion_zeroelim(&cd[..cdlen], -beztail, &mut temp32b);
@@ -3381,24 +3369,24 @@ pub fn insphereadapt(
     let bez = pb[2] - pe[2];
     let cez = pc[2] - pe[2];
     let dez = pd[2] - pe[2];
-    let [aexbey0, aexbey1] = Two_Product(aex, bey);
-    let [bexaey0, bexaey1] = Two_Product(bex, aey);
-    let ab = Two_Two_Diff(aexbey1, aexbey0, bexaey1, bexaey0);
-    let [bexcey0, bexcey1] = Two_Product(bex, cey);
-    let [cexbey0, cexbey1] = Two_Product(cex, bey);
-    let bc = Two_Two_Diff(bexcey1, bexcey0, cexbey1, cexbey0);
-    let [cexdey0, cexdey1] = Two_Product(cex, dey);
-    let [dexcey0, dexcey1] = Two_Product(dex, cey);
-    let cd = Two_Two_Diff(cexdey1, cexdey0, dexcey1, dexcey0);
-    let [dexaey0, dexaey1] = Two_Product(dex, aey);
-    let [aexdey0, aexdey1] = Two_Product(aex, dey);
-    let da = Two_Two_Diff(dexaey1, dexaey0, aexdey1, aexdey0);
-    let [aexcey0, aexcey1] = Two_Product(aex, cey);
-    let [cexaey0, cexaey1] = Two_Product(cex, aey);
-    let ac = Two_Two_Diff(aexcey1, aexcey0, cexaey1, cexaey0);
-    let [bexdey0, bexdey1] = Two_Product(bex, dey);
-    let [dexbey0, dexbey1] = Two_Product(dex, bey);
-    let bd = Two_Two_Diff(bexdey1, bexdey0, dexbey1, dexbey0);
+    let [aexbey0, aexbey1] = two_product(aex, bey);
+    let [bexaey0, bexaey1] = two_product(bex, aey);
+    let ab = two_two_diff(aexbey1, aexbey0, bexaey1, bexaey0);
+    let [bexcey0, bexcey1] = two_product(bex, cey);
+    let [cexbey0, cexbey1] = two_product(cex, bey);
+    let bc = two_two_diff(bexcey1, bexcey0, cexbey1, cexbey0);
+    let [cexdey0, cexdey1] = two_product(cex, dey);
+    let [dexcey0, dexcey1] = two_product(dex, cey);
+    let cd = two_two_diff(cexdey1, cexdey0, dexcey1, dexcey0);
+    let [dexaey0, dexaey1] = two_product(dex, aey);
+    let [aexdey0, aexdey1] = two_product(aex, dey);
+    let da = two_two_diff(dexaey1, dexaey0, aexdey1, aexdey0);
+    let [aexcey0, aexcey1] = two_product(aex, cey);
+    let [cexaey0, cexaey1] = two_product(cex, aey);
+    let ac = two_two_diff(aexcey1, aexcey0, cexaey1, cexaey0);
+    let [bexdey0, bexdey1] = two_product(bex, dey);
+    let [dexbey0, dexbey1] = two_product(dex, bey);
+    let bd = two_two_diff(bexdey1, bexdey0, dexbey1, dexbey0);
     let temp8alen = scale_expansion_zeroelim(&cd, bez, &mut temp8a);
     let temp8blen = scale_expansion_zeroelim(&bd, -cez, &mut temp8b);
     let temp8clen = scale_expansion_zeroelim(&bc, dez, &mut temp8c);
@@ -3463,22 +3451,22 @@ pub fn insphereadapt(
     let cdlen = fast_expansion_sum_zeroelim(&cdet[..clen], &ddet[..dlen], &mut cddet);
     let finlength = fast_expansion_sum_zeroelim(&abdet[..ablen], &cddet[..cdlen], &mut fin1);
     let mut det = estimate(&fin1[..finlength]);
-    let errbound = PARAMS.isperrboundB * permanent;
+    let errbound = PARAMS.isperrbound_b * permanent;
     if det >= errbound || -det >= errbound {
         return det;
     }
-    let aextail = Two_Diff_Tail(pa[0], pe[0], aex);
-    let aeytail = Two_Diff_Tail(pa[1], pe[1], aey);
-    let aeztail = Two_Diff_Tail(pa[2], pe[2], aez);
-    let bextail = Two_Diff_Tail(pb[0], pe[0], bex);
-    let beytail = Two_Diff_Tail(pb[1], pe[1], bey);
-    let beztail = Two_Diff_Tail(pb[2], pe[2], bez);
-    let cextail = Two_Diff_Tail(pc[0], pe[0], cex);
-    let ceytail = Two_Diff_Tail(pc[1], pe[1], cey);
-    let ceztail = Two_Diff_Tail(pc[2], pe[2], cez);
-    let dextail = Two_Diff_Tail(pd[0], pe[0], dex);
-    let deytail = Two_Diff_Tail(pd[1], pe[1], dey);
-    let deztail = Two_Diff_Tail(pd[2], pe[2], dez);
+    let aextail = two_diff_tail(pa[0], pe[0], aex);
+    let aeytail = two_diff_tail(pa[1], pe[1], aey);
+    let aeztail = two_diff_tail(pa[2], pe[2], aez);
+    let bextail = two_diff_tail(pb[0], pe[0], bex);
+    let beytail = two_diff_tail(pb[1], pe[1], bey);
+    let beztail = two_diff_tail(pb[2], pe[2], bez);
+    let cextail = two_diff_tail(pc[0], pe[0], cex);
+    let ceytail = two_diff_tail(pc[1], pe[1], cey);
+    let ceztail = two_diff_tail(pc[2], pe[2], cez);
+    let dextail = two_diff_tail(pd[0], pe[0], dex);
+    let deytail = two_diff_tail(pd[1], pe[1], dey);
+    let deztail = two_diff_tail(pd[2], pe[2], dez);
     if aextail == 0.0
         && aeytail == 0.0
         && aeztail == 0.0
@@ -3494,7 +3482,7 @@ pub fn insphereadapt(
     {
         return det;
     }
-    let errbound = PARAMS.isperrboundC * permanent + PARAMS.resulterrbound * Absolute(det);
+    let errbound = PARAMS.isperrbound_c * permanent + PARAMS.resulterrbound * abs(det);
     let abeps = aex * beytail + bey * aextail - (aey * bextail + bex * aeytail);
     let bceps = bex * ceytail + cey * bextail - (bey * cextail + cex * beytail);
     let cdeps = cex * deytail + dey * cextail - (cey * dextail + dex * ceytail);
@@ -3592,22 +3580,22 @@ pub fn insphere(pa: [f64; 3], pb: [f64; 3], pc: [f64; 3], pd: [f64; 3], pe: [f64
     let clift = cex * cex + cey * cey + cez * cez;
     let dlift = dex * dex + dey * dey + dez * dez;
     let det = dlift * abc - clift * dab + (blift * cda - alift * bcd);
-    let aezplus = Absolute(aez);
-    let bezplus = Absolute(bez);
-    let cezplus = Absolute(cez);
-    let dezplus = Absolute(dez);
-    let aexbeyplus = Absolute(aexbey);
-    let bexaeyplus = Absolute(bexaey);
-    let bexceyplus = Absolute(bexcey);
-    let cexbeyplus = Absolute(cexbey);
-    let cexdeyplus = Absolute(cexdey);
-    let dexceyplus = Absolute(dexcey);
-    let dexaeyplus = Absolute(dexaey);
-    let aexdeyplus = Absolute(aexdey);
-    let aexceyplus = Absolute(aexcey);
-    let cexaeyplus = Absolute(cexaey);
-    let bexdeyplus = Absolute(bexdey);
-    let dexbeyplus = Absolute(dexbey);
+    let aezplus = abs(aez);
+    let bezplus = abs(bez);
+    let cezplus = abs(cez);
+    let dezplus = abs(dez);
+    let aexbeyplus = abs(aexbey);
+    let bexaeyplus = abs(bexaey);
+    let bexceyplus = abs(bexcey);
+    let cexbeyplus = abs(cexbey);
+    let cexdeyplus = abs(cexdey);
+    let dexceyplus = abs(dexcey);
+    let dexaeyplus = abs(dexaey);
+    let aexdeyplus = abs(aexdey);
+    let aexceyplus = abs(aexcey);
+    let cexaeyplus = abs(cexaey);
+    let bexdeyplus = abs(bexdey);
+    let dexbeyplus = abs(dexbey);
     let permanent = ((cexdeyplus + dexceyplus) * bezplus
         + (dexbeyplus + bexdeyplus) * cezplus
         + (bexceyplus + cexbeyplus) * dezplus)
@@ -3624,7 +3612,7 @@ pub fn insphere(pa: [f64; 3], pb: [f64; 3], pc: [f64; 3], pd: [f64; 3], pe: [f64
             + (cexaeyplus + aexceyplus) * bezplus
             + (aexbeyplus + bexaeyplus) * cezplus)
             * dlift;
-    let errbound = PARAMS.isperrboundA * permanent;
+    let errbound = PARAMS.isperrbound_a * permanent;
     if det > errbound || -det > errbound {
         return det;
     }

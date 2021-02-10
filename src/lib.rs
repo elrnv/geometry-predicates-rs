@@ -1,7 +1,4 @@
-//! # geometry-predicates
-//!
-//! A safe Rust port of ["Adaptive Precision Floating-Point Arithmetic and Fast Robust
-//! Predicates for Computational Geometry"](https://www.cs.cmu.edu/~quake/robust.html)
+//! A safe Rust port of the [robust adaptive floating-point geometric predicates](https://www.cs.cmu.edu/~quake/robust.html).
 //!
 //! This crate provides a Rust solution to efficient exact geometry predicates
 //! used widely for computational geometry.
@@ -22,16 +19,22 @@
 //! `c` are three points on a 2D plane, to ask where `b` with respect to the line
 //! through `a` and `c` (left-of, right-of, or coincident) is the same as asking where
 //! `a` lies with respect to the line through `c` and `b`.
-//! Formally this condition can be written as
-//! ```ignore
-//! sgn(orient2d(a,c,b)) == sgn(orient2d(c,b,a))
+//! In Rust, this condition can be written as
+//! ```
+//! # use geometry_predicates::orient2d;
+//! # let a = [1.0, 2.0];
+//! # let b = [3.0, 4.0];
+//! # let c = [5.0, 6.0];
+//! assert_eq!(orient2d(a,c,b).signum(), orient2d(c,b,a).signum());
 //! ```
 //!
-//! Mathematically (using MATLAB-style notation), predicates like `orient2d` are
+//! Mathematically, predicates like `orient2d` are
 //! defined as
-//! ```ignore
-//! orient2d([ax,ay], [bx,by], [cx,cy]) := det([ax ay 1; bx by 1; cx cy 1])
-//! ```
+//!```verbatim
+//!                                        ⎛⎡ax ay 1⎤⎞
+//!orient2d([ax,ay],[bx,by],[cx,cy]) := det⎜⎢bx by 1⎥⎟
+//!                                        ⎝⎣cx cy 1⎦⎠
+//!```
 //!
 //! It's easy to see that these predicates solve the problem of
 //! computing the determinant of small matrices with the correct sign, regardless of how
@@ -39,12 +42,34 @@
 //!
 //! For instance to compute the determinant of a matrix `[a b; c d]` with the
 //! correct sign, we can invoke
-//! ```ignore
-//! orient2d([a,b], [c,d], [0,0])
+//! ```
+//! # use geometry_predicates::orient2d;
+//! # let a = 1.0;
+//! # let b = 2.0;
+//! # let c = 3.0;
+//! # let d = 4.0;
+//! assert_eq!(orient2d([a,b], [c,d], [0.0,0.0]), a*d - b*c);
 //! ```
 //!
 //! For more details please refer to the [original
 //! webpage](https://www.cs.cmu.edu/~quake/robust.html) for these predicates.
+//!
+//! ## Caveats
+//!
+//! These predicates do NOT handle exponent overflow [\[1\]], which means inputs with floats smaller than
+//! `1e-142` or larger than `1e201` may not produce accurate results. This is true for the original
+//! predicates in `predicates.c` as well as other Rust ports and bindings for these predicates.
+//!
+//! ## References
+//!
+//!  - [\[1\] Adaptive Precision Floating-Point Arithmetic and Fast Robust Geometric Predicates][\[1\]],
+//!    Discrete & Computational Geometry 18(3):305–363, October 1997.
+//!  - [\[2\] Robust Adaptive Floating-Point Geometric Predicates Proceedings of the Twelfth Annual][\[2\]],
+//!    Symposium on Computational Geometry (Philadelphia, Pennsylvania), pages 141–150, Association for
+//!    Computing Machinery, May 1996
+//!
+//! [\[1\]]: http://www.cs.berkeley.edu/~jrs/papers/robustr.pdf
+//! [\[2\]]: http://www.cs.berkeley.edu/~jrs/papers/robust-predicates.pdf
 #![no_std]
 pub mod predicates;
 
