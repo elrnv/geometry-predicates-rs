@@ -1,5 +1,9 @@
-// f64::abs is not available in core. See https://github.com/rust-lang/rust/issues/50145
-// This implementation is identical to abs on x86 but not on arm at the time of this writing.
+/// Returns the absolute value of the given number.
+///
+/// This function exists since [`std::f64::abs`](std::f64::abs) is not available in core.
+/// See [#50145](https://github.com/rust-lang/rust/issues/50145)
+///
+/// This implementation is identical to [`std::f64::abs`](std::f64::abs) on x86 but not on ARM at the time of this writing.
 #[inline]
 pub fn abs(a: f64) -> f64 {
     f64::from_bits(a.to_bits() & 0x7FFF_FFFF_FFFF_FFFF)
@@ -25,24 +29,22 @@ struct PredicateParams {
     isperrbound_c: f64,
 }
 
-/* ***************************************************************************/
-/*  The following are constants used in exact arithmetic                     */
-/*                                                                           */
-/*  `EPSILON' is the largest power of two such that 1.0 + epsilon = 1.0 in   */
-/*  floating-point arithmetic.  `epsilon' bounds the relative roundoff       */
-/*  error.  It is used for floating-point error analysis.                    */
-/*                                                                           */
-/*  `PARAMS.splitter' is used to split floating-point numbers into two half- */
-/*  length significands for exact multiplication.                            */
-/*                                                                           */
-/*  See exactinit() for the function used to generate these.                 */
-/*                                                                           */
-/* ***************************************************************************/
 // EPSILON and PARAMS.slitter were pregenerated using exactinit on a machine with IEEE 754 floats.
 // See `exactinit` function below for details.
+
+/// The largest power of two such that 1.0 + epsilon = 1.0 in floating-point
+/// arithmetic.
+///
+/// This number bounds the relative roundoff error. It is used for
+/// floating-point error analysis.
 const EPSILON: f64 = 0.000_000_000_000_000_111_022_302_462_515_65;
 
+///  Constants used in exact arithmetic.
+///
+///  See exactinit() for the function used to generate these values.
 const PARAMS: PredicateParams = PredicateParams {
+    ///  Used to split floating-point numbers into two half-length significands
+    ///  for exact multiplication.
     splitter: 134_217_729f64,
     resulterrbound: (3.0 + 8.0 * EPSILON) * EPSILON,
     ccwerrbound_a: (3.0 + 16.0 * EPSILON) * EPSILON,
@@ -202,9 +204,11 @@ pub fn two_product(a: f64, b: f64) -> [f64; 2] {
     let x = a * b;
     [two_product_tail(a, b, x), x]
 }
-/* Two_Product_Presplit() is Two_Product() where one of the inputs has       */
-/*   already been split.  Avoids redundant splitting.                        */
 
+/// Same as [`two_product`] where one of the inputs has
+/// already been split.
+///
+/// Avoids redundant splitting.
 #[inline]
 pub fn two_product_presplit(a: f64, b: f64, bhi: f64, blo: f64) -> [f64; 2] {
     let x = a * b;
@@ -214,9 +218,11 @@ pub fn two_product_presplit(a: f64, b: f64, bhi: f64, blo: f64) -> [f64; 2] {
     let err3: f64 = err2 - ahi * blo;
     [alo * blo - err3, x]
 }
-/* Two_Product_2Presplit() is Two_Product() where both of the inputs have    */
-/*   already been split.  Avoids redundant splitting.                        */
 
+/// Same as [`two_product`] where both of the inputs have
+/// already been split.
+///
+/// Avoids redundant splitting.
 #[inline]
 pub fn two_product_2presplit(a: f64, ahi: f64, alo: f64, b: f64, bhi: f64, blo: f64) -> [f64; 2] {
     let x = a * b;
@@ -225,7 +231,6 @@ pub fn two_product_2presplit(a: f64, ahi: f64, alo: f64, b: f64, bhi: f64, blo: 
     let err3: f64 = err2 - ahi * blo;
     [alo * blo - err3, x]
 }
-/* Square() can be done more quickly than Two_Product().                     */
 
 #[inline]
 pub fn square_tail(a: f64, x: f64) -> f64 {
@@ -235,13 +240,15 @@ pub fn square_tail(a: f64, x: f64) -> f64 {
     alo * alo - err3
 }
 
+/// Squaring can be done more quickly than [`two_product`].
 #[inline]
 pub fn square(a: f64) -> [f64; 2] {
     let x = a * a;
     [square_tail(a, x), x]
 }
-/* Macros for summing expansions of various fixed lengths.  These are all    */
-/*   unrolled versions of Expansion_Sum().                                   */
+
+// Macros for summing expansions of various fixed lengths.  These are all
+// unrolled versions of expansion_sum().
 
 #[inline]
 pub fn two_one_sum(a1: f64, a0: f64, b: f64) -> [f64; 3] {
@@ -358,7 +365,7 @@ pub fn eight_four_sum(
     [x0, x1, x2, x3, x4, x5, x6, x7, x8, x9, x10, x11]
 }
 
-/* Macros for multiplying expansions of various fixed lengths. */
+// Macros for multiplying expansions of various fixed lengths.
 
 #[inline]
 pub fn two_one_product(a1: f64, a0: f64, b: f64) -> [f64; 4] {
@@ -415,9 +422,9 @@ pub fn two_two_product(a1: f64, a0: f64, b1: f64, b0: f64) -> [f64; 8] {
     [x0, x1, x2, x3, x4, x5, x6, x7]
 }
 
-/* An expansion of length two can be squared more quickly than finding the   */
-/*   product of two different expansions of length two, and the result is    */
-/*   guaranteed to have no more than six (rather than eight) components.     */
+// An expansion of length two can be squared more quickly than finding the
+// product of two different expansions of length two, and the result is
+// guaranteed to have no more than six (rather than eight) components.
 
 #[inline]
 pub fn two_square(a1: f64, a0: f64) -> [f64; 6] {
@@ -430,18 +437,14 @@ pub fn two_square(a1: f64, a0: f64) -> [f64; 6] {
     [x0, x1, x2, x3, x4, x5]
 }
 
-/* ****************************************************************************/
-/*                                                                           */
-/*  grow_expansion()   Add a scalar to an expansion.                         */
-/*                                                                           */
-/*  Sets h = e + b.  See the long version of my paper for details.           */
-/*                                                                           */
-/*  Maintains the nonoverlapping property.  If round-to-even is used (as     */
-/*  with IEEE 754), maintains the strongly nonoverlapping and nonadjacent    */
-/*  properties as well.  (That is, if e has one of these properties, so      */
-/*  will h.)                                                                 */
-/*                                                                           */
-/* ****************************************************************************/
+///  Adds a scalar to an expansion.
+///
+///  Sets `h = e + b`.  See [the paper](http://www.cs.berkeley.edu/~jrs/papers/robustr.pdf) for details.
+///
+///  Maintains the nonoverlapping property.  If round-to-even is used (as
+///  with IEEE 754), maintains the strongly nonoverlapping and nonadjacent
+///  properties as well.  (That is, if `e` has one of these properties, so
+///  will `h`.)
 #[inline]
 pub fn grow_expansion(e: &[f64], b: f64, h: &mut [f64]) -> usize {
     let mut q = b;
@@ -456,19 +459,15 @@ pub fn grow_expansion(e: &[f64], b: f64, h: &mut [f64]) -> usize {
     eindex + 1
 }
 
-/* ****************************************************************************/
-/*                                                                           */
-/*  grow_expansion_zeroelim()   Add a scalar to an expansion, eliminating    */
-/*                              zero components from the output expansion.   */
-/*                                                                           */
-/*  Sets h = e + b.  See the long version of my paper for details.           */
-/*                                                                           */
-/*  Maintains the nonoverlapping property.  If round-to-even is used (as     */
-/*  with IEEE 754), maintains the strongly nonoverlapping and nonadjacent    */
-/*  properties as well.  (That is, if e has one of these properties, so      */
-/*  will h.)                                                                 */
-/*                                                                           */
-/* ****************************************************************************/
+///  Adds a scalar to an expansion, eliminating zero components from the output
+///  expansion.
+///                                                                        
+///  Sets `h = e + b`. See [the paper](http://www.cs.berkeley.edu/~jrs/papers/robustr.pdf) for details.        
+///                                                                        
+///  Maintains the nonoverlapping property.  If round-to-even is used (as  
+///  with IEEE 754), maintains the strongly nonoverlapping and nonadjacent
+///  properties as well.  (That is, if `e` has one of these properties, so   
+///  will `h`.)
 #[inline]
 pub fn grow_expansion_zeroelim(e: &[f64], b: f64, h: &mut [f64]) -> usize {
     let mut hindex = 0;
@@ -491,200 +490,141 @@ pub fn grow_expansion_zeroelim(e: &[f64], b: f64, h: &mut [f64]) -> usize {
     }
     hindex
 }
-/* ****************************************************************************/
-/*                                                                           */
-/*  expansion_sum()   Sum two expansions.                                    */
-/*                                                                           */
-/*  Sets h = e + f.  See the long version of my paper for details.           */
-/*                                                                           */
-/*  Maintains the nonoverlapping property.  If round-to-even is used (as     */
-/*  with IEEE 754), maintains the nonadjacent property as well.  (That is,   */
-/*  if e has one of these properties, so will h.)  Does NOT maintain the     */
-/*  strongly nonoverlapping property.                                        */
-/*                                                                           */
-/* ****************************************************************************/
-/*
-pub unsafe fn expansion_sum(mut elen: i32,
-                                       mut e: *const f64,
-                                       mut flen: i32,
-                                       mut f: *const f64,
-                                       mut h: *mut f64)
- -> i32 {
-    let mut Q: f64 = 0.;
-    let mut Qnew: f64 = 0.;
-    let mut findex: i32 = 0;
-    let mut hindex: i32 = 0;
-    let mut hlast: i32 = 0;
-    let mut hnow: f64 = 0.;
-    let mut bvirt: f64 = 0.;
-    let mut avirt: f64 = 0.;
-    let mut bround: f64 = 0.;
-    let mut around: f64 = 0.;
-    Q = f[0];
-    hindex = 0 as i32;
-    while hindex < elen {
-        hnow = *e.offset(hindex as isize);
-        Two_Sum(Q, hnow, &mut Qnew, &mut *h.offset(hindex as isize));
-        Q = Qnew;
+
+///  Sums two expansions.
+///                      
+///  Sets `h = e + f`. See [the paper](http://www.cs.berkeley.edu/~jrs/papers/robustr.pdf) for details.
+///                                                                 
+///  Maintains the nonoverlapping property.  If round-to-even is used (as
+///  with IEEE 754), maintains the nonadjacent property as well.  (That is,
+///  if `e` has one of these properties, so will `h`.)  Does NOT maintain the
+///  strongly nonoverlapping property.                                  
+#[inline]
+pub fn expansion_sum(e: &[f64], f: &[f64], h: &mut [f64]) -> usize {
+    let mut q = f[0];
+    let mut hindex = 0;
+    while hindex < e.len() {
+        let [hh, qnew] = two_sum(q, e[hindex]);
+        h[hindex] = hh;
+        q = qnew;
         hindex += 1
     }
-    *h.offset(hindex as isize) = Q;
-    hlast = hindex;
-    findex = 1 as i32;
-    while findex < flen {
-        Q = *f.offset(findex as isize);
+    h[hindex] = q;
+    let mut hlast = hindex;
+    let mut findex = 1;
+    while findex < f.len() {
+        q = f[findex];
         hindex = findex;
         while hindex <= hlast {
-            hnow = *h.offset(hindex as isize);
-            Two_Sum(Q, hnow, &mut Qnew, &mut *h.offset(hindex as isize));
-            Q = Qnew;
+            let [hh, qnew] = two_sum(q, h[hindex]);
+            h[hindex] = hh;
+            q = qnew;
             hindex += 1
         }
         hlast += 1;
-        *h.offset(hlast as isize) = Q;
+        h[hlast] = q;
         findex += 1
     }
-    return hlast + 1 as i32;
+    hlast + 1
 }
-*/
-/* ****************************************************************************/
-/*                                                                           */
-/*  expansion_sum_zeroelim1()   Sum two expansions, eliminating zero         */
-/*                              components from the output expansion.        */
-/*                                                                           */
-/*  Sets h = e + f.  See the long version of my paper for details.           */
-/*                                                                           */
-/*  Maintains the nonoverlapping property.  If round-to-even is used (as     */
-/*  with IEEE 754), maintains the nonadjacent property as well.  (That is,   */
-/*  if e has one of these properties, so will h.)  Does NOT maintain the     */
-/*  strongly nonoverlapping property.                                        */
-/*                                                                           */
-/* ****************************************************************************/
-/*
-pub unsafe fn expansion_sum_zeroelim1(mut elen: i32,
-                                                 mut e: *const f64,
-                                                 mut flen: i32,
-                                                 mut f: *const f64,
-                                                 mut h: *mut f64)
- -> i32 {
-    let mut Q: f64 = 0.;
-    let mut Qnew: f64 = 0.;
-    let mut index: i32 = 0;
-    let mut findex: i32 = 0;
-    let mut hindex: i32 = 0;
-    let mut hlast: i32 = 0;
-    let mut hnow: f64 = 0.;
-    let mut bvirt: f64 = 0.;
-    let mut avirt: f64 = 0.;
-    let mut bround: f64 = 0.;
-    let mut around: f64 = 0.;
-    Q = f[0];
-    hindex = 0 as i32;
-    while hindex < elen {
-        hnow = *e.offset(hindex as isize);
-        Two_Sum(Q, hnow, &mut Qnew, &mut *h.offset(hindex as isize));
-        Q = Qnew;
+
+///  Sums two expansions, eliminating zero components from the output expansion.
+///                                                                          
+///  Sets `h = e + f`. See [the
+///  paper](http://www.cs.berkeley.edu/~jrs/papers/robustr.pdf) for details.
+///                                                                        
+///  Maintains the nonoverlapping property.  If round-to-even is used (as  
+///  with IEEE 754), maintains the nonadjacent property as well.  (That is,
+///  if `e` has one of these properties, so will `h`.)  Does NOT maintain the  
+///  strongly nonoverlapping property.                                     
+#[inline]
+pub fn expansion_sum_zeroelim1(e: &[f64], f: &[f64], h: &mut [f64]) -> usize {
+    let mut q = f[0];
+    let mut hindex = 0;
+    while hindex < e.len() {
+        let [hh, qnew] = two_sum(q, e[hindex]);
+        h[hindex] = hh;
+        q = qnew;
         hindex += 1
     }
-    *h.offset(hindex as isize) = Q;
-    hlast = hindex;
-    findex = 1 as i32;
-    while findex < flen {
-        Q = *f.offset(findex as isize);
+    h[hindex] = q;
+    let mut hlast = hindex;
+    let mut findex = 1;
+    while findex < f.len() {
+        q = f[findex];
         hindex = findex;
         while hindex <= hlast {
-            hnow = *h.offset(hindex as isize);
-            Two_Sum(Q, hnow, &mut Qnew, &mut *h.offset(hindex as isize));
-            Q = Qnew;
+            let [hh, qnew] = two_sum(q, h[hindex]);
+            h[hindex] = hh;
+            q = qnew;
             hindex += 1
         }
         hlast += 1;
-        *h.offset(hlast as isize) = Q;
+        h[hlast] = q;
         findex += 1
     }
-    hindex = -(1 as i32);
-    index = 0 as i32;
+    let mut hindex: isize = -1;
+    let mut index = 0;
     while index <= hlast {
-        hnow = *h.offset(index as isize);
-        if hnow != 0.0f64 { hindex += 1; *h.offset(hindex as isize) = hnow }
+        let hnow = h[index];
+        if hnow != 0.0 {
+            hindex += 1;
+            h[hindex as usize] = hnow
+        }
         index += 1
     }
-    if hindex == -(1 as i32) {
-        return 1 as i32
-    } else { return hindex + 1 as i32 };
+    if hindex == -1 {
+        1
+    } else {
+        hindex as usize + 1
+    }
 }
-*/
-/* ****************************************************************************/
-/*                                                                           */
-/*  expansion_sum_zeroelim2()   Sum two expansions, eliminating zero         */
-/*                              components from the output expansion.        */
-/*                                                                           */
-/*  Sets h = e + f.  See the long version of my paper for details.           */
-/*                                                                           */
-/*  Maintains the nonoverlapping property.  If round-to-even is used (as     */
-/*  with IEEE 754), maintains the nonadjacent property as well.  (That is,   */
-/*  if e has one of these properties, so will h.)  Does NOT maintain the     */
-/*  strongly nonoverlapping property.                                        */
-/*                                                                           */
-/* ****************************************************************************/
-/*
-pub unsafe fn expansion_sum_zeroelim2(mut elen: i32,
-                                                 mut e: *const f64,
-                                                 mut flen: i32,
-                                                 mut f: *const f64,
-                                                 mut h: *mut f64)
- -> i32 {
-    let mut Q: f64 = 0.;
-    let mut hh: f64 = 0.;
-    let mut Qnew: f64 = 0.;
-    let mut eindex: i32 = 0;
-    let mut findex: i32 = 0;
-    let mut hindex: i32 = 0;
-    let mut hlast: i32 = 0;
-    let mut enow: f64 = 0.;
-    let mut bvirt: f64 = 0.;
-    let mut avirt: f64 = 0.;
-    let mut bround: f64 = 0.;
-    let mut around: f64 = 0.;
-    hindex = 0 as i32;
-    Q = f[0];
-    eindex = 0 as i32;
-    while eindex < elen {
-        enow = *e.offset(eindex as isize);
-        Two_Sum(Q, enow, &mut Qnew, &mut hh);
-        Q = Qnew;
-        if hh != 0.0f64 {
-            let fresh2 = hindex;
-            hindex = hindex + 1;
-            *h.offset(fresh2 as isize) = hh
+///  Sums two expansions, eliminating zero components from the output expansion.
+///                                                                        
+///  Sets `h = e + f`. See [the
+///  paper](http://www.cs.berkeley.edu/~jrs/papers/robustr.pdf) for details.
+///                                                                        
+///  Maintains the nonoverlapping property.  If round-to-even is used (as  
+///  with IEEE 754), maintains the nonadjacent property as well.  (That is,
+///  if `e` has one of these properties, so will `h`.)  Does NOT maintain the  
+///  strongly nonoverlapping property.                                     
+#[inline]
+pub fn expansion_sum_zeroelim2(e: &[f64], f: &[f64], h: &mut [f64]) -> usize {
+    let mut hindex = 0;
+    let mut q = f[0];
+    let mut eindex = 0;
+    while eindex < e.len() {
+        let [hh, qnew] = two_sum(q, e[eindex]);
+        q = qnew;
+        if hh != 0.0 {
+            h[hindex] = hh;
+            hindex += 1;
         }
         eindex += 1
     }
-    *h.offset(hindex as isize) = Q;
-    hlast = hindex;
-    findex = 1 as i32;
-    while findex < flen {
-        hindex = 0 as i32;
-        Q = *f.offset(findex as isize);
-        eindex = 0 as i32;
+    h[hindex] = q;
+    let mut hlast = hindex;
+    let mut findex = 1;
+    while findex < f.len() {
+        hindex = 0;
+        q = f[findex];
+        eindex = 0;
         while eindex <= hlast {
-            enow = *h.offset(eindex as isize);
-            Two_Sum(Q, enow, &mut Qnew, &mut hh);
-            Q = Qnew;
-            if hh != 0 as i32 as f64 {
-                let fresh3 = hindex;
-                hindex = hindex + 1;
-                *h.offset(fresh3 as isize) = hh
+            let [hh, qnew] = two_sum(q, h[eindex]);
+            q = qnew;
+            if hh != 0.0 {
+                h[hindex] = hh;
+                hindex += 1;
             }
             eindex += 1
         }
-        *h.offset(hindex as isize) = Q;
+        h[hindex] = q;
         hlast = hindex;
         findex += 1
     }
-    return hlast + 1 as i32;
+    hlast + 1
 }
-*/
+
 /* ****************************************************************************/
 /*                                                                           */
 /*  fast_expansion_sum()   Sum two expansions.                               */
@@ -773,20 +713,16 @@ pub unsafe fn fast_expansion_sum(mut elen: i32,
     return hindex + 1 as i32;
 }
 */
-/* ****************************************************************************/
-/*                                                                           */
-/*  fast_expansion_sum_zeroelim()   Sum two expansions, eliminating zero     */
-/*                                  components from the output expansion.    */
-/*                                                                           */
-/*  Sets h = e + f.  See the long version of my paper for details.           */
-/*                                                                           */
-/*  If round-to-even is used (as with IEEE 754), maintains the strongly      */
-/*  nonoverlapping property.  (That is, if e is strongly nonoverlapping, h   */
-/*  will be also.)  Does NOT maintain the nonoverlapping or nonadjacent      */
-/*  properties.                                                              */
-/*                                                                           */
-/* ****************************************************************************/
 
+///  Sums two expansions, eliminating zero components from the output expansion.
+///                                                                        
+///  Sets `h = e + f`.  See [the
+///  paper](http://www.cs.berkeley.edu/~jrs/papers/robustr.pdf) for details.
+///                                                                        
+///  If round-to-even is used (as with IEEE 754), maintains the strongly   
+///  nonoverlapping property.  (That is, if `e` is strongly nonoverlapping, `h`
+///  will be also.)  Does NOT maintain the nonoverlapping or nonadjacent   
+///  properties.                                                           
 #[inline]
 pub fn fast_expansion_sum_zeroelim(e: &[f64], f: &[f64], h: &mut [f64]) -> usize {
     let mut q;
@@ -1106,21 +1042,18 @@ pub unsafe fn scale_expansion(mut elen: i32,
 }
 */
 
-/* ****************************************************************************/
-/*                                                                           */
-/*  scale_expansion_zeroelim()   Multiply an expansion by a scalar,          */
-/*                               eliminating zero components from the        */
-/*                               output expansion.                           */
-/*                                                                           */
-/*  Sets h = be.  See either version of my paper for details.                */
-/*                                                                           */
-/*  Maintains the nonoverlapping property.  If round-to-even is used (as     */
-/*  with IEEE 754), maintains the strongly nonoverlapping and nonadjacent    */
-/*  properties as well.  (That is, if e has one of these properties, so      */
-/*  will h.)                                                                 */
-/*                                                                           */
-/* ****************************************************************************/
-
+///  Multiply an expansion by a scalar, eliminating zero components from the
+///  output expansion.
+///                                                                       
+///  Sets `h = be`. See either [\[1\]] or [\[2\]] for details.
+///                                                                       
+///  Maintains the nonoverlapping property.  If round-to-even is used (as
+///  with IEEE 754), maintains the strongly nonoverlapping and nonadjacent
+///  properties as well.  (That is, if `e` has one of these properties, so  
+///  will `h`.)                                                             
+///
+/// [\[1\]]: http://www.cs.berkeley.edu/~jrs/papers/robustr.pdf
+/// [\[2\]]: http://www.cs.berkeley.edu/~jrs/papers/robust-predicates.pdf
 pub fn scale_expansion_zeroelim(e: &[f64], b: f64, h: &mut [f64]) -> usize {
     let [blo, bhi] = split(b);
     let [hh, mut q] = two_product_presplit(e[0], b, bhi, blo);
@@ -1212,18 +1145,6 @@ pub unsafe fn compress(mut elen: i32,
     return top + 1 as i32;
 }
 */
-/* ****************************************************************************/
-/*                                                                           */
-/*  estimate()   Produce a one-word estimate of an expansion's value.        */
-/*                                                                           */
-/*  See either version of my paper for details.                              */
-/*                                                                           */
-/* ****************************************************************************/
-
-#[inline]
-pub fn estimate(e: &[f64]) -> f64 {
-    e.iter().sum()
-}
 
 /* ****************************************************************************/
 /*                                                                           */
@@ -1251,7 +1172,7 @@ pub fn estimate(e: &[f64]) -> f64 {
 /*                                                                           */
 /* ****************************************************************************/
 
-/// Approximate 2D orientation test. Non-robust version of `orient2d`.
+/// Approximate 2D orientation test. Non-robust version of [`orient2d`].
 #[inline]
 pub fn orient2d_fast(pa: [f64; 2], pb: [f64; 2], pc: [f64; 2]) -> f64 {
     let acx = pa[0] - pc[0];
@@ -1303,7 +1224,7 @@ pub fn orient2dadapt(pa: [f64; 2], pb: [f64; 2], pc: [f64; 2], detsum: f64) -> f
     let [detlefttail, detleft] = two_product(acx, bcy);
     let [detrighttail, detright] = two_product(acy, bcx);
     let b = two_two_diff(detleft, detlefttail, detright, detrighttail);
-    let mut det = estimate(&b);
+    let mut det: f64 = b.iter().sum();
     let errbound = PARAMS.ccwerrbound_b * detsum;
     if det >= errbound || -det >= errbound {
         return det;
@@ -1410,7 +1331,7 @@ pub fn orient2d(pa: [f64; 2], pb: [f64; 2], pc: [f64; 2]) -> f64 {
 /*                                                                           */
 /* ****************************************************************************/
 
-/// Approximate 3D orientation test. Non-robust version of `orient3d`.
+/// Approximate 3D orientation test. Non-robust version of [`orient3d`].
 #[inline]
 pub fn orient3d_fast(pa: [f64; 3], pb: [f64; 3], pc: [f64; 3], pd: [f64; 3]) -> f64 {
     let adx = pa[0] - pd[0];
@@ -1568,7 +1489,7 @@ pub fn orient3dadapt(
     let mut fin1 = [0.; 192];
     let mut finlength = fast_expansion_sum_zeroelim(&abdet[..ablen], &cdet[..clen], &mut fin1);
 
-    let mut det = estimate(&fin1[..finlength]);
+    let mut det: f64 = fin1[..finlength].iter().sum();
     let errbound = PARAMS.o3derrbound_b * permanent;
     if det >= errbound || -det >= errbound {
         return det;
@@ -1895,7 +1816,7 @@ pub fn orient3dadapt(
 /**
  * Adaptive exact 3D orientation test. Robust.
  *
- * Return a positive value if the point `pd` lies below the
+ * Returns a positive value if the point `pd` lies below the
  * plane passing through `pa`, `pb`, and `pc`; "below" is defined so
  * that `pa`, `pb`, and `pc` appear in counterclockwise order when
  * viewed from above the plane.  Returns a negative value if
@@ -1965,7 +1886,7 @@ pub fn orient3d(pa: [f64; 3], pb: [f64; 3], pc: [f64; 3], pd: [f64; 3]) -> f64 {
 /*                                                                           */
 /* ****************************************************************************/
 
-/// Approximate 2D incircle test. Non-robust version of `incircle`
+/// Approximate 2D incircle test. Non-robust version of [`incircle`].
 #[inline]
 pub fn incircle_fast(pa: [f64; 2], pb: [f64; 2], pc: [f64; 2], pd: [f64; 2]) -> f64 {
     let adx = pa[0] - pd[0];
@@ -2246,7 +2167,7 @@ pub fn incircleadapt(
     let clen = fast_expansion_sum_zeroelim(&cxxab[..cxxablen], &cyyab[..cyyablen], &mut cdet);
     let ablen = fast_expansion_sum_zeroelim(&adet[..alen], &bdet[..blen], &mut abdet);
     let mut finlength = fast_expansion_sum_zeroelim(&abdet[..ablen], &cdet[..clen], &mut fin1);
-    let mut det = estimate(&fin1[..finlength]);
+    let mut det: f64 = fin1[..finlength].iter().sum();
     let errbound = PARAMS.iccerrbound_b * permanent;
     if det >= errbound || -det >= errbound {
         return det;
@@ -2771,7 +2692,7 @@ pub fn incircleadapt(
 }
 
 /**
- * Adaptive exaact 2D incircle test. Robust.
+ * Adaptive exact 2D incircle test. Robust.
  *
  * Return a positive value if the point `pd` lies inside the
  * circle passing through `pa`, `pb`, and `pc`; a negative value if
@@ -2841,7 +2762,7 @@ pub fn incircle(pa: [f64; 2], pb: [f64; 2], pc: [f64; 2], pd: [f64; 2]) -> f64 {
 /*                                                                           */
 /* ****************************************************************************/
 
-/// Approximate 3D insphere test. Non-robust version of `insphere`
+/// Approximate 3D insphere test. Non-robust version of [`insphere`].
 #[inline]
 pub fn insphere_fast(pa: [f64; 3], pb: [f64; 3], pc: [f64; 3], pd: [f64; 3], pe: [f64; 3]) -> f64 {
     let aex = pa[0] - pe[0];
@@ -3450,7 +3371,7 @@ pub fn insphereadapt(
     let ablen = fast_expansion_sum_zeroelim(&adet[..alen], &bdet[..blen], &mut abdet);
     let cdlen = fast_expansion_sum_zeroelim(&cdet[..clen], &ddet[..dlen], &mut cddet);
     let finlength = fast_expansion_sum_zeroelim(&abdet[..ablen], &cddet[..cdlen], &mut fin1);
-    let mut det = estimate(&fin1[..finlength]);
+    let mut det: f64 = fin1[..finlength].iter().sum();
     let errbound = PARAMS.isperrbound_b * permanent;
     if det >= errbound || -det >= errbound {
         return det;

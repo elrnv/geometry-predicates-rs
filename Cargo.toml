@@ -1,6 +1,6 @@
 [package]
 name = "geometry-predicates"
-version = "0.2.1"
+version = "0.3.0"
 authors = ["Egor Larionov <egor.larionov@gmail.com>"]
 license = "MIT"
 description = "A Rust port of robust geometric predicates"

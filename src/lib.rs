@@ -80,13 +80,13 @@ mod transpiled;
 // There are other alternative robust implementations (but typically slower) of these predicates.
 // We use those to check the adaptive implementations.
 pub use predicates::{
+    // Adaptive robust predicates.
     incircle,
+    // Fast inexact predicates.
     incircle_fast,
     insphere,
     insphere_fast,
-    // Adaptive robust predicates.
     orient2d,
-    // Fast inexact predicates.
     orient2d_fast,
     orient3d,
     orient3d_fast,
